@@ -1,0 +1,71 @@
+# Congress.gov policy-area vocabulary: the 32 terms CRS assigns to every bill and resolution.
+# Verified against https://www.congress.gov/help/field-values/policy-area on 2026-10-16.
+# Ids are kebab-case names. Legacy terms found on older bills are added by the
+# govinfo-billstatus loader from the source data itself.
+schema_version: 1
+source_url: https://www.congress.gov/help/field-values/policy-area
+areas:
+  - id: agriculture-and-food
+    name: Agriculture and Food
+  - id: animals
+    name: Animals
+  - id: armed-forces-and-national-security
+    name: Armed Forces and National Security
+  - id: arts-culture-religion
+    name: "Arts, Culture, Religion"
+  - id: civil-rights-and-liberties-minority-issues
+    name: "Civil Rights and Liberties, Minority Issues"
+  - id: commerce
+    name: Commerce
+  - id: congress
+    name: Congress
+  - id: crime-and-law-enforcement
+    name: Crime and Law Enforcement
+  - id: economics-and-public-finance
+    name: Economics and Public Finance
+  - id: education
+    name: Education
+  - id: emergency-management
+    name: Emergency Management
+  - id: energy
+    name: Energy
+  - id: environmental-protection
+    name: Environmental Protection
+  - id: families
+    name: Families
+  - id: finance-and-financial-sector
+    name: Finance and Financial Sector
+  - id: foreign-trade-and-international-finance
+    name: Foreign Trade and International Finance
+  - id: government-operations-and-politics
+    name: Government Operations and Politics
+  - id: health
+    name: Health
+  - id: housing-and-community-development
+    name: Housing and Community Development
+  - id: immigration
+    name: Immigration
+  - id: international-affairs
+    name: International Affairs
+  - id: labor-and-employment
+    name: Labor and Employment
+  - id: law
+    name: Law
+  - id: native-americans
+    name: Native Americans
+  - id: public-lands-and-natural-resources
+    name: Public Lands and Natural Resources
+  - id: science-technology-communications
+    name: "Science, Technology, Communications"
+  - id: social-sciences-and-history
+    name: Social Sciences and History
+  - id: social-welfare
+    name: Social Welfare
+  - id: sports-and-recreation
+    name: Sports and Recreation
+  - id: taxation
+    name: Taxation
+  - id: transportation-and-public-works
+    name: Transportation and Public Works
+  - id: water-resources-development
+    name: Water Resources Development

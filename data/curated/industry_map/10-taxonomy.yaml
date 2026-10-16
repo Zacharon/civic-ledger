@@ -1,0 +1,68 @@
+# In-house industry taxonomy for coding FEC committees (DECISIONS A3, A8).
+# Industries describe the sponsoring organization's line of business or the committee's
+# FEC role. They say nothing about how a committee or its recipients vote.
+schema_version: 1
+industries:
+  # Agribusiness
+  - { id: crop-production, name: "Crop Production & Processing", sector: "Agribusiness" }
+  - { id: livestock-dairy, name: "Livestock, Poultry & Dairy", sector: "Agribusiness" }
+  - { id: agricultural-services, name: "Agricultural Services & Farm Organizations", sector: "Agribusiness" }
+  - { id: food-beverage, name: "Food & Beverage Manufacturing", sector: "Agribusiness" }
+  - { id: tobacco, name: "Tobacco", sector: "Agribusiness" }
+  # Communications & Electronics
+  - { id: telecommunications, name: "Telecommunications & Cable", sector: "Communications & Electronics" }
+  - { id: media-entertainment, name: "TV, Movies, Music & Publishing", sector: "Communications & Electronics" }
+  - { id: technology, name: "Computers, Software & Internet", sector: "Communications & Electronics" }
+  # Construction
+  - { id: construction, name: "Contractors & Construction Services", sector: "Construction" }
+  - { id: home-builders, name: "Home Builders", sector: "Construction" }
+  - { id: building-materials, name: "Building Materials & Equipment", sector: "Construction" }
+  - { id: engineering-architecture, name: "Engineering & Architecture", sector: "Construction" }
+  # Defense
+  - { id: defense-aerospace, name: "Defense & Aerospace", sector: "Defense" }
+  # Energy & Natural Resources
+  - { id: oil-gas, name: "Oil & Gas", sector: "Energy & Natural Resources" }
+  - { id: electric-utilities, name: "Electric Utilities", sector: "Energy & Natural Resources" }
+  - { id: mining, name: "Mining", sector: "Energy & Natural Resources" }
+  - { id: environmental-services, name: "Waste Management & Environmental Services", sector: "Energy & Natural Resources" }
+  # Finance, Insurance & Real Estate
+  - { id: banking, name: "Banks & Credit Unions", sector: "Finance, Insurance & Real Estate" }
+  - { id: securities-investment, name: "Securities & Investment", sector: "Finance, Insurance & Real Estate" }
+  - { id: finance-credit, name: "Payments, Credit & Consumer Finance", sector: "Finance, Insurance & Real Estate" }
+  - { id: insurance, name: "Insurance", sector: "Finance, Insurance & Real Estate" }
+  - { id: real-estate, name: "Real Estate", sector: "Finance, Insurance & Real Estate" }
+  - { id: accounting, name: "Accountants", sector: "Finance, Insurance & Real Estate" }
+  # Health
+  - { id: health-professionals, name: "Health Professionals", sector: "Health" }
+  - { id: hospitals-care, name: "Hospitals, Nursing & Care Providers", sector: "Health" }
+  - { id: pharmaceuticals, name: "Pharmaceuticals & Medical Products", sector: "Health" }
+  - { id: health-insurance, name: "Health Insurance & Health Services", sector: "Health" }
+  # Lawyers & Lobbyists
+  - { id: lawyers-lobbyists, name: "Lawyers, Law Firms & Lobbyists", sector: "Lawyers & Lobbyists" }
+  # Transportation
+  - { id: air-transport, name: "Air Transport", sector: "Transportation" }
+  - { id: railroads, name: "Railroads", sector: "Transportation" }
+  - { id: trucking-delivery, name: "Trucking, Freight & Delivery", sector: "Transportation" }
+  - { id: automotive, name: "Automotive", sector: "Transportation" }
+  - { id: sea-transport, name: "Sea Transport & Boating", sector: "Transportation" }
+  # Misc Business
+  - { id: retail, name: "Retail, Restaurants & Franchising", sector: "Misc Business" }
+  - { id: beer-wine-liquor, name: "Beer, Wine & Liquor", sector: "Misc Business" }
+  - { id: lodging-tourism, name: "Lodging & Tourism", sector: "Misc Business" }
+  - { id: manufacturing-chemicals, name: "Manufacturing & Chemicals", sector: "Misc Business" }
+  - { id: business-associations, name: "General Business Associations", sector: "Misc Business" }
+  - { id: firearms-industry, name: "Firearms & Ammunition Industry", sector: "Misc Business" }
+  # Labor
+  - { id: labor-unions, name: "Labor Unions", sector: "Labor" }
+  - { id: public-employee-associations, name: "Public Employee & Retiree Associations", sector: "Labor" }
+  # Single-issue membership groups (named by the issue they state, not by a position)
+  - { id: issue-israel, name: "Single-issue: U.S.-Israel Policy", sector: "Single-Issue Groups" }
+  - { id: issue-firearms, name: "Single-issue: Firearms Policy", sector: "Single-Issue Groups" }
+  - { id: issue-environment, name: "Single-issue: Environmental Policy", sector: "Single-Issue Groups" }
+  - { id: issue-women-candidates, name: "Single-issue: Electing Women", sector: "Single-Issue Groups" }
+  - { id: issue-abortion, name: "Single-issue: Abortion Policy", sector: "Single-Issue Groups" }
+  # FEC committee roles (from FEC codes, not industries of a sponsor)
+  - { id: leadership-pacs, name: "Leadership PACs", sector: "Party & Candidate Committees" }
+  - { id: candidate-committees, name: "Candidate Committees", sector: "Party & Candidate Committees" }
+  - { id: party-committees, name: "Party Committees", sector: "Party & Candidate Committees" }
+  - { id: joint-fundraising, name: "Joint Fundraising Committees", sector: "Party & Candidate Committees" }

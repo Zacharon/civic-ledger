@@ -1,0 +1,196 @@
+# Generic keyword rules, applied after FEC codes and named organizations. A keyword says
+# what a sponsor does ("BANKERS", "HOSPITAL"), so confidence is lower (0.7). Labor and
+# public-employee words run first so, e.g., "United Food and Commercial Workers" is coded
+# as labor, not food. A committee no rule matches stays "not coded": never guessed.
+schema_version: 1
+rules:
+  - id: labor-keywords
+    industry: labor-unions
+    field: any_name
+    any_of: [AFL CIO, TEAMSTERS, SEIU, BROTHERHOOD, INTERNATIONAL UNION, AUTO WORKERS, COMMUNICATIONS WORKERS, ELECTRICAL WORKERS, COMMERCIAL WORKERS, TRANSPORTATION WORKERS, MINE WORKERS, FARM WORKERS, IRON WORKERS, IRONWORKERS, STEELWORKERS, LABORERS, MACHINISTS, BOILERMAKERS, PLUMBERS, PIPEFITTERS, OPERATING ENGINEERS, AFSCME, AMERICAN FEDERATION OF TEACHERS, NATIONAL EDUCATION ASSOCIATION, BRICKLAYERS, UNITE HERE, AIR LINE PILOTS, FLIGHT ATTENDANTS, NURSES UNITED, BUILDING TRADES, CONSTRUCTION TRADES, TRANSPORTATION TRADES]
+    confidence: 0.7
+  - id: public-employee-keywords
+    industry: public-employee-associations
+    field: any_name
+    any_of: [FEDERAL EMPLOYEES, POSTAL, POLICE, FIRE FIGHTERS, FIREFIGHTERS, SHERIFFS, CORRECTIONS OFFICERS, BORDER PATROL]
+    confidence: 0.7
+  - id: health-professional-keywords
+    industry: health-professionals
+    field: any_name
+    any_of: [PHYSICIANS, OBSTETRICIANS, GYNECOLOGISTS, OB GYN, OB GYNS, MEDICAL ASSOCIATION, MEDICAL SOCIETY, DENTAL, DENTISTS, OPTOMETRIC, OPTOMETRISTS, ANESTHESIOLOGISTS, NURSE ANESTHETISTS, NURSE PRACTITIONERS, NURSES, SURGEONS, RADIOLOGY, DERMATOLOGY, ORTHOPAEDIC, ORTHOPEDIC, OPHTHALMOLOGY, CARDIOLOGY, EMERGENCY MEDICINE, PHYSICAL THERAPY, CHIROPRACTIC, PHARMACISTS, PODIATRIC, UROLOGY, UROLOGICAL, ONCOLOGY, PSYCHIATRIC, PSYCHOLOGICAL, OSTEOPATHIC, PEDIATRICS, AUDIOLOGY, PATHOLOGISTS, GASTROENTEROLOGY, OTOLARYNGOLOGY, NEUROLOGY, RHEUMATOLOGY, ENDOCRINOLOGISTS, PHYSICIAN ASSISTANTS, VETERINARY]
+    confidence: 0.7
+  - id: hospital-keywords
+    industry: hospitals-care
+    field: any_name
+    any_of: [HOSPITAL, HOSPITALS, HEALTH SYSTEM, NURSING HOME, NURSING HOMES, HOME CARE, HOSPICE, DIALYSIS, AMBULANCE, SENIOR LIVING, ASSISTED LIVING, HEALTHCARE SERVICES]
+    confidence: 0.7
+  - id: pharmaceutical-keywords
+    industry: pharmaceuticals
+    field: any_name
+    any_of: [PHARMACEUTICAL, PHARMACEUTICALS, PHARMA, BIOTECHNOLOGY, BIOSCIENCES, THERAPEUTICS, MEDICAL DEVICE, MEDICAL DEVICES, LABORATORIES, DIAGNOSTICS]
+    confidence: 0.7
+  - id: health-insurance-keywords
+    industry: health-insurance
+    field: any_name
+    any_of: [HEALTH PLAN, HEALTH PLANS, PHARMACY BENEFIT]
+    confidence: 0.7
+  - id: banking-keywords
+    industry: banking
+    field: any_name
+    any_of: [BANK, BANKS, BANKERS, BANKING, BANCORP, BANCSHARES, CREDIT UNION, CREDIT UNIONS, SAVINGS]
+    confidence: 0.7
+  - id: securities-keywords
+    industry: securities-investment
+    field: any_name
+    any_of: [SECURITIES, ASSET MANAGEMENT, CAPITAL MANAGEMENT, INVESTMENTS, PRIVATE EQUITY, VENTURE CAPITAL, STOCK EXCHANGE, FUTURES]
+    confidence: 0.7
+  - id: insurance-keywords
+    industry: insurance
+    field: any_name
+    any_of: [INSURANCE, INSURERS, REINSURANCE, UNDERWRITERS, ANNUITY]
+    confidence: 0.7
+  - id: real-estate-keywords
+    industry: real-estate
+    field: any_name
+    any_of: [REALTORS, REAL ESTATE, APARTMENT, MULTIFAMILY, MORTGAGE, REALTY, LAND TITLE, PROPERTY MANAGEMENT, COMMERCIAL REAL ESTATE, HOUSING COUNCIL]
+    confidence: 0.7
+  - id: accounting-keywords
+    industry: accounting
+    field: any_name
+    any_of: [ACCOUNTANTS, CPAS]
+    confidence: 0.7
+  - id: legal-keywords
+    industry: lawyers-lobbyists
+    field: any_name
+    any_of: [TRIAL LAWYERS, ATTORNEYS, LAW FIRM, LOBBYISTS]
+    confidence: 0.7
+  - id: air-transport-keywords
+    industry: air-transport
+    field: any_name
+    any_of: [AIRLINES, AIRLINE, AVIATION, AIRPORT, AIRPORTS, AIR TRANSPORT]
+    confidence: 0.7
+  - id: railroad-keywords
+    industry: railroads
+    field: any_name
+    any_of: [RAILROAD, RAILROADS, RAILWAY, RAILWAYS]
+    confidence: 0.7
+  - id: trucking-keywords
+    industry: trucking-delivery
+    field: any_name
+    any_of: [TRUCKING, TRUCKERS, FREIGHT, LOGISTICS, MOVING AND STORAGE]
+    confidence: 0.7
+  - id: automotive-keywords
+    industry: automotive
+    field: any_name
+    any_of: [AUTOMOBILE, AUTOMOTIVE, AUTO DEALERS, MOTOR VEHICLE, TIRE]
+    confidence: 0.7
+  - id: sea-transport-keywords
+    industry: sea-transport
+    field: any_name
+    any_of: [MARITIME, SHIPBUILDERS, SHIPBUILDING, SHIPPING, BOATING, WATERWAYS OPERATORS, PORT AUTHORITIES]
+    confidence: 0.7
+  - id: oil-gas-keywords
+    industry: oil-gas
+    field: any_name
+    any_of: [PETROLEUM, OIL, NATURAL GAS, PIPELINE, PIPELINES, PROPANE, REFINING, REFINERS, PETROCHEMICAL]
+    confidence: 0.7
+  - id: electric-keywords
+    industry: electric-utilities
+    field: any_name
+    any_of: [ELECTRIC, ELECTRICITY, UTILITY, UTILITIES, NUCLEAR, ELECTRIC COOPERATIVE, POWER COOPERATIVE]
+    confidence: 0.7
+  - id: mining-keywords
+    industry: mining
+    field: any_name
+    any_of: [MINING, COAL, MINERALS]
+    confidence: 0.7
+  - id: environmental-services-keywords
+    industry: environmental-services
+    field: any_name
+    any_of: [WASTE MANAGEMENT, SOLID WASTE, WASTE SERVICES, WASTE LLC, RECYCLING, WATER WORKS]
+    confidence: 0.7
+  - id: telecom-keywords
+    industry: telecommunications
+    field: any_name
+    any_of: [TELECOMMUNICATIONS, TELECOM, TELEPHONE, WIRELESS, BROADBAND, CABLE]
+    confidence: 0.7
+  - id: media-keywords
+    industry: media-entertainment
+    field: any_name
+    any_of: [BROADCASTERS, BROADCASTING, TELEVISION, PUBLISHERS, NEWSPAPER, NEWSPAPERS, ENTERTAINMENT, STUDIOS]
+    confidence: 0.7
+  - id: technology-keywords
+    industry: technology
+    field: any_name
+    any_of: [SOFTWARE, SEMICONDUCTOR, SEMICONDUCTORS, COMPUTER, COMPUTING, INTERNET, TECHNOLOGY, TECHNOLOGIES]
+    confidence: 0.6
+  - id: home-builder-keywords
+    industry: home-builders
+    field: any_name
+    any_of: [HOMEBUILDERS, HOME BUILDERS]
+    confidence: 0.7
+  - id: construction-keywords
+    industry: construction
+    field: any_name
+    any_of: [CONTRACTORS, CONSTRUCTION, BUILDERS, PAVING, ROOFING, PLUMBING HEATING COOLING]
+    confidence: 0.7
+  - id: building-materials-keywords
+    industry: building-materials
+    field: any_name
+    any_of: [CEMENT, CONCRETE, AGGREGATES, LUMBER, ASPHALT, GYPSUM]
+    confidence: 0.7
+  - id: engineering-keywords
+    industry: engineering-architecture
+    field: any_name
+    any_of: [ENGINEERING, ARCHITECTS, SURVEYORS]
+    confidence: 0.7
+  - id: crop-keywords
+    industry: crop-production
+    field: any_name
+    any_of: [SUGAR, SUGARBEET, SUGAR BEET, CORN, COTTON, WHEAT, RICE, SOYBEAN, SOYBEANS, PEANUT, PEANUTS, POTATO, CITRUS, GROWERS, SORGHUM, CANE, FRUIT, VEGETABLE, GRAIN]
+    confidence: 0.7
+  - id: livestock-keywords
+    industry: livestock-dairy
+    field: any_name
+    any_of: [CATTLE, CATTLEMEN, CATTLEMEN S, BEEF, PORK, POULTRY, CHICKEN, EGG, DAIRY, MILK, LIVESTOCK, MEAT]
+    confidence: 0.7
+  - id: agricultural-keywords
+    industry: agricultural-services
+    field: any_name
+    any_of: [FARM BUREAU, FARMERS, FARM, AGRICULTURAL, AGRICULTURE, FERTILIZER, AGRIBUSINESS, AG RETAILERS]
+    confidence: 0.7
+  - id: food-keywords
+    industry: food-beverage
+    field: any_name
+    any_of: [FOOD, FOODS, BEVERAGE, BEVERAGES, BAKERS, BAKING, SNACK]
+    confidence: 0.7
+  - id: alcohol-keywords
+    industry: beer-wine-liquor
+    field: any_name
+    any_of: [BEER, WINE, SPIRITS, BREWERS, DISTILLERS, WINERIES]
+    confidence: 0.7
+  - id: tobacco-keywords
+    industry: tobacco
+    field: any_name
+    any_of: [TOBACCO, CIGAR, CIGARS, VAPOR]
+    confidence: 0.7
+  - id: lodging-keywords
+    industry: lodging-tourism
+    field: any_name
+    any_of: [HOTEL, HOTELS, LODGING, RESORT, RESORTS, TRAVEL, TOURISM, GAMING, CASINO, CASINOS]
+    confidence: 0.7
+  - id: retail-keywords
+    industry: retail
+    field: any_name
+    any_of: [FRANCHISEES, RETAIL, RETAILERS, STORES, GROCERS, GROCERY, RESTAURANT, RESTAURANTS, FRANCHISE, FRANCHISING, CONVENIENCE]
+    confidence: 0.7
+  - id: manufacturing-keywords
+    industry: manufacturing-chemicals
+    field: any_name
+    any_of: [MANUFACTURERS, MANUFACTURING, CHEMICAL, CHEMICALS, CHEMISTRY, STEEL, PAPER, PLASTICS, ALUMINUM, MACHINERY, INDUSTRIES]
+    confidence: 0.6
+  - id: business-association-keywords
+    industry: business-associations
+    field: any_name
+    any_of: [CHAMBER OF COMMERCE, BUSINESS COUNCIL, INDEPENDENT BUSINESS]
+    confidence: 0.7

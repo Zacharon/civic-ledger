@@ -18,7 +18,17 @@ const cents = (name: string) => bigint(name, { mode: 'number' });
 export const SUPPORT_OPPOSE = ['support', 'oppose'] as const;
 export const supportOppose = pgEnum('support_oppose', SUPPORT_OPPOSE);
 
-export const INDUSTRY_CODING_METHODS = ['curated', 'connected_org', 'name_rule'] as const;
+/**
+ * `curated`: committee listed by hand; `connected_org` / `name_rule`: keyword rule on the
+ * FEC connected organization / committee name; `fec_code`: rule on an FEC code such as
+ * designation D (leadership PAC) or organization type L (labor).
+ */
+export const INDUSTRY_CODING_METHODS = [
+  'curated',
+  'connected_org',
+  'name_rule',
+  'fec_code',
+] as const;
 export const industryCodingMethod = pgEnum('industry_coding_method', INDUSTRY_CODING_METHODS);
 
 /** FEC committee master (`cm`). */
@@ -31,6 +41,8 @@ export const committee = pgTable(
     committeeType: text('committee_type'),
     designation: text('designation'),
     party: text('party'),
+    /** FEC ORG_TP of the connected organization: C, L, M, T, V, W (see DATA_SOURCES.md). */
+    organizationType: text('organization_type'),
     connectedOrganization: text('connected_organization'),
     ...provenanceColumns(),
   },
