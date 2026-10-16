@@ -19,7 +19,9 @@ const program = new Command('ingest:report')
   .option('--db <dir>', 'PGlite data directory (default: $DATABASE_URL, else .pglite/dev)')
   .action(async (opts: { congress: number; cycle: number; db?: string }) => {
     const handle = createDb(
-      opts.db ? { kind: 'pglite', dataDir: resolve(opts.db) } : dbConfigFromEnv(),
+      opts.db
+        ? { kind: 'pglite', dataDir: resolve(opts.db) }
+        : dbConfigFromEnv(process.env, { readOnly: true }),
     );
     try {
       console.log(

@@ -21,6 +21,7 @@ export const curatedAdapter: SourceAdapter<CuratedRecord> = {
   version: 'curated@1',
   dependsOn: ['congress-legislators', 'voteview', 'fec-bulk', 'govinfo-billstatus'],
   scopes: ['all'],
+  guardShrink: false,
   async plan(scope, ctx) {
     const root = ctx.snapshotPath ?? join(ctx.repoRoot, 'data', 'curated');
     const files = await listCuratedFiles(root);

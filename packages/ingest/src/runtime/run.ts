@@ -24,6 +24,14 @@ import {
   updateRun,
 } from './ledger';
 import { tryAcquireSourceLock } from './lock';
+import {
+  countSourceRows,
+  DEFAULT_SHRINK_GUARD,
+  evaluateShrink,
+  previousRunCounts,
+  type ShrinkGuardConfig,
+  ShrinkGuardError,
+} from './shrink-guard';
 import { fetchSnapshot, snapshotFromDirectory } from './snapshot';
 
 export type AdapterRegistry = Partial<Record<SourceId, SourceAdapter<unknown>>>;
@@ -38,6 +46,8 @@ export interface IngestRuntime {
   http?: HttpDeps;
   signal?: AbortSignal;
   refreshReadModel?: (db: Db) => Promise<void>;
+  /** Truncation guard thresholds and the `--allow-shrink` override. */
+  shrinkGuard?: ShrinkGuardConfig;
 }
 
 /**
@@ -46,9 +56,10 @@ export interface IngestRuntime {
  * 2. write the ledger row (`running`) before any fetch, so every attempt leaves a receipt;
  * 3. fetch the snapshot; if (source, adapterVersion, snapshotChecksum) already succeeded,
  *    drop the provisional row and return the original run (`deduplicated: true`);
- * 4. load in batched transactions; refresh read models only after the whole load succeeds;
- * 5. record the outcome. A failure is a `failed` receipt (committed batches stay valid
- *    upserts; a rerun converges), not an exception.
+ * 4. load inside one transaction (adapter batches become savepoints), so a failed or
+ *    refused load changes nothing; the shrink guard can veto the load before it commits;
+ *    refresh read models only after the commit;
+ * 5. record the outcome. A failure is a `failed` receipt, not an exception.
  */
 export async function runIngest(rawInput: unknown, rt: IngestRuntime): Promise<IngestRunReceipt> {
   const parsed = IngestRunInputSchema.safeParse(rawInput);
@@ -68,7 +79,7 @@ export async function runIngest(rawInput: unknown, rt: IngestRuntime): Promise<I
     );
   }
 
-  const db = rt.handle.db;
+  const db: Db = rt.handle.db;
   await ensureSource(db, adapter.source);
   const lock = await tryAcquireSourceLock(rt.handle, input.source);
   if (!lock) {
@@ -129,13 +140,33 @@ export async function runIngest(rawInput: unknown, rt: IngestRuntime): Promise<I
       }
 
       await updateRun(db, run.id, { snapshotChecksum: snapshot.checksum });
-      const counts = await adapter.load(adapter.parse(snapshot, input.scope), {
-        db,
-        sourceId: input.source,
-        ingestRunId: run.id,
-        retrievedAt: snapshot.retrievedAt,
-        scope: input.scope,
-        logger: log,
+      lock.signal.throwIfAborted();
+      const guard = rt.shrinkGuard ?? DEFAULT_SHRINK_GUARD;
+      const counts = await db.transaction(async (tx) => {
+        const existingRows =
+          adapter.guardShrink === false ? 0 : await countSourceRows(tx, input.source);
+        const loaded = await adapter.load(adapter.parse(snapshot, input.scope), {
+          db: tx,
+          sourceId: input.source,
+          ingestRunId: run.id,
+          retrievedAt: snapshot.retrievedAt,
+          scope: input.scope,
+          logger: log,
+        });
+        if (adapter.guardShrink !== false) {
+          const violation = evaluateShrink(
+            {
+              existingRows,
+              counts: loaded,
+              previous: await previousRunCounts(tx, input.source, input.scope),
+            },
+            guard,
+          );
+          if (violation && !guard.allow) throw new ShrinkGuardError(violation);
+          if (violation) log.warn({ violation }, 'shrink guard overridden by --allow-shrink');
+        }
+        lock.signal.throwIfAborted();
+        return loaded;
       });
       const before = await readModelRefreshedAt(db);
       await (rt.refreshReadModel ?? refreshPersonCard)(db);

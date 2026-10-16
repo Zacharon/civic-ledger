@@ -23,6 +23,11 @@ export interface SourceAdapter<TRecord> {
   dependsOn: readonly SourceId[];
   /** Scope kinds the adapter accepts. */
   scopes: readonly IngestScope['kind'][];
+  /**
+   * Set false for git-reviewed sources, where removing a file is an intended change and a
+   * large drop is not an upstream-truncation signal. Default true (runtime/shrink-guard.ts).
+   */
+  guardShrink?: boolean;
   plan(scope: IngestScope, ctx: PlanContext): Promise<FetchPlan>;
   parse(snapshot: RawSnapshot, scope: IngestScope): AsyncIterable<TRecord>;
   load(records: AsyncIterable<TRecord>, ctx: LoadContext): Promise<LoadCounts>;

@@ -29,7 +29,7 @@ function parseConfig(argv: string[]): DbConfig | undefined {
     if (!dir) throw new Error('--pglite needs a directory');
     return { kind: 'pglite', dataDir: resolve(invokedFrom, dir) };
   }
-  const config = dbConfigFromEnv();
+  const config = dbConfigFromEnv(process.env, { readOnly: true });
   return config.kind === 'pglite'
     ? { kind: 'pglite', dataDir: resolve(invokedFrom, '.pglite/dev') }
     : config;

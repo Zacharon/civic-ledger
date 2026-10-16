@@ -20,7 +20,7 @@ declare global {
  * repo-root `.pglite/dev` that `pnpm db:seed` fills (the Next server runs from apps/web).
  */
 export function webDbConfig(env: NodeJS.ProcessEnv = process.env): DbConfig {
-  const fromEnv = dbConfigFromEnv(env);
+  const fromEnv = dbConfigFromEnv(env, { readOnly: true });
   if (fromEnv.kind === 'pg') return fromEnv;
   const dataDir = env.PGLITE_DATA_DIR?.trim();
   return { kind: 'pglite', dataDir: dataDir ? resolve(dataDir) : defaultPgliteDir() };

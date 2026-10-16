@@ -3,7 +3,7 @@ import { runMigrations } from '../migrate';
 import { seedDevData } from '../seed';
 
 // Fictional data must never land in a shared database by accident.
-const config = dbConfigFromEnv();
+const config = dbConfigFromEnv(process.env, { batch: true });
 if (config.kind === 'pg' && !process.argv.includes('--allow-postgres')) {
   console.error(
     'Refusing to load the fictional dev seed into DATABASE_URL. Pass --allow-postgres to override.',

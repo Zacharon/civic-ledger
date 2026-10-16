@@ -13,6 +13,7 @@ import { Command, InvalidArgumentError, Option } from 'commander';
 import { ADAPTERS, PIPELINE_ORDER } from './adapters/registry';
 import { createLogger } from './runtime/logger';
 import { runIngest } from './runtime/run';
+import { shrinkGuardFromEnv } from './runtime/shrink-guard';
 
 /** `pnpm ingest <source|all>`: the operator entry point for ingest.run@1. */
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -38,7 +39,7 @@ function scopeFor(source: SourceId, opts: { congress: number; cycle: number }): 
 
 function dbConfig(dbDir: string | undefined): DbConfig {
   if (dbDir) return { kind: 'pglite', dataDir: resolve(dbDir) };
-  return dbConfigFromEnv();
+  return dbConfigFromEnv(process.env, { batch: true });
 }
 
 const program = new Command('ingest')
@@ -70,6 +71,12 @@ const program = new Command('ingest')
     join('data', 'raw'),
   )
   .addOption(new Option('--migrate', 'apply pending database migrations first').default(false))
+  .addOption(
+    new Option(
+      '--allow-shrink',
+      'commit a load the shrink guard refused (sweep deletes >10% of rows, or far fewer records than last run)',
+    ).default(false),
+  )
   .addHelpText(
     'after',
     `
@@ -79,6 +86,10 @@ Examples:
   pnpm ingest fec-bulk --cycle 2026
   pnpm ingest all --congress 119 --cycle 2026 --db .pglite/live --migrate
   pnpm ingest voteview --snapshot data/raw/voteview/2026-10-16
+
+Shrink guard: a run is failed and rolled back when its stale-row sweep would delete more than
+$INGEST_MAX_DELETE_FRACTION (default 0.1) of the source's rows, or it loads fewer than
+$INGEST_MIN_RECORD_RATIO (default 0.5) of the last successful run's records. --allow-shrink overrides.
 
 Exit codes: 0 succeeded (or already loaded), 1 failed or refused, 2 usage error.
 A rerun of an unchanged snapshot returns the original run with "deduplicated": true.`,
@@ -103,6 +114,7 @@ A rerun of an unchanged snapshot returns the original run with "deduplicated": t
     }
 
     const logger = createLogger();
+    const shrinkGuard = shrinkGuardFromEnv(process.env, opts.allowShrink);
     const handle = createDb(dbConfig(opts.db));
     const abort = new AbortController();
     process.once('SIGINT', () => abort.abort(new Error('interrupted (SIGINT)')));
@@ -126,6 +138,7 @@ A rerun of an unchanged snapshot returns the original run with "deduplicated": t
             rawRoot: resolve(REPO_ROOT, opts.rawDir),
             repoRoot: REPO_ROOT,
             signal: abort.signal,
+            shrinkGuard,
           },
         );
         receipts.push(receipt);
