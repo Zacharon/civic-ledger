@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -76,10 +76,7 @@ export async function downloadToFile(
       await copyFile(reusable.path, options.targetPath);
     }
     options.logger?.info({ url: options.url }, 'not modified; reusing cached copy');
-    await writeCache(options.cachePath, {
-      ...cache,
-      [options.url]: { ...reusable, path: options.targetPath },
-    });
+    await updateCache(options.cachePath, options.url, { ...reusable, path: options.targetPath });
     return { fileName, sha256: reusable.sha256, bytes: reusable.bytes, notModified: true };
   }
   if (!response.body) throw new Error(`GET ${options.url}: empty response body`);
@@ -111,7 +108,7 @@ export async function downloadToFile(
   const lastModified = response.headers.get('last-modified');
   if (etag) entry.etag = etag;
   if (lastModified) entry.lastModified = lastModified;
-  await writeCache(options.cachePath, { ...cache, [options.url]: entry });
+  await updateCache(options.cachePath, options.url, entry);
   options.logger?.info({ url: options.url, bytes, sha256 }, 'downloaded');
   return { fileName, sha256, bytes, notModified: false };
 }
@@ -145,9 +142,23 @@ async function readCache(path: string): Promise<HttpCache> {
   }
 }
 
-async function writeCache(path: string, cache: HttpCache): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  const temp = join(dirname(path), `.http-cache.${process.pid}.tmp`);
-  await writeFile(temp, `${JSON.stringify(cache, null, 2)}\n`);
-  await rename(temp, path);
+/** Pending cache writes per cache file: parallel downloads of one source share the file. */
+const cacheWrites = new Map<string, Promise<void>>();
+
+/** Read-modify-write of one URL's entry, serialized per cache file so no update is lost. */
+async function updateCache(path: string, url: string, entry: CacheEntry): Promise<void> {
+  const previous = cacheWrites.get(path) ?? Promise.resolve();
+  const next = previous.then(async () => {
+    const cache = await readCache(path);
+    cache[url] = entry;
+    await mkdir(dirname(path), { recursive: true });
+    const temp = join(dirname(path), `.http-cache.${process.pid}.${randomUUID()}.tmp`);
+    await writeFile(temp, `${JSON.stringify(cache, null, 2)}\n`);
+    await rename(temp, path);
+  });
+  cacheWrites.set(
+    path,
+    next.catch(() => undefined),
+  );
+  await next;
 }

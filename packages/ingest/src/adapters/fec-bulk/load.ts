@@ -7,8 +7,10 @@ import {
   conflictUpdateSet,
   type Db,
   independentExpenditure,
+  office,
+  term,
 } from '@civic-ledger/db';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, desc, eq, ne } from 'drizzle-orm';
 import type { LoadContext, LoadCounts } from '../../adapter';
 import { kindBatches, lastPerKey, ofKind, provenance } from '../../runtime/batch';
 import { Counts } from '../../runtime/counts';
@@ -54,6 +56,7 @@ const COUNT_KEYS = [
   'ie_invalid_support_oppose',
   'ie_implausible_amount_dropped',
   'ie_unattributed_dropped',
+  'ie_candidate_ids_uppercased',
   'stale_rows_deleted',
 ] as const;
 type FecCounts = Counts<(typeof COUNT_KEYS)[number]>;
@@ -69,7 +72,18 @@ interface State {
   /** ccl links for this cycle: committee → candidates. */
   cycleLinks: Map<string, Set<string>>;
   pendingTotals: TotalsRecord[];
+  electionYear: Map<string, number | null>;
   offices: OfficeResolver;
+}
+
+/** Chamber of each person's latest term. */
+async function currentChambers(db: Db): Promise<Map<number, string>> {
+  const rows = await db
+    .selectDistinctOn([term.personId], { personId: term.personId, chamber: office.chamber })
+    .from(term)
+    .innerJoin(office, eq(office.id, term.officeId))
+    .orderBy(term.personId, desc(term.startDate));
+  return new Map(rows.map((r) => [r.personId, r.chamber]));
 }
 
 const isCandidateId = (id: string) => /^[HSP][0-9A-Z]{8}$/.test(id);
@@ -88,6 +102,7 @@ export async function loadFec(
     committeeCandidate: new Map(),
     cycleLinks: new Map(),
     pendingTotals: [],
+    electionYear: new Map(),
     offices: new OfficeResolver(),
   };
 
@@ -139,6 +154,7 @@ function officeOf(r: CandidateRecord): OfficeKey | null {
 
 async function loadCandidates(s: State, rows: CandidateRecord[]) {
   s.counts.add('candidates', rows.length);
+  for (const r of rows) s.electionYear.set(r.id, r.electionYear);
   const matched = rows.flatMap((r) => {
     const personId = s.personByFec.get(r.id);
     return personId === undefined ? [] : [{ r, personId }];
@@ -221,15 +237,47 @@ async function loadLinks(s: State, rows: LinkRecord[]) {
   s.counts.add('committee_links', unique.length);
 }
 
+export interface AttributionContext {
+  cycle: number;
+  /** cn CAND_ELECTION_YR per candidate id. */
+  electionYear: ReadonlyMap<string, number | null>;
+  /** Chamber of each person's latest term ('house' | 'senate'). */
+  currentChamber: ReadonlyMap<number, string>;
+}
+
 /**
- * A person can hold several FEC candidate ids (House and Senate runs). Only one totals row
- * per person and cycle is attributed to the person: the id with the most receipts this
- * cycle (the active campaign). The others stay queryable by FEC id with no person.
+ * A person can hold several FEC candidate ids (a House and a Senate run), and weball often
+ * repeats the same totals under each. Exactly one totals row per person and cycle is
+ * attributed to the person, ranked: 1. the id is on this cycle's ballot (cn election year
+ * = cycle); 2. most receipts (the active campaign); 3. the id's office (first letter H/S)
+ * matches the person's current chamber; 4. lowest id. The others stay queryable by FEC id.
  */
 export function attributeTotals(
   rows: readonly TotalsRecord[],
   personByFec: ReadonlyMap<string, number>,
+  ctx: AttributionContext,
 ): { attributed: Map<string, number>; personsWithSeveral: number } {
+  const rank = (r: TotalsRecord, personId: number): (number | string)[] => {
+    const chamber = ctx.currentChamber.get(personId);
+    const office = r.candidateId.startsWith('S')
+      ? 'senate'
+      : r.candidateId.startsWith('H')
+        ? 'house'
+        : null;
+    return [
+      ctx.electionYear.get(r.candidateId) === ctx.cycle ? 1 : 0,
+      r.totalReceiptsCents,
+      office !== null && office === chamber ? 1 : 0,
+    ];
+  };
+  const better = (a: TotalsRecord, b: TotalsRecord, personId: number): boolean => {
+    const ra = rank(a, personId);
+    const rb = rank(b, personId);
+    for (let i = 0; i < ra.length; i++) {
+      if (ra[i] !== rb[i]) return (ra[i] ?? 0) > (rb[i] ?? 0);
+    }
+    return a.candidateId < b.candidateId;
+  };
   const best = new Map<number, TotalsRecord>();
   const seen = new Map<number, number>();
   for (const r of rows) {
@@ -237,13 +285,7 @@ export function attributeTotals(
     if (personId === undefined) continue;
     seen.set(personId, (seen.get(personId) ?? 0) + 1);
     const current = best.get(personId);
-    if (
-      !current ||
-      r.totalReceiptsCents > current.totalReceiptsCents ||
-      (r.totalReceiptsCents === current.totalReceiptsCents && r.candidateId < current.candidateId)
-    ) {
-      best.set(personId, r);
-    }
+    if (!current || better(r, current, personId)) best.set(personId, r);
   }
   const attributed = new Map<string, number>();
   for (const [personId, r] of best) attributed.set(r.candidateId, personId);
@@ -253,7 +295,11 @@ export function attributeTotals(
 async function flushTotals(s: State) {
   const rows = lastPerKey(s.pendingTotals, (r) => r.candidateId);
   s.pendingTotals = [];
-  const { attributed, personsWithSeveral } = attributeTotals(rows, s.personByFec);
+  const { attributed, personsWithSeveral } = attributeTotals(rows, s.personByFec, {
+    cycle: s.cycle,
+    electionYear: s.electionYear,
+    currentChamber: await currentChambers(s.ctx.db),
+  });
   s.counts.add('persons_with_several_fec_ids_in_cycle', personsWithSeveral);
   for (let i = 0; i < rows.length; i += 1_000) {
     const values = rows.slice(i, i + 1_000).map((r) => ({
@@ -399,6 +445,7 @@ function recordStats(s: State, stats: StatsRecord) {
     s.counts.add('ie_duplicate_reports', stats.ie.duplicateReports);
     s.counts.add('ie_invalid_support_oppose', stats.ie.invalidSupportOppose);
     s.counts.add('ie_implausible_amount_dropped', stats.ie.implausibleAmount);
+    s.counts.add('ie_candidate_ids_uppercased', stats.ie.normalizedCandidateIds);
   }
 }
 

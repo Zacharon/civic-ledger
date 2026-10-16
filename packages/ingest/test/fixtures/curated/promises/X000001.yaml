@@ -1,0 +1,17 @@
+# FICTIONAL test data: X000001 is not a real Bioguide id and Avery Ashvale is invented.
+schema_version: 1
+person:
+  bioguide: X000001
+promises:
+  - id: example-clinic-hours
+    statement: Keep rural clinics open five days a week.
+    made_on: 2024-03-12
+    policy_area: health
+    source_url: https://example.org/placeholder/speech
+    ratings:
+      - rater: Example Rater
+        status: kept
+        rated_on: 2026-06-30
+        evidence:
+          - url: https://example.org/placeholder/bill
+            title: Placeholder bill page

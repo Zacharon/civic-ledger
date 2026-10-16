@@ -8,11 +8,12 @@ import { OfficeResolver } from '../lookups';
 import type { LegislatorRecord } from './parse';
 
 /**
- * Slugs are minted once from name + bioguide and never change afterwards (stable URLs,
- * unique even for the many historical namesakes); later name changes update the name only.
+ * Slugs are minted once from the display name + bioguide ("andy-barr-b001282") and never
+ * change afterwards (stable URLs, unique even for historical namesakes); a later name
+ * change updates the name only.
  */
-export const personSlug = (r: Pick<LegislatorRecord, 'firstName' | 'lastName' | 'bioguide'>) =>
-  slugify(`${r.firstName} ${r.lastName} ${r.bioguide}`);
+export const personSlug = (r: Pick<LegislatorRecord, 'fullName' | 'bioguide'>) =>
+  slugify(`${r.fullName} ${r.bioguide}`);
 
 const BATCH = 500;
 

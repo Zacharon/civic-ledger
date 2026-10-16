@@ -221,7 +221,7 @@ export interface IeRecord {
 export interface StatsRecord {
   kind: 'stats';
   pas2?: Pas2DedupeStats;
-  ie?: IeDedupeStats & { unattributed: number };
+  ie?: IeDedupeStats & { normalizedCandidateIds: number };
 }
 
 export type FecRecord =
@@ -232,6 +232,9 @@ export type FecRecord =
   | ContributionRecord
   | IeRecord
   | StatsRecord;
+
+/** FEC ids are upper-case; the IE file has some lower-case ones (e.g. "h2az02360"). */
+const fecId = (value: string | undefined): string => (value ?? '').trim().toUpperCase();
 
 const office = (v: string): CandidateRecord['office'] =>
   v === 'H' || v === 'S' || v === 'P' ? v : null;
@@ -322,8 +325,8 @@ export async function* parseFec(snapshot: RawSnapshot, cycle: number): AsyncGene
         transactionTp: r.TRANSACTION_TP,
         transactionDt: r.TRANSACTION_DT.trim(),
         amount: r.TRANSACTION_AMT.trim(),
-        otherId: r.OTHER_ID.trim(),
-        candId: r.CAND_ID.trim(),
+        otherId: fecId(r.OTHER_ID),
+        candId: fecId(r.CAND_ID),
         tranId: r.TRAN_ID.trim(),
         fileNum: parseIntOrNull(r.FILE_NUM) ?? 0,
         memoCd: r.MEMO_CD.trim(),
@@ -349,14 +352,16 @@ export async function* parseFec(snapshot: RawSnapshot, cycle: number): AsyncGene
 
   type IeParsed = IeRow & { spenderName: string; purpose: string | null };
   const ies: IeParsed[] = [];
+  let normalizedCandidateIds = 0;
   for await (const row of headerCsvRows(createReadStream(path(files.ie)), IE)) {
+    if (row.cand_id && row.cand_id.trim() !== fecId(row.cand_id)) normalizedCandidateIds++;
     ies.push({
-      spenderId: (row.spe_id ?? '').trim(),
+      spenderId: fecId(row.spe_id),
       spenderName: (row.spe_nam ?? '').trim(),
       tranId: (row.tran_id ?? '').trim(),
       fileNum: parseIntOrNull(row.file_num) ?? 0,
       prevFileNum: parseIntOrNull(row.prev_file_num),
-      candidateId: (row.cand_id ?? '').trim(),
+      candidateId: fecId(row.cand_id),
       supportOppose: (row.sup_opp ?? '').trim(),
       amountCents: cents(row.exp_amo ?? ''),
       date: dateFromDdMonYy(row.exp_date) ?? dateFromDdMonYy(row.dissem_dt),
@@ -365,9 +370,7 @@ export async function* parseFec(snapshot: RawSnapshot, cycle: number): AsyncGene
     });
   }
   const expenditures = dedupeIndependentExpenditures(ies);
-  let unattributed = 0;
   for (const row of expenditures.kept) {
-    if (!row.candidateId) unattributed++;
     yield {
       kind: 'ie',
       spenderId: row.spenderId,
@@ -380,5 +383,5 @@ export async function* parseFec(snapshot: RawSnapshot, cycle: number): AsyncGene
       purpose: row.purpose,
     };
   }
-  yield { kind: 'stats', ie: { ...expenditures.stats, unattributed } };
+  yield { kind: 'stats', ie: { ...expenditures.stats, normalizedCandidateIds } };
 }

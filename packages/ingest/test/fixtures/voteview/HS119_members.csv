@@ -1,0 +1,10 @@
+congress,chamber,icpsr,state_icpsr,district_code,state_abbrev,party_code,occupancy,last_means,bioname,bioguide_id,born,died,nominate_dim1,nominate_dim2,nominate_log_likelihood,nominate_geo_mean_probability,nominate_number_of_votes,nominate_number_of_errors,conditional,nokken_poole_dim1,nokken_poole_dim2
+119,President,99912,99,0,USA,200,0,0,"TRUMP, Donald John",,1946.0,,0.403,0.162,,,,,,,
+119,House,22336,71,3,CA,200,,,"KILEY, Kevin",K000401,1985.0,,0.253,0.418,-24.96588,0.93737,386,8,,0.26,0.306
+119,House,92336,71,3,CA,328,,,"KILEY, Kevin",K000401,1985.0,,0.152,0.357,-39.94142,0.80295,182,15,,0.152,0.355
+119,House,21993,55,0,DC,100,,,"NORTON, Eleanor Holmes",N000147,1937.0,,-0.493,-0.093,-3.47174,0.95293,72,2,,-0.489,0.459
+119,House,21333,51,6,KY,200,,,"BARR, Garland H. (Andy), IV",B001282,1973.0,,0.489,0.296,-22.27091,0.95952,539,14,,0.631,0.473
+119,House,91980,12,2,NJ,200,,,"VAN DREW, Jefferson",V000133,1953.0,,0.384,-0.407,-74.96859,0.87594,566,35,,0.377,-0.239
+119,House,21700,49,19,TX,200,,,"ARRINGTON, Jodey Cook",A000375,1972.0,,0.647,0.0,-51.47193,0.91128,554,22,,0.729,0.123
+119,House,22325,68,1,WY,200,,,"HAGEMAN, Harriet",H001096,1962.0,,0.636,-0.355,-61.51358,0.89804,572,23,,0.608,-0.312
+119,Senate,39310,73,0,WA,100,,,"CANTWELL, Maria E.",C000127,1958.0,,-0.308,-0.402,-71.52707,0.92409,906,20,,-0.336,-0.333
