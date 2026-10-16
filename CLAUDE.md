@@ -3,6 +3,7 @@
 `AGENTS.md` and `CLAUDE.md` are identical copies. Edit both together.
 
 - Read `docs/ARCHITECTURE.md` and `docs/CAPABILITIES.md` before changing code. They are the contract.
+- Read `docs/DESIGN.md` before any visual or UI change in `apps/web`; it is the design system of record.
 - Dependency direction: `apps/web`, `packages/mcp` -> `packages/core` -> `packages/db`; `packages/ingest` -> `packages/db` (+ core schemas). Adapters never query the database directly.
 - Business rules live in `packages/core` capabilities. The UI, `/api/v1` and MCP are thin adapters over the same registry.
 - Neutrality rules in ARCHITECTURE section 1 and 6 are acceptance criteria: no default ideological sort, every score attributed, every fact has provenance, coverage shown.

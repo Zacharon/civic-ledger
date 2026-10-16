@@ -1,6 +1,7 @@
 import type { Capability } from '../capability';
 import { curatedValidate } from './curated';
 import { exploreTable } from './explore';
+import { exploreFacets } from './facets';
 import { frameworksEvaluate, frameworksList } from './frameworks';
 import { moneySummary } from './money';
 import { peopleCompare, peopleGet, peopleSearch } from './people';
@@ -20,6 +21,7 @@ export const registry = {
   'people.get': peopleGet,
   'people.compare': peopleCompare,
   'explore.table': exploreTable,
+  'explore.facets': exploreFacets,
   'money.summary': moneySummary,
   'votes.list': votesList,
   'scores.list': scoresList,
