@@ -52,7 +52,8 @@ export async function qualityReport(
   congress: number,
   cycle: number,
 ): Promise<QualityReport> {
-  const current = sql`(select distinct person_id from term where end_date is null or end_date >= current_date)`;
+  // Same rule as core's member scope: a term covers today (start <= today < end).
+  const current = sql`(select distinct person_id from term where start_date <= current_date and (end_date is null or end_date > current_date))`;
   const people = await one(
     db,
     sql`select (select count(*) from person) as total, (select count(*) from ${current} c) as current`,
@@ -86,8 +87,9 @@ export async function qualityReport(
   );
   const industry = await one(
     db,
-    sql`select coalesce(sum(cc.amount_cents), 0) as total,
-      coalesce(sum(cc.amount_cents) filter (where ci.id is not null), 0) as coded
+    // Gross positive dollars, as in person_card and money.summary (refunds excluded).
+    sql`select coalesce(sum(cc.amount_cents) filter (where cc.amount_cents > 0), 0) as total,
+      coalesce(sum(cc.amount_cents) filter (where ci.id is not null and cc.amount_cents > 0), 0) as coded
       from committee_contribution cc left join committee_industry ci on ci.committee_id = cc.committee_id
       where cc.cycle = ${cycle}`,
   );

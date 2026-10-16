@@ -403,8 +403,9 @@ async function deleteStale(db: Db, ctx: LoadContext): Promise<number> {
 }
 
 /**
- * Coverage = share of committee → candidate contribution dollars (latest cycle loaded)
- * from committees that carry an industry code. Reported in basis points (integer receipt).
+ * Coverage = share of gross positive committee → candidate contribution dollars (latest
+ * cycle loaded; refunds excluded, DECISIONS A29) from committees that carry an industry
+ * code. Reported in basis points (integer receipt).
  */
 async function reportCoverage(db: Db, counts: CuratedCounts) {
   const [latest] = await db
@@ -413,8 +414,8 @@ async function reportCoverage(db: Db, counts: CuratedCounts) {
   if (!latest?.cycle) return;
   const [row] = await db
     .select({
-      total: sql<string>`coalesce(sum(${committeeContribution.amountCents}), 0)::text`,
-      coded: sql<string>`coalesce(sum(${committeeContribution.amountCents}) filter (where ${committeeIndustry.id} is not null), 0)::text`,
+      total: sql<string>`coalesce(sum(${committeeContribution.amountCents}) filter (where ${committeeContribution.amountCents} > 0), 0)::text`,
+      coded: sql<string>`coalesce(sum(${committeeContribution.amountCents}) filter (where ${committeeIndustry.id} is not null and ${committeeContribution.amountCents} > 0), 0)::text`,
     })
     .from(committeeContribution)
     .leftJoin(

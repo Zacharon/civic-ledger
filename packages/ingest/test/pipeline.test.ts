@@ -156,6 +156,31 @@ describe('fec-bulk', () => {
     expect(dupes?.n).toBe(0);
   });
 
+  it('loads the candidate summary split, one row per person, filer errors counted', async () => {
+    expect(receipts['fec-bulk']?.counts).toMatchObject({
+      summaries: 14,
+      summaries_matched_to_person: 3,
+      summaries_attributed_via_other_id: 1,
+      summary_unitemized_out_of_range: 1,
+    });
+    const linked = await q<{ slug: string; fec: string; unitemized: string; receipts: string }>(sql`
+      select p.slug, s.fec_candidate_id as fec, s.unitemized_individual_cents::text as unitemized,
+        s.total_receipts_cents::text as receipts
+      from candidate_cycle_summary s join person p on p.id = s.person_id order by 1`);
+    // Hageman: weball totals sit on her House id, the summary lists her Senate run.
+    expect(linked.map((r) => [r.slug, r.fec])).toEqual([
+      ['andy-barr-b001282', 'S6KY00286'],
+      ['harriet-m-hageman-h001096', 'S6WY00209'],
+      ['jefferson-van-drew-v000133', 'H8NJ02166'],
+    ]);
+    expect(linked[0]).toMatchObject({ unitemized: '72934521', receipts: '998104448' });
+    const [card] = await q<{ share: number; asOf: string }>(sql`
+      select small_dollar_share as share, small_dollar_as_of::text as "asOf"
+      from person_card where slug = 'andy-barr-b001282'`);
+    expect(card?.share).toBeCloseTo(72934521 / 998104448, 12);
+    expect(card?.asOf).toBe('2026-09-30');
+  });
+
   it('dedupes independent expenditures and keys them by filing + transaction', async () => {
     expect(receipts['fec-bulk']?.counts).toMatchObject({
       ie_rows: 13,

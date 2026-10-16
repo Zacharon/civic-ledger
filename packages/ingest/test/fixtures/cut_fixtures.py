@@ -3,6 +3,8 @@
 Usage: python -I cut_fixtures.py <raw-dir> <fixtures-dir>
 <raw-dir> holds the files exactly as downloaded on 2026-10-16 (legislators-*.json,
 HS119_*.csv, cn26.zip ... independent_expenditure_2026.csv, BILLSTATUS-119-*.zip).
+`python -I cut_fixtures.py <raw-dir> <fixtures-dir> summary` cuts only
+candidate_summary_2026.csv, for the candidates already in fec-bulk/weball26.zip.
 Rows are selected, never edited, so every fixture line is a real source line.
 """
 
@@ -167,7 +169,24 @@ def fec() -> None:
     write_zip(out / "pas226.zip", "itpas2.txt", "\n".join("|".join(r) for r in picked) + "\n")
 
 
+# Filer error: negative unitemized amount (Individual_Unitemized_Contribution -7309.83).
+SUMMARY_OUT_OF_RANGE = "H4MO05366"
+
+
+def summary() -> None:
+    out = OUT / "fec-bulk"
+    with zipfile.ZipFile(out / "weball26.zip") as z:
+        ids = {l.split("|")[0] for l in io.TextIOWrapper(z.open("weball26.txt"), encoding="latin-1").read().splitlines()}
+    ids.add(SUMMARY_OUT_OF_RANGE)
+    lines = (RAW / "candidate_summary_2026.csv").read_text(encoding="latin-1").splitlines(keepends=True)
+    keep = [l for l in lines[1:] if next(csv.reader([l]))[2] in ids]
+    (out / "candidate_summary_2026.csv").write_text(lines[0] + "".join(keep), encoding="latin-1", newline="")
+
+
 if __name__ == "__main__":
+    if sys.argv[3:] == ["summary"]:
+        summary()
+        sys.exit(0)
     legislators()
     voteview(billstatus())
     fec()

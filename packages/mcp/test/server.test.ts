@@ -60,6 +60,7 @@ describe('tool catalog', () => {
     const search = tools.find((t) => t.name === 'people_search');
     expect(Object.keys(search?.inputSchema.properties ?? {})).toEqual([
       'q',
+      'scope',
       'chamber',
       'state',
       'party',

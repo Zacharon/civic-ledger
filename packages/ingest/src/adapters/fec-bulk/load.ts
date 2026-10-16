@@ -1,5 +1,6 @@
 import {
   candidacy,
+  candidateCycleSummary,
   candidateCycleTotals,
   committee,
   committeeContribution,
@@ -23,6 +24,7 @@ import type {
   IeRecord,
   LinkRecord,
   StatsRecord,
+  SummaryRecord,
   TotalsRecord,
 } from './parse';
 
@@ -38,6 +40,11 @@ const COUNT_KEYS = [
   'totals',
   'totals_matched_to_person',
   'persons_with_several_fec_ids_in_cycle',
+  'summaries',
+  'summaries_matched_to_person',
+  'summaries_attributed_via_other_id',
+  'summary_unitemized_out_of_range',
+  'summary_period_differs_from_totals',
   'contributions',
   'contributions_matched_to_person',
   'contributions_recipient_via_committee',
@@ -72,6 +79,9 @@ interface State {
   /** ccl links for this cycle: committee → candidates. */
   cycleLinks: Map<string, Set<string>>;
   pendingTotals: TotalsRecord[];
+  pendingSummaries: SummaryRecord[];
+  /** weball candidate id → person it was attributed to, and its coverage end date. */
+  attributedTotals: Map<string, { personId: number; coverageEndDate: string | null }>;
   electionYear: Map<string, number | null>;
   offices: OfficeResolver;
 }
@@ -102,6 +112,8 @@ export async function loadFec(
     committeeCandidate: new Map(),
     cycleLinks: new Map(),
     pendingTotals: [],
+    pendingSummaries: [],
+    attributedTotals: new Map(),
     electionYear: new Map(),
     offices: new OfficeResolver(),
   };
@@ -112,11 +124,14 @@ export async function loadFec(
     if (kind === 'candidate') await loadCandidates(s, ofKind(items, 'candidate'));
     if (kind === 'link') await loadLinks(s, ofKind(items, 'link'));
     if (kind === 'totals') s.pendingTotals.push(...ofKind(items, 'totals'));
+    if (kind !== 'summary' && s.pendingSummaries.length > 0) await flushSummaries(s);
+    if (kind === 'summary') s.pendingSummaries.push(...ofKind(items, 'summary'));
     if (kind === 'contribution') await loadContributions(s, ofKind(items, 'contribution'));
     if (kind === 'ie') await loadExpenditures(s, ofKind(items, 'ie'));
     if (kind === 'stats') for (const stats of ofKind(items, 'stats')) recordStats(s, stats);
   }
   if (s.pendingTotals.length > 0) await flushTotals(s);
+  if (s.pendingSummaries.length > 0) await flushSummaries(s);
   await deleteStaleCycleRows(s);
   return s.counts.toJSON();
 }
@@ -329,8 +344,95 @@ async function flushTotals(s: State) {
         }),
     );
   }
+  for (const r of rows) {
+    const personId = attributed.get(r.candidateId);
+    if (personId !== undefined) {
+      s.attributedTotals.set(r.candidateId, { personId, coverageEndDate: r.coverageEndDate });
+    }
+  }
   s.counts.add('totals', rows.length);
   s.counts.add('totals_matched_to_person', attributed.size);
+}
+
+/**
+ * Picks one candidate summary row per person: the row for the weball id attributed to the
+ * person (A15) when the summary has it, else the person's row with the most receipts (the
+ * summary file can list a different id, e.g. a Senate run, than the one weball totals were
+ * attributed to). The others stay queryable by FEC id with person_id null.
+ */
+export function attributeSummaries(
+  rows: readonly SummaryRecord[],
+  personByFec: ReadonlyMap<string, number>,
+  attributedTotals: ReadonlyMap<string, { personId: number }>,
+): { attributed: Map<string, number>; viaOtherId: number } {
+  const preferred = (a: SummaryRecord, b: SummaryRecord): boolean => {
+    const aAttributed = attributedTotals.has(a.candidateId);
+    if (aAttributed !== attributedTotals.has(b.candidateId)) return aAttributed;
+    if (a.totalReceiptsCents !== b.totalReceiptsCents) {
+      return a.totalReceiptsCents > b.totalReceiptsCents;
+    }
+    return a.candidateId < b.candidateId;
+  };
+  const best = new Map<number, SummaryRecord>();
+  for (const r of rows) {
+    const personId = personByFec.get(r.candidateId);
+    if (personId === undefined) continue;
+    const current = best.get(personId);
+    if (!current || preferred(r, current)) best.set(personId, r);
+  }
+  const attributed = new Map<string, number>();
+  let viaOtherId = 0;
+  for (const [personId, r] of best) {
+    attributed.set(r.candidateId, personId);
+    if (!attributedTotals.has(r.candidateId)) viaOtherId++;
+  }
+  return { attributed, viaOtherId };
+}
+
+/**
+ * Candidate summary rows, stored as filed. person_card ignores an unitemized amount outside
+ * [0, total receipts]; such rows are counted (about ten filer errors in the 2026 file).
+ */
+async function flushSummaries(s: State) {
+  const rows = lastPerKey(s.pendingSummaries, (r) => r.candidateId);
+  s.pendingSummaries = [];
+  const { attributed, viaOtherId } = attributeSummaries(rows, s.personByFec, s.attributedTotals);
+  s.counts.add('summaries_attributed_via_other_id', viaOtherId);
+  const values = rows.map((r) => {
+    const personId = attributed.get(r.candidateId) ?? null;
+    const totals = s.attributedTotals.get(r.candidateId);
+    if (personId !== null && totals && totals.coverageEndDate !== r.coverageEndDate) {
+      s.counts.add('summary_period_differs_from_totals');
+    }
+    const inRange =
+      r.unitemizedIndividualCents >= 0 && r.unitemizedIndividualCents <= r.totalReceiptsCents;
+    if (!inRange) s.counts.add('summary_unitemized_out_of_range');
+    return {
+      fecCandidateId: r.candidateId,
+      cycle: s.cycle,
+      personId,
+      totalReceiptsCents: r.totalReceiptsCents,
+      individualCents: r.individualCents,
+      itemizedIndividualCents: r.itemizedIndividualCents,
+      unitemizedIndividualCents: r.unitemizedIndividualCents,
+      coverageEndDate: r.coverageEndDate,
+      ...provenance(s.ctx, `candidate_summary:${r.candidateId}:${s.cycle}`),
+    };
+  });
+  for (let i = 0; i < values.length; i += 1_000) {
+    const chunk = values.slice(i, i + 1_000);
+    await s.ctx.db.transaction((tx) =>
+      tx
+        .insert(candidateCycleSummary)
+        .values(chunk)
+        .onConflictDoUpdate({
+          target: [candidateCycleSummary.fecCandidateId, candidateCycleSummary.cycle],
+          set: conflictUpdateSet(candidateCycleSummary),
+        }),
+    );
+  }
+  s.counts.add('summaries', values.length);
+  s.counts.add('summaries_matched_to_person', attributed.size);
 }
 
 /** pas2 recipient: CAND_ID, else the recipient committee (OTHER_ID) → its one candidate. */
@@ -461,6 +563,7 @@ async function deleteStaleCycleRows(s: State) {
       | typeof committeeContribution
       | typeof independentExpenditure
       | typeof candidateCycleTotals
+      | typeof candidateCycleSummary
       | typeof committeeLink,
   ) =>
     and(eq(table.sourceId, sourceId), eq(table.cycle, s.cycle), ne(table.ingestRunId, ingestRunId));
@@ -481,7 +584,11 @@ async function deleteStaleCycleRows(s: State) {
       .delete(committeeLink)
       .where(stale(committeeLink))
       .returning({ id: committeeLink.id });
-    return a.length + b.length + c.length + d.length;
+    const e = await tx
+      .delete(candidateCycleSummary)
+      .where(stale(candidateCycleSummary))
+      .returning({ id: candidateCycleSummary.id });
+    return a.length + b.length + c.length + d.length + e.length;
   });
   s.counts.set('stale_rows_deleted', deleted);
 }

@@ -37,8 +37,8 @@ export const SourcesStatusOutput = z.object({
   ),
   coverage: z.object({
     industryCoding: z.object({
-      totalCents: CentsSchema,
-      codedCents: CentsSchema,
+      totalCents: CentsSchema.describe('Gross positive committee contributions, all cycles'),
+      codedCents: CentsSchema.describe('Gross positive, from industry-coded committees'),
       coverage: ShareSchema.nullable(),
     }),
   }),
@@ -66,14 +66,15 @@ export const sourcesStatus = defineCapability({
       db.select().from(source).orderBy(asc(source.id)),
       latestRunPerSource(),
       latestRunPerSource().where(eq(ingestRun.status, 'succeeded')),
+      // Gross positive dollars, the same base as person_card and money.summary.
       db
         .select({
           totalCents:
-            sql<number>`coalesce(sum(${committeeContribution.amountCents}), 0)::bigint`.mapWith(
+            sql<number>`coalesce(sum(${committeeContribution.amountCents}) filter (where ${committeeContribution.amountCents} > 0), 0)::bigint`.mapWith(
               Number,
             ),
           codedCents:
-            sql<number>`coalesce(sum(${committeeContribution.amountCents}) filter (where ${committeeIndustry.id} is not null), 0)::bigint`.mapWith(
+            sql<number>`coalesce(sum(${committeeContribution.amountCents}) filter (where ${committeeIndustry.id} is not null and ${committeeContribution.amountCents} > 0), 0)::bigint`.mapWith(
               Number,
             ),
         })

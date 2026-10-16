@@ -20,18 +20,23 @@ describe('money.summary@1', () => {
     const slug = 'blair-brindlemoor';
     const result = await dispatch('money.summary', { slug }, db.ctx());
     const raw = await db.handle().db.execute<{ total: string; coded: string }>(sql`
-      select sum(cc.amount_cents) as total,
-             coalesce(sum(cc.amount_cents) filter (where ci.id is not null), 0) as coded
+      select sum(cc.amount_cents) filter (where cc.amount_cents > 0) as total,
+             coalesce(sum(cc.amount_cents) filter (where ci.id is not null and cc.amount_cents > 0), 0) as coded
       from committee_contribution cc
       join person p on p.id = cc.person_id
       left join committee_industry ci on ci.committee_id = cc.committee_id
       where p.slug = ${slug} and cc.cycle = 2024`);
     const total = Number(raw.rows[0]?.total);
     const coded = Number(raw.rows[0]?.coded);
+    // The seed has no refunds, so gross and net agree.
     expect(result.industryCoding).toEqual({
       totalCents: total,
+      grossCents: total,
+      refundsCents: 0,
       codedCents: coded,
       uncodedCents: total - coded,
+      codedGrossCents: coded,
+      uncodedGrossCents: total - coded,
       coverage: coded / total,
     });
     expect(result.industryCoding.uncodedCents).toBeGreaterThan(0);

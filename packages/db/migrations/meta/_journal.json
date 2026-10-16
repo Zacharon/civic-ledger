@@ -22,6 +22,20 @@
       "when": 1792127010982,
       "tag": "0002_ingest_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792133008688,
+      "tag": "0003_candidate_summary",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792133011279,
+      "tag": "0004_person_card_scope_and_shares",
+      "breakpoints": true
     }
   ]
 }
