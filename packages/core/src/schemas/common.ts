@@ -51,7 +51,20 @@ export const PolicyAreaRefSchema = z.object({ id: z.string(), name: z.string() }
 export const RollcallRefSchema = z.object({
   congress: CongressSchema,
   chamber: ChamberSchema,
-  number: z.int().positive(),
+  number: z
+    .int()
+    .positive()
+    .describe('Stable key: the source sequence number (Voteview), not the official roll number'),
+  session: z
+    .int()
+    .positive()
+    .nullable()
+    .describe('Session of the official roll call; null when unknown'),
+  clerkNumber: z
+    .int()
+    .positive()
+    .nullable()
+    .describe('Official clerk roll-call number within the session; null when unknown'),
   voteDate: IsoDateSchema,
   question: z.string(),
   result: z.string(),

@@ -1,17 +1,7 @@
-import {
-  type CapabilityContext,
-  createDb,
-  type DbHandle,
-  dbConfigFromEnv,
-} from '@civic-ledger/core';
+import type { CapabilityContext } from '@civic-ledger/core';
+import { webContext } from '../db';
 
-declare global {
-  // One database handle per server process, surviving dev-server module reloads.
-  var __civicLedgerApiDb: DbHandle | undefined;
-}
-
-/** `DATABASE_URL` selects Postgres; otherwise file-backed PGlite (see `dbConfigFromEnv`). */
+/** The API shares the UI's process-wide handle and database config, so both read the same state. */
 export function getApiContext(): CapabilityContext {
-  globalThis.__civicLedgerApiDb ??= createDb(dbConfigFromEnv());
-  return { db: globalThis.__civicLedgerApiDb.db };
+  return webContext();
 }

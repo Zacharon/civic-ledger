@@ -3,6 +3,7 @@
 import { X } from 'lucide-react';
 import { parseAsString, useQueryStates } from 'nuqs';
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from 'react';
+import { rollCallNumber } from '@/lib/format';
 import {
   decodeRules,
   describeTarget,
@@ -16,6 +17,8 @@ export interface CandidateRollcall {
   congress: number;
   chamber: 'house' | 'senate';
   number: number;
+  session: number | null;
+  clerkNumber: number | null;
   voteDate: string;
   question: string;
   result: string;
@@ -216,13 +219,13 @@ export function FrameworkBuilder({ candidates }: { candidates: CandidateRollcall
                 <fieldset className="grid gap-3 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
                   <legend className="sr-only">
                     {c.billTitle ?? c.question}, {c.chamber === 'house' ? 'House' : 'Senate'} roll
-                    call {c.number}
+                    call {rollCallNumber(c)}
                   </legend>
                   <div aria-hidden="true">
                     <p className="font-medium">{c.billTitle ?? c.question}</p>
                     <p className="num text-xs text-ink-3">
                       {c.voteDate} · {c.chamber === 'house' ? 'House' : 'Senate'} roll call{' '}
-                      {c.number} · {c.question} · {c.result}
+                      {rollCallNumber(c)} · {c.question} · {c.result}
                       {c.policyArea ? ` · ${c.policyArea}` : ''}
                     </p>
                   </div>

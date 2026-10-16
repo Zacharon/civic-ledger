@@ -142,3 +142,16 @@ export function safeHref(url: string | null | undefined): string | null {
     return null;
   }
 }
+
+/**
+ * Official roll-call number for display. `number` is Voteview's own sequence (continuous across
+ * sessions, skipping quorum calls), so it is shown only when the clerk number is unknown.
+ */
+export function rollCallNumber(r: {
+  number: number;
+  session: number | null;
+  clerkNumber: number | null;
+}): string {
+  if (r.clerkNumber === null) return `seq. ${r.number}`;
+  return r.session === null ? `${r.clerkNumber}` : `${r.clerkNumber}, session ${r.session}`;
+}

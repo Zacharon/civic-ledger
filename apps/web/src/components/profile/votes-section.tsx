@@ -3,7 +3,14 @@ import type { ReactNode } from 'react';
 import { Pagination } from '@/components/pagination';
 import { ScrollRegion } from '@/components/scroll-region';
 import { SourceList, SourceMark, SourceNotes } from '@/components/sources';
-import { formatDate, formatNumber, formatShare, ordinal, safeHref } from '@/lib/format';
+import {
+  formatDate,
+  formatNumber,
+  formatShare,
+  ordinal,
+  rollCallNumber,
+  safeHref,
+} from '@/lib/format';
 import { POSITION_LABEL } from '@/lib/labels';
 import { read } from '@/server/capabilities';
 import { sourceInfos } from '@/server/sources';
@@ -129,7 +136,7 @@ export async function VotesSection({
                       <span className="mt-0.5 block text-xs text-ink-3">
                         {bill ? `${bill.billType.toUpperCase()} ${bill.number} · ` : ''}
                         {v.rollcall.chamber === 'senate' ? 'Senate' : 'House'} roll call{' '}
-                        <span className="num">{v.rollcall.number}</span>
+                        <span className="num">{rollCallNumber(v.rollcall)}</span>
                         {v.policyArea ? ` · ${v.policyArea.name}` : ''} · {v.rollcall.question}
                         <SourceMark notes={notes} n={notes.cite(v.rollcall.provenance)} />
                       </span>

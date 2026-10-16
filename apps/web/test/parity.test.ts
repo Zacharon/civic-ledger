@@ -72,6 +72,7 @@ beforeAll(async () => {
       { framework: spec, people: { slugs: [a, b] } },
     ],
     'sources.status': [{}],
+    'explore.facets': [{}],
   };
 });
 

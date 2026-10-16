@@ -11,7 +11,7 @@ import { Pagination } from '@/components/pagination';
 import { PartyChip } from '@/components/party-chip';
 import { ScrollRegion } from '@/components/scroll-region';
 import { SourceList, SourceMark, SourceNotes } from '@/components/sources';
-import { formatDate, formatNumber, safeHref, seatLabel } from '@/lib/format';
+import { formatDate, formatNumber, rollCallNumber, safeHref, seatLabel } from '@/lib/format';
 import { decodeRules, describeTarget, encodeRules, type RuleSpec } from '@/lib/framework-url';
 import { POSITION_LABEL } from '@/lib/labels';
 import { read, readOrInvalid } from '@/server/capabilities';
@@ -277,6 +277,8 @@ function toCandidate(v: CapabilityOutput<'votes.list'>['items'][number]): Candid
     congress: v.rollcall.congress,
     chamber: v.rollcall.chamber,
     number: v.rollcall.number,
+    session: v.rollcall.session,
+    clerkNumber: v.rollcall.clerkNumber,
     voteDate: formatDate(v.rollcall.voteDate) ?? v.rollcall.voteDate,
     question: v.rollcall.question,
     result: v.rollcall.result,
@@ -463,7 +465,7 @@ function Results({
                           <li key={`${v.ruleIndex}-${v.rollcall.chamber}-${v.rollcall.number}`}>
                             Rule {v.ruleIndex + 1}:{' '}
                             {v.rollcall.chamber === 'house' ? 'House' : 'Senate'} roll call{' '}
-                            <span className="num">{v.rollcall.number}</span>, voted{' '}
+                            <span className="num">{rollCallNumber(v.rollcall)}</span>, voted{' '}
                             <strong>{POSITION_LABEL[v.position]}</strong>
                             {v.aligned === null
                               ? ' (not counted)'

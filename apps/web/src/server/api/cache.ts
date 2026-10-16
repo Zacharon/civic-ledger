@@ -24,6 +24,7 @@ export const CACHE_CLASS: Partial<Record<CapabilityName, CacheClass>> = {
   'people.get': 'data',
   'people.compare': 'data',
   'explore.table': 'data',
+  'explore.facets': 'data',
   'money.summary': 'data',
   'votes.list': 'data',
   'scores.list': 'data',

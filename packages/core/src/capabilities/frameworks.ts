@@ -152,7 +152,13 @@ export const FrameworksEvaluateInput = z.strictObject({
   offset: z.int().min(0).default(0),
 });
 
-const RollcallKeySchema = RollcallRefSchema.pick({ congress: true, chamber: true, number: true });
+const RollcallKeySchema = RollcallRefSchema.pick({
+  congress: true,
+  chamber: true,
+  number: true,
+  session: true,
+  clerkNumber: true,
+});
 
 export const FrameworksEvaluateOutput = z.object({
   framework: z.object({ title: z.string(), ruleCount: z.int() }),
@@ -279,6 +285,8 @@ async function resolveRules(db: Db, specRules: z.output<typeof FrameworkRuleSche
     congress: rollcall.congress,
     chamber: rollcall.chamber,
     number: rollcall.number,
+    session: rollcall.session,
+    clerkNumber: rollcall.clerkNumber,
     voteDate: rollcall.voteDate,
     question: rollcall.question,
     result: rollcall.result,
@@ -384,9 +392,9 @@ async function resolveRules(db: Db, specRules: z.output<typeof FrameworkRuleSche
 
     const claimed = found.filter((r) => !claims.has(r.id));
     if (claimed.length === 0) return unresolved('duplicate_rollcall', billRef);
-    for (const { id, congress, chamber, number } of claimed) {
+    for (const { id, congress, chamber, number, session, clerkNumber } of claimed) {
       claims.set(id, { ruleIndex, alignedPosition: rule.alignedPosition, weight: rule.weight });
-      rollcallKeys.set(id, { congress, chamber, number });
+      rollcallKeys.set(id, { congress, chamber, number, session, clerkNumber });
     }
     return {
       ...base,

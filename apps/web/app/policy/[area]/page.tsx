@@ -5,7 +5,14 @@ import { TallyBar } from '@/components/charts/tally-bar';
 import { Pagination } from '@/components/pagination';
 import { PartyChip } from '@/components/party-chip';
 import { SourceList, SourceMark, SourceNotes } from '@/components/sources';
-import { formatDate, formatNumber, ordinal, safeHref, seatLabel } from '@/lib/format';
+import {
+  formatDate,
+  formatNumber,
+  ordinal,
+  rollCallNumber,
+  safeHref,
+  seatLabel,
+} from '@/lib/format';
 import { POSITION_LABEL } from '@/lib/labels';
 import { read } from '@/server/capabilities';
 import { sourceInfos } from '@/server/sources';
@@ -136,7 +143,8 @@ export default async function PolicyAreaPage({
                       <p className="num text-xs text-ink-3">
                         <span className="font-semibold text-ink-2">R{i + 1}</span> ·{' '}
                         {formatDate(v.rollcall.voteDate)} · {ordinal(v.rollcall.congress)} Congress
-                        · {chamber === 'house' ? 'House' : 'Senate'} roll call {v.rollcall.number}
+                        · {chamber === 'house' ? 'House' : 'Senate'} roll call{' '}
+                        {rollCallNumber(v.rollcall)}
                       </p>
                       <h3 className="mt-1 font-serif text-lg leading-snug">
                         {v.bill ? (

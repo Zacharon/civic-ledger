@@ -108,6 +108,8 @@ export const votesList = defineCapability({
           congress: rollcall.congress,
           chamber: rollcall.chamber,
           number: rollcall.number,
+          session: rollcall.session,
+          clerkNumber: rollcall.clerkNumber,
           voteDate: rollcall.voteDate,
           question: rollcall.question,
           result: rollcall.result,
