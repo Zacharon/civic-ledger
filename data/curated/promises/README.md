@@ -1,5 +1,8 @@
 # Promises
 
+**Status (2026-10-16): no entries yet.** Real entries are added only through a reviewed
+PR that the owner merges (DECISIONS D3); agents may propose, never approve.
+
 One file per person: `promises/<bioguide>.yaml`. A promise is a specific, checkable
 public commitment with a dated source. Ratings are dated verdicts with evidence; the
 most recent rating is the promise's current status.

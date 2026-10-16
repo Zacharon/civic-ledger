@@ -83,3 +83,27 @@ ProPublica Congress API: "no longer available". OpenSecrets API: discontinued 20
 ## Unverified
 
 OpenSecrets bulk layouts; FEC `CMTE_TP` codes page, OpenFEC ToS, pas2 amendment dedupe key, `OTHER_ID` meaning on 24E/24A; BILLSTATUS user guide, RSS, sitemap; Congress.gov ToS (403); House clerk per-member XML element names; OpenStates rate limits; Voteview `current.zip`; Voteview TLS issue cause.
+
+## Ingest findings (2026-10-16, from loading the full files)
+
+Measured while building `packages/ingest`; the rules adopted are in DECISIONS A12–A23.
+
+- **pas2 dedupe key**: (CMTE_ID, TRAN_ID) is *not* unique: 979 groups in the 2026 file are
+  refunds reusing the original TRAN_ID on a later report or ids reused per report
+  (`SB23.1` monthly). Superseded originals are already mostly removed by FEC; only 2 same-report
+  N→A pairs and 10 identical re-reports remained among 198,494 non-memo 24K/24Z rows.
+- **IE file**: committees and Form 5 filers restart `tran_id` per filing; 2,537 rows belong to
+  filings superseded via `prev_file_num`; 15 rows are bogus ($1B–$9B, one filer family,
+  ~$37B total); 2,535 have no candidate id; one has a lower-case id (`h2az02360`); `pur` can
+  contain HTML entities.
+- **weball** repeats the same totals under a member's House and Senate ids (45 people).
+- **ccl** has ~450 rows whose committee is missing from cm and 2 rows whose CAND_ID is a
+  committee id.
+- **Voteview** HS119: the President row (icpsr 99912) also appears in the votes file as stated
+  positions (160 rows); a party switcher gets a second icpsr (Kiley 22336/92336); 2 members
+  have blank `nominate_dim1`. Node's fetch had no TLS problem with voteview.com.
+- **BILLSTATUS** 119: 19,643 bills; 182 without a policy area; all 31 area names used are in the
+  32-term Congress.gov list; every recorded vote joined a Voteview rollcall on
+  (chamber, session, clerk number); some titles contain U+FFFD replacement characters.
+- **congress-legislators**: 452 historical terms have no party; 1,359 historical House terms
+  use district -1 (unknown / general ticket).
