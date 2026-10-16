@@ -446,7 +446,17 @@ function Results({
             </thead>
             <tbody>
               {evaluation.results.map((r) => (
-                <tr key={r.person.slug} className="border-b border-rule align-top">
+                <tr
+                  key={r.person.slug}
+                  className="border-b border-rule align-top"
+                  data-slug={r.person.slug}
+                  data-value={JSON.stringify([
+                    r.aligned,
+                    r.considered,
+                    r.notCounted,
+                    r.alignmentRate,
+                  ])}
+                >
                   <th scope="row" className="py-2.5 pr-4 text-left font-normal">
                     <Link href={`/people/${r.person.slug}`} className="link-quiet font-medium">
                       {r.person.fullName}

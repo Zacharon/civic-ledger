@@ -4,7 +4,7 @@ import { PartyChip } from '@/components/party-chip';
 import { COLUMN_GROUPS, type ColumnDef, type ExploreRow } from '@/lib/explore-columns';
 import { type ExploreState, nextSort, type SortTerm, serializeExplore } from '@/lib/explore-params';
 import { chamberLabel, formerLabel, seatLabel } from '@/lib/format';
-import { MetricCell } from './cell';
+import { MetricCell, metricValue } from './cell';
 
 interface Props {
   rows: ExploreRow[];
@@ -107,7 +107,7 @@ export function ExploreTable({ rows, columns, state, sort, caption }: Props) {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.slug} className="xt-row">
+            <tr key={row.slug} className="xt-row" data-slug={row.slug}>
               <th scope="row" className="xt-name">
                 <Link
                   href={`/people/${row.slug}`}
@@ -130,7 +130,12 @@ export function ExploreTable({ rows, columns, state, sort, caption }: Props) {
                 <span className="ml-1.5 text-xs text-ink-3">{chamberLabel(row.chamber)}</span>
               </td>
               {columns.map((c, i) => (
-                <td key={c.id} className={startsGroup(columns, i) ? 'xt-cell xt-group' : 'xt-cell'}>
+                <td
+                  key={c.id}
+                  className={startsGroup(columns, i) ? 'xt-cell xt-group' : 'xt-cell'}
+                  data-column={c.id}
+                  data-value={metricValue(c, row)}
+                >
                   <MetricCell column={c} row={row} />
                 </td>
               ))}

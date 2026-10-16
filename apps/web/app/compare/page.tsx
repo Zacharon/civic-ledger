@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ShareBar } from '@/components/charts/share-bar';
-import { MetricCell } from '@/components/explore/cell';
+import { MetricCell, metricValue } from '@/components/explore/cell';
 import { PartyChip } from '@/components/party-chip';
 import { allColumns, COLUMN_GROUPS } from '@/lib/explore-columns';
 import { chamberLabel, formatNumber, formerLabel, seatLabel } from '@/lib/format';
@@ -220,6 +220,9 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
                           <td
                             key={p.slug}
                             className="border-b border-l border-rule px-4 py-2.5 [&>span]:justify-start"
+                            data-slug={p.slug}
+                            data-column={c.id}
+                            data-value={metricValue(c, p)}
                           >
                             <MetricCell column={c} row={p} />
                           </td>
@@ -248,6 +251,8 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
                   <li
                     key={`${pair.a}-${pair.b}`}
                     className="flex flex-wrap items-center justify-between gap-3 py-3"
+                    data-pair={`${pair.a},${pair.b}`}
+                    data-value={JSON.stringify([pair.agreed, pair.sharedVotes, pair.rate])}
                   >
                     <span>
                       {name(pair.a)} <span className="text-ink-3">and</span> {name(pair.b)}

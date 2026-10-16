@@ -65,16 +65,16 @@ export async function MoneySection({ slug, cycle }: { slug: string; cycle: numbe
       ) : null}
 
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 sm:gap-x-8">
-        <div>
+        <div data-stat="raised" data-value={JSON.stringify(totals.totalReceiptsCents)}>
           <dt className="text-sm text-ink-2">Raised</dt>
           <dd className="rule-total mt-1 inline-block pb-0.5 text-xl font-semibold sm:text-2xl">
             {formatCents(totals.totalReceiptsCents)}
             <SourceMark notes={notes} n={totalsMark} />
           </dd>
         </div>
-        <Stat label="Spent" value={formatCents(totals.totalDisbursementsCents)} />
-        <Stat label="Cash on hand" value={formatCents(totals.cashOnHandCents)} />
-        <Stat label="Debts" value={formatCents(totals.debtsCents)} />
+        <Stat label="Spent" cents={totals.totalDisbursementsCents} />
+        <Stat label="Cash on hand" cents={totals.cashOnHandCents} />
+        <Stat label="Debts" cents={totals.debtsCents} />
       </dl>
 
       <div className="mt-10 grid gap-12 lg:grid-cols-2">
@@ -137,9 +137,10 @@ export async function MoneySection({ slug, cycle }: { slug: string; cycle: numbe
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | null }) {
+function Stat({ label, cents }: { label: string; cents: number | null }) {
+  const value = formatCents(cents);
   return (
-    <div>
+    <div data-stat={label} data-value={JSON.stringify(cents)}>
       <dt className="text-sm text-ink-2">{label}</dt>
       <dd className="num mt-1 text-xl sm:text-2xl">
         {value ?? <span className="text-base text-ink-3">No data</span>}

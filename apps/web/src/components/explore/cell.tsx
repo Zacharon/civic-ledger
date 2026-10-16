@@ -4,6 +4,31 @@ import { NoData } from '@/components/no-data';
 import type { ColumnDef, ExploreRow } from '@/lib/explore-columns';
 import { formatCents, formatNumber, formatScore, formatYears } from '@/lib/format';
 
+/**
+ * The capability value a metric cell is drawn from, as JSON, for `data-value`. Lets tests
+ * compare what a page shows with the API and MCP results for the same input.
+ */
+export function metricValue(column: ColumnDef, row: ExploreRow): string {
+  switch (column.kind) {
+    case 'cents':
+      return JSON.stringify(row[centsField(column.id)]);
+    case 'share':
+      return JSON.stringify(row[shareField(column.id)]);
+    case 'signed':
+      return JSON.stringify(column.id === 'dim2' ? row.dwNominateDim2 : row.dwNominateDim1);
+    case 'years':
+      return JSON.stringify(row.tenureYears);
+    case 'count':
+      return JSON.stringify(column.id === 'rated' ? row.promisesRated : row.votesEligible);
+    case 'industries':
+      return JSON.stringify(row.topIndustries.map((i) => i.name));
+    case 'scorecard': {
+      const cell = row.scorecards.find((s) => s.publisherId === column.scorecard?.publisherId);
+      return JSON.stringify(cell?.score ?? null);
+    }
+  }
+}
+
 /** One metric cell. Shared by the table, the mobile cards and Compare. */
 export function MetricCell({ column, row }: { column: ColumnDef; row: ExploreRow }) {
   switch (column.kind) {
