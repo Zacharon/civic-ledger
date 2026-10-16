@@ -43,7 +43,14 @@ if (Number(extraPeople) > 0) {
 const next = join(webDir, 'node_modules', 'next', 'dist', 'bin', 'next');
 const server = spawn(process.execPath, [next, 'start', '-p', port], {
   cwd: webDir,
-  env: { ...env, PGLITE_DATA_DIR: dataDir },
+  env: {
+    ...env,
+    PGLITE_DATA_DIR: dataDir,
+    // next start runs as production: a lone test client behind no proxy needs the explicit
+    // single-bucket acknowledgement, and page loads must not trip the page limiter.
+    RATE_LIMIT_SINGLE_BUCKET: '1',
+    PAGE_RATE_LIMIT_PER_MINUTE: '100000',
+  },
   stdio: 'inherit',
 });
 const stop = () => server.kill();

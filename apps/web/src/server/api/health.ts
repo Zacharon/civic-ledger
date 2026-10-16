@@ -3,6 +3,12 @@ import { NO_STORE } from './cache';
 import type { ApiConfig } from './config';
 import { baseHeaders } from './http';
 import type { Logger } from './logger';
+import {
+  type RateLimitIdentityProblem,
+  type RateLimitMode,
+  rateLimitIdentityProblem,
+  rateLimitMode,
+} from './rate-limit-identity';
 import { requestIdFrom } from './request-id';
 
 /** Roughly twice the planned schedule (ARCHITECTURE section 4); anything else uses the config default. */
@@ -32,6 +38,12 @@ export interface HealthReport {
   checks: {
     database: { status: 'ok' | 'down'; latencyMs: number; reason?: 'timeout' | 'unavailable' };
     ingest: { status: 'ok' | 'degraded' | 'unknown'; sources: SourceHealth[] };
+    /** Present when the handler is given the rate-limit config. */
+    rateLimit?: {
+      status: 'ok' | 'misconfigured';
+      mode: RateLimitMode;
+      reason?: RateLimitIdentityProblem;
+    };
   };
 }
 
@@ -73,6 +85,8 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
 export interface HealthDeps {
   context: () => CapabilityContext | Promise<CapabilityContext>;
   config: ApiConfig['health'];
+  /** When set, a limiter that would fail closed (no client identity) reports `degraded`. */
+  rateLimit?: ApiConfig['rateLimit'];
   logger: Logger;
   now?: () => Date;
 }
@@ -87,9 +101,17 @@ export interface HealthDeps {
 export function createHealthHandler({
   context,
   config,
+  rateLimit,
   logger,
   now = () => new Date(),
 }: HealthDeps) {
+  const limiterCheck = (): HealthReport['checks']['rateLimit'] => {
+    if (!rateLimit) return undefined;
+    const reason = rateLimitIdentityProblem(rateLimit);
+    return reason
+      ? { status: 'misconfigured', mode: rateLimitMode(rateLimit), reason }
+      : { status: 'ok', mode: rateLimitMode(rateLimit) };
+  };
   return async (request: Request): Promise<Response> => {
     const requestId = requestIdFrom(request.headers);
     const strict = new URL(request.url).searchParams.get('strict') === '1';
@@ -103,16 +125,19 @@ export function createHealthHandler({
       );
       const latencyMs = Math.round(performance.now() - started);
       const sources = assessSources(status.sources, now(), config.maxIngestAgeHours);
-      const degraded = sources.length === 0 || sources.some((s) => s.freshness !== 'fresh');
+      const ingestDegraded = sources.length === 0 || sources.some((s) => s.freshness !== 'fresh');
+      const limiter = limiterCheck();
+      const degraded = ingestDegraded || limiter?.status === 'misconfigured';
       report = {
         status: degraded ? 'degraded' : 'ok',
         time: now().toISOString(),
         checks: {
           database: { status: 'ok', latencyMs },
           ingest: {
-            status: degraded ? 'degraded' : 'ok',
+            status: ingestDegraded ? 'degraded' : 'ok',
             sources,
           },
+          ...(limiter ? { rateLimit: limiter } : {}),
         },
       };
     } catch (error) {
@@ -131,6 +156,7 @@ export function createHealthHandler({
             reason: error instanceof TimeoutError ? 'timeout' : 'unavailable',
           },
           ingest: { status: 'unknown', sources: [] },
+          ...(limiterCheck() ? { rateLimit: limiterCheck() } : {}),
         },
       };
     }

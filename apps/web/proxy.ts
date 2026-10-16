@@ -4,7 +4,8 @@ import { apiGuard } from './src/server/api/runtime';
 
 /**
  * Next 16 `proxy` (formerly middleware, Node runtime): request id + per-client rate limit for
- * every /api/* call. Pages are untouched (see matcher).
+ * every page and `/api/*` call. Static assets are excluded (see matcher); pages use a
+ * separate, more generous bucket than the API (docs/OPERATIONS.md "Rate limiting").
  */
 export async function proxy(request: NextRequest): Promise<Response> {
   const result = await apiGuard().check(request);
@@ -17,4 +18,5 @@ export async function proxy(request: NextRequest): Promise<Response> {
   return response;
 }
 
-export const config = { matcher: '/api/:path*' };
+// Everything except Next's static files, the image optimizer and the favicon.
+export const config = { matcher: '/((?!_next/static|_next/image|favicon.ico).*)' };

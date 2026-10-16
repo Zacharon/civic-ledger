@@ -30,6 +30,7 @@ export function apiHealthHandler() {
   healthHandler ??= createHealthHandler({
     context: getApiContext,
     config: loadApiConfig().health,
+    rateLimit: loadApiConfig().rateLimit,
     logger: apiLogger(),
   });
   return healthHandler;
