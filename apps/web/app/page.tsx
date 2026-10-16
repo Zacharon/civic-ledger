@@ -37,8 +37,9 @@ const EXAMPLES = [
 const PREVIEW_COLUMNS = ['total', 'pac', 'missed'] as const;
 
 export default async function HomePage() {
-  const [table, status, areas, frameworks] = await Promise.all([
+  const [table, facets, status, areas, frameworks] = await Promise.all([
     read('explore.table', { limit: 4 }),
+    read('explore.facets', {}),
     read('sources.status', {}),
     read('policy.areas', {}),
     read('frameworks.list', {}),
@@ -56,8 +57,9 @@ export default async function HomePage() {
             The public record of Congress, in one table.
           </h1>
           <p className="mt-5 max-w-xl text-lg text-ink-2">
-            Campaign money, roll-call votes, independent scores and promises for every member. Each
-            number links to its source.
+            Campaign money, roll-call votes, independent scores and promises for all{' '}
+            <span className="num">{formatNumber(facets.scopes.current)}</span> current members, with
+            former members one click away. Each number links to its source.
           </p>
 
           <search className="mt-8 block max-w-xl">
@@ -79,7 +81,7 @@ export default async function HomePage() {
                     required
                     maxLength={100}
                     autoComplete="off"
-                    placeholder="Name, e.g. Ashvale"
+                    placeholder="Last or full name"
                     className="field h-12 w-full pl-11 text-lg"
                   />
                 </div>
@@ -162,7 +164,7 @@ export default async function HomePage() {
           <p className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
             <span className="text-ink-2">
               <span className="num font-semibold text-ink">{formatNumber(table.total)}</span>{' '}
-              members in the table
+              current members of Congress
             </span>
             <Link href="/explore" className="link font-semibold">
               Open the full table
@@ -233,17 +235,33 @@ export default async function HomePage() {
             member voted.
           </Entry>
           <Entry term="Ideology and scorecards" href="/methodology#scores">
-            DW-NOMINATE from Voteview beside{' '}
-            <span className="num">{table.scorecardColumns.length}</span> published scorecards, each
-            with the publisher’s own stated orientation.
+            {table.scorecardColumns.length > 0 ? (
+              <>
+                DW-NOMINATE from Voteview beside{' '}
+                <span className="num">{table.scorecardColumns.length}</span> published scorecards,
+                each with the publisher’s own stated orientation.
+              </>
+            ) : (
+              <>
+                DW-NOMINATE from Voteview. Published interest-group scorecards appear beside it,
+                with each publisher’s own stated orientation, once their terms of use are cleared.
+              </>
+            )}
           </Entry>
           <Entry term="Promises and platforms" href="/methodology#promises">
             Campaign promises with dated ratings and evidence, and stated positions next to the
             voting record. Curated and reviewed in public.
           </Entry>
           <Entry term="Frameworks" href="/frameworks">
-            <span className="num">{frameworks.items.length}</span> attributed frameworks, or build
-            your own: “aligned X of Y” with every vote listed. One view, never a neutral score.
+            {frameworks.items.length > 0 ? (
+              <>
+                <span className="num">{frameworks.items.length}</span> attributed frameworks, or
+                build your own
+              </>
+            ) : (
+              'Build your own framework from any roll calls'
+            )}
+            : “aligned X of Y” with every vote listed. One view, never a neutral score.
           </Entry>
           <Entry term="Compare" href="/compare">
             Two to four members side by side, with how often they voted the same way.

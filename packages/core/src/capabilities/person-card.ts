@@ -1,5 +1,5 @@
 import { type Db, personCard, personCardScorecard } from '@civic-ledger/db';
-import { asc, eq, inArray, type SQL, sql } from 'drizzle-orm';
+import { asc, eq, getViewSelectedFields, inArray, type SQL, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
   CentsSchema,
@@ -13,6 +13,22 @@ import {
   SlugSchema,
   StateCodeSchema,
 } from '../schemas/common';
+
+/**
+ * `current`: the person's latest term covers today (start <= today < end; no end = open).
+ * Evaluated at query time, so a term that ends between read-model refreshes drops out
+ * the same day. `all` adds every former member on record.
+ */
+export const MemberScopeSchema = z
+  .enum(['current', 'all'])
+  .describe('current = latest term covers today; all = also former members');
+export type MemberScope = z.infer<typeof MemberScopeSchema>;
+
+export const isCurrentMember = sql<boolean>`coalesce(${personCard.termStart} <= current_date and (${personCard.termEnd} is null or ${personCard.termEnd} > current_date), false)`;
+
+export function scopeWhere(scope: MemberScope): SQL | undefined {
+  return scope === 'current' ? isCurrentMember : undefined;
+}
 
 export const ScorecardCellSchema = z.object({
   publisherId: z.string(),
@@ -31,18 +47,28 @@ export const PersonCardRowSchema = z.object({
   state: StateCodeSchema.nullable(),
   chamber: ChamberSchema.nullable(),
   district: z.int().nullable(),
-  termStart: IsoDateSchema.nullable(),
-  tenureYears: z.number().nullable(),
+  termStart: IsoDateSchema.nullable().describe('Start of the latest term'),
+  termEnd: IsoDateSchema.nullable().describe('End of the latest term (scheduled or actual)'),
+  serviceStart: IsoDateSchema.nullable().describe('Start of the first term on record'),
+  isCurrent: z.boolean().describe('Latest term covers today; false = former member'),
+  tenureYears: z.number().nullable().describe('Years actually served, all terms'),
   ideologyCongress: CongressSchema.nullable(),
   dwNominateDim1: z.number().nullable().describe('DW-NOMINATE dim 1 (academic, roll-call based)'),
   dwNominateDim2: z.number().nullable(),
   moneyCycle: CycleSchema.nullable(),
   totalReceiptsCents: CentsSchema.nullable(),
   pacShare: ShareSchema.nullable(),
-  smallDollarShare: ShareSchema.nullable(),
-  topIndustries: z.array(z.object({ id: z.string(), name: z.string(), amountCents: CentsSchema })),
+  smallDollarShare: ShareSchema.nullable().describe(
+    'Unitemized individual contributions / total receipts, both from the FEC candidate summary',
+  ),
+  smallDollarAsOf: IsoDateSchema.nullable().describe(
+    'Coverage end of the candidate summary behind smallDollarShare (can trail moneyCycle totals)',
+  ),
+  topIndustries: z
+    .array(z.object({ id: z.string(), name: z.string(), amountCents: CentsSchema }))
+    .describe('Up to three industries with positive net PAC money (after refunds), largest first'),
   industryCodingCoverage: ShareSchema.nullable().describe(
-    'Share of PAC dollars with an industry code',
+    'Coded gross PAC contributions / all gross PAC contributions (before refunds)',
   ),
   outsideSupportCents: CentsSchema.nullable(),
   outsideOpposeCents: CentsSchema.nullable(),
@@ -62,9 +88,26 @@ export const PersonSummarySchema = PersonCardRowSchema.pick({
   state: true,
   chamber: true,
   district: true,
+  isCurrent: true,
+  serviceStart: true,
+  termEnd: true,
 });
 
-type CardRecord = typeof personCard.$inferSelect;
+/** person_card columns for PersonSummarySchema, including the query-time scope flag. */
+export const personSummaryColumns = {
+  slug: personCard.slug,
+  fullName: personCard.fullName,
+  party: personCard.party,
+  state: personCard.state,
+  chamber: personCard.chamber,
+  district: personCard.district,
+  isCurrent: isCurrentMember,
+  serviceStart: personCard.serviceStart,
+  termEnd: personCard.termEnd,
+};
+
+const cardColumns = { ...getViewSelectedFields(personCard), isCurrent: isCurrentMember };
+type CardRecord = typeof personCard.$inferSelect & { isCurrent: boolean };
 
 export interface CardQuery {
   where?: SQL | undefined;
@@ -77,7 +120,7 @@ export interface CardQuery {
 export async function selectCards(db: Db, query: CardQuery): Promise<PersonCardRow[]> {
   const orderBy = query.orderBy ?? [asc(personCard.state), asc(personCard.sortName)];
   let builder = db
-    .select()
+    .select(cardColumns)
     .from(personCard)
     .where(query.where)
     .orderBy(...orderBy)
@@ -105,7 +148,11 @@ export async function findCard(
   db: Db,
   slug: string,
 ): Promise<{ personId: number; row: PersonCardRow } | undefined> {
-  const [card] = await db.select().from(personCard).where(eq(personCard.slug, slug)).limit(1);
+  const [card] = await db
+    .select(cardColumns)
+    .from(personCard)
+    .where(eq(personCard.slug, slug))
+    .limit(1);
   if (!card) return undefined;
   const scorecards = await scorecardsByPerson(db, [card.personId]);
   return { personId: card.personId, row: toRow(card, scorecards.get(card.personId) ?? []) };

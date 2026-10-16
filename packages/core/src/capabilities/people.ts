@@ -33,8 +33,11 @@ import {
   containsPattern,
   countCards,
   findCard,
+  MemberScopeSchema,
   PersonCardRowSchema,
   PersonSummarySchema,
+  personSummaryColumns,
+  scopeWhere,
   selectCards,
 } from './person-card';
 
@@ -42,6 +45,9 @@ import {
 
 export const PeopleSearchInput = z.strictObject({
   q: z.string().trim().min(1).max(100).optional().describe('Name contains (case-insensitive)'),
+  scope: MemberScopeSchema.default('all').describe(
+    'Default all: search finds former members too; each item says whether it is current',
+  ),
   chamber: ChamberSchema.optional(),
   state: StateCodeSchema.optional(),
   party: PartySchema.optional(),
@@ -58,11 +64,13 @@ export const peopleSearch = defineCapability({
   version: 1,
   kind: 'read',
   audience: 'public',
-  summary: 'Find officeholders by name, chamber, state or party. Ordered by name.',
+  summary:
+    'Find current and former members by name, chamber, state or party. Ordered by name; current members first.',
   input: PeopleSearchInput,
   output: PeopleSearchOutput,
   async handler({ db }, input) {
     const where = and(
+      scopeWhere(input.scope),
       input.q ? ilike(personCard.fullName, containsPattern(input.q)) : undefined,
       input.chamber ? eq(personCard.chamber, input.chamber) : undefined,
       input.state ? eq(personCard.state, input.state) : undefined,
@@ -70,17 +78,14 @@ export const peopleSearch = defineCapability({
     );
     const [items, total] = await Promise.all([
       db
-        .select({
-          slug: personCard.slug,
-          fullName: personCard.fullName,
-          party: personCard.party,
-          state: personCard.state,
-          chamber: personCard.chamber,
-          district: personCard.district,
-        })
+        .select(personSummaryColumns)
         .from(personCard)
         .where(where)
-        .orderBy(asc(personCard.sortName), asc(personCard.personId))
+        .orderBy(
+          sql`${personSummaryColumns.isCurrent} desc`,
+          asc(personCard.sortName),
+          asc(personCard.personId),
+        )
         .limit(input.limit)
         .offset(input.offset),
       countCards(db, where),

@@ -44,6 +44,7 @@ describe('OpenAPI document', () => {
   it('uses GET with query parameters for reads and POST with a JSON body for evaluate', () => {
     expect(doc.paths['/api/v1/people.search']?.get?.parameters?.map((p) => p.name)).toEqual([
       'q',
+      'scope',
       'chamber',
       'state',
       'party',

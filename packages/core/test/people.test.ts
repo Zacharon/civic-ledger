@@ -16,7 +16,7 @@ describe('people.search@1', () => {
     expect(senate.total).toBe(2);
     const page = await dispatch('people.search', { limit: 5, offset: 5 }, db.ctx());
     expect(page.items).toHaveLength(5);
-    expect(page.total).toBe(40);
+    expect(page.total).toBe(43);
   });
 
   it('treats LIKE wildcards in the query literally', async () => {

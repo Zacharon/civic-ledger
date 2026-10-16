@@ -159,7 +159,7 @@ async function loadPeople(
   const people = await db
     .insert(s.person)
     .values(
-      data.people.map((p) => ({
+      [...data.people, ...data.formerMembers].map((p) => ({
         slug: p.slug,
         fullName: `${p.firstName} ${p.lastName}`,
         firstName: p.firstName,
@@ -174,15 +174,22 @@ async function loadPeople(
   await db
     .insert(s.personIdentifier)
     .values(
-      data.people.flatMap((p) => {
-        const personId = required(personIds, p.slug);
-        return (
-          [
+      [
+        ...data.people.map((p) => ({
+          slug: p.slug,
+          ids: [
             ['bioguide', p.bioguide],
             ['icpsr', p.icpsr],
             ['fec_candidate', p.fecCandidateId],
-          ] as const
-        ).map(([scheme, value]) => ({
+          ] as const,
+        })),
+        ...data.formerMembers.map((p) => ({
+          slug: p.slug,
+          ids: [['bioguide', p.bioguide]] as const,
+        })),
+      ].flatMap(({ slug, ids }) => {
+        const personId = required(personIds, slug);
+        return ids.map(([scheme, value]) => ({
           personId,
           scheme,
           value,
@@ -325,6 +332,27 @@ async function loadMoney(
     .onConflictDoUpdate({
       target: [s.candidateCycleTotals.fecCandidateId, s.candidateCycleTotals.cycle],
       set: conflictUpdateSet(s.candidateCycleTotals),
+    });
+
+  // The seed's candidate summary covers the same period as its totals.
+  await db
+    .insert(s.candidateCycleSummary)
+    .values(
+      data.totals.map((t) => ({
+        fecCandidateId: t.fecCandidateId,
+        cycle: t.cycle,
+        personId: required(personIds, t.slug),
+        totalReceiptsCents: t.totalReceiptsCents,
+        individualCents: t.individualCents,
+        itemizedIndividualCents: t.individualCents - t.unitemizedIndividualCents,
+        unitemizedIndividualCents: t.unitemizedIndividualCents,
+        coverageEndDate: '2024-12-31',
+        ...provenance(`candidate_summary:${t.fecCandidateId}:${t.cycle}`),
+      })),
+    )
+    .onConflictDoUpdate({
+      target: [s.candidateCycleSummary.fecCandidateId, s.candidateCycleSummary.cycle],
+      set: conflictUpdateSet(s.candidateCycleSummary),
     });
 
   await db

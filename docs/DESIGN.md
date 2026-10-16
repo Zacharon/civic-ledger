@@ -198,3 +198,7 @@ retry) and populated.
 | 2026-10-16 | No theme toggle; follow the OS | Both modes keep the identity; avoids client JS and a flash of wrong theme. |
 | 2026-10-16 | Hand-rolled SVG charts, no chart library | Server-rendered, zero client JS, full control over neutrality rules. |
 | 2026-10-16 | Server-rendered table, TanStack Table removed | Sort and paging are server-side (`explore.table`); column visibility is URL state; a client table model would add JS without capability. |
+| 2026-10-16 | Long official titles cut at ~160 characters with a "Full official title" disclosure | House rules run to 300+ words; the full text stays one click away, unedited. |
+| 2026-10-16 | Ranked lists fold: 10 industries, 12 outside spenders, then a muted summary row and a disclosure | Real members have 45 industries and 30+ spenders; the fold keeps the figure readable without hiding totals. |
+| 2026-10-16 | "Former member" chip (neutral, outlined) plus service years; Explore's "Members" control (Current / Include former) with counts | Scope is a fact, not a judgment: no color, counts on both options. |
+| 2026-10-16 | Scroll containers are `position: relative`; pagination compacts below `sm` | Visually hidden text inside a scroller must not widen the page. |

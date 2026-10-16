@@ -96,6 +96,33 @@ export const candidateCycleTotals = pgTable(
   ],
 );
 
+/**
+ * FEC candidate summary (`candidate_summary_<cycle>.csv`): the itemized / unitemized split
+ * of individual contributions that weball lacks. Kept apart from `candidate_cycle_totals`
+ * because FEC refreshes it on its own schedule: its coverage period often ends a quarter
+ * earlier than weball's, so its amounts are only combined with its own total receipts.
+ */
+export const candidateCycleSummary = pgTable(
+  'candidate_cycle_summary',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    fecCandidateId: text('fec_candidate_id').notNull(),
+    cycle: integer('cycle').notNull(),
+    personId: integer('person_id').references(() => person.id),
+    totalReceiptsCents: cents('total_receipts_cents').notNull(),
+    individualCents: cents('individual_cents').notNull(),
+    itemizedIndividualCents: cents('itemized_individual_cents').notNull(),
+    unitemizedIndividualCents: cents('unitemized_individual_cents').notNull(),
+    coverageEndDate: date('coverage_end_date'),
+    ...provenanceColumns(),
+  },
+  (t) => [
+    unique('candidate_cycle_summary_natural_key').on(t.fecCandidateId, t.cycle),
+    index('candidate_cycle_summary_person_idx').on(t.personId, t.cycle),
+    ...provenanceIndexes('candidate_cycle_summary', t),
+  ],
+);
+
 /** Contributions from committees to candidates (`pas2`). */
 export const committeeContribution = pgTable(
   'committee_contribution',

@@ -41,7 +41,16 @@ export interface SeedTerm {
   district: number | null;
   party: string;
   startDate: string;
-  endDate: string;
+  /** null = the current, open term (keeps the seed "current" whatever today's date is). */
+  endDate: string | null;
+}
+
+/** A fictional former member: identity and past terms only (no current-cycle data). */
+export interface SeedFormerMember {
+  slug: string;
+  firstName: string;
+  lastName: string;
+  bioguide: string;
 }
 
 export interface SeedCandidacy {
@@ -161,6 +170,7 @@ export interface SeedFramework {
 
 export interface SeedData {
   people: SeedPerson[];
+  formerMembers: SeedFormerMember[];
   terms: SeedTerm[];
   candidacies: SeedCandidacy[];
   committees: SeedCommittee[];
@@ -254,11 +264,75 @@ function buildTerms(people: SeedPerson[]): SeedTerm[] {
         district: p.district,
         party: p.party,
         startDate: isoDate(year, 1, 3),
-        endDate: isoDate(year + length, 1, 3),
+        endDate: year === p.currentTermStart ? null : isoDate(year + length, 1, 3),
       });
     }
     return terms;
   });
+}
+
+/**
+ * Three fictional former members for the current / former scope: a long House career that
+ * ended in 2009, three Senate terms ending 2019, and a mid-term resignation in 2025.
+ */
+function buildFormerMembers(): { members: SeedFormerMember[]; terms: SeedTerm[] } {
+  const careers = [
+    {
+      first: 'Cornelius',
+      last: 'Oakhurst',
+      chamber: 'house',
+      state: 'ZV',
+      district: 1,
+      party: SEED_PARTIES.harbor,
+      from: 1995,
+      to: 2009,
+      length: 2,
+      lastEnd: null,
+    },
+    {
+      first: 'Philippa',
+      last: 'Wrenfield',
+      chamber: 'senate',
+      state: 'ZX',
+      district: null,
+      party: SEED_PARTIES.prairie,
+      from: 2001,
+      to: 2019,
+      length: 6,
+      lastEnd: null,
+    },
+    {
+      first: 'Desmond',
+      last: 'Quillfeather',
+      chamber: 'house',
+      state: 'ZZ',
+      district: 3,
+      party: SEED_PARTIES.independent,
+      from: 2019,
+      to: 2027,
+      length: 2,
+      lastEnd: isoDate(2025, 6, 30),
+    },
+  ] as const;
+  const members: SeedFormerMember[] = [];
+  const terms: SeedTerm[] = [];
+  careers.forEach((c, i) => {
+    const slug = `${c.first}-${c.last}`.toLowerCase();
+    members.push({ slug, firstName: c.first, lastName: c.last, bioguide: `ZZ9${pad(i + 1, 4)}` });
+    for (let year = c.from; year < c.to; year += c.length) {
+      const last = year + c.length >= c.to;
+      terms.push({
+        slug,
+        chamber: c.chamber,
+        state: c.state,
+        district: c.district,
+        party: c.party,
+        startDate: isoDate(year, 1, 3),
+        endDate: last && c.lastEnd ? c.lastEnd : isoDate(year + c.length, 1, 3),
+      });
+    }
+  });
+  return { members, terms };
 }
 
 function buildCandidacies(people: SeedPerson[]): SeedCandidacy[] {
@@ -571,9 +645,11 @@ export function buildSeedData(): SeedData {
   const spenders = committees.filter((c) => c.committeeType === 'O');
   const bills = buildBills(people, random);
   const rollcalls = buildRollcalls(people, bills, random);
+  const former = buildFormerMembers();
   return {
     people,
-    terms: buildTerms(people),
+    formerMembers: former.members,
+    terms: [...buildTerms(people), ...former.terms],
     candidacies: buildCandidacies(people),
     committees,
     totals: buildTotals(people, random),

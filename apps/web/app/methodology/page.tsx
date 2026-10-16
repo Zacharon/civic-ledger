@@ -11,6 +11,7 @@ const SECTIONS = [
   { id: 'principles', title: 'Principles' },
   { id: 'money', title: 'Money' },
   { id: 'industry-coding', title: 'Industry coding' },
+  { id: 'members', title: 'Current and former members' },
   { id: 'votes', title: 'Votes' },
   { id: 'dw-nominate', title: 'DW-NOMINATE' },
   { id: 'scores', title: 'Scorecards' },
@@ -57,12 +58,17 @@ export default function MethodologyPage() {
           </Part>
           <Part id="money" title="Money">
             <p>
-              Totals come from FEC candidate summaries for the latest loaded election cycle, in
+              Totals come from the FEC all-candidates file for the latest loaded election cycle, in
               whole cents. <strong>From PACs</strong> is contributions from PACs and other
               committees divided by total receipts. <strong>Small donors</strong> is unitemized
               individual contributions (donors giving $200 or less in the cycle, whom campaigns are
-              not required to name) divided by total receipts. Outside spending is independent
-              expenditures reported for or against the candidate in the same cycle.
+              not required to name) divided by total receipts, both taken from the FEC candidate
+              summary file. That file is refreshed on its own schedule and often covers a shorter
+              period than the totals, so the share is labeled with its own end date and never mixed
+              with the other file’s amounts. A share is shown only when receipts are positive and
+              the part lies between zero and the total; otherwise it reads “No data”. Outside
+              spending is independent expenditures reported for or against the candidate in the same
+              cycle.
             </p>
           </Part>
           <Part id="industry-coding" title="Industry coding">
@@ -71,6 +77,21 @@ export default function MethodologyPage() {
               map kept in the public repository. A committee without a reviewed assignment stays
               “not coded”; its dollars are never folded into an industry or into “other”. Every
               industry breakdown states its coverage: the share of PAC dollars that are coded.
+              Coverage and industry shares are computed on contributions before refunds, so a refund
+              can never push them above 100% or below zero; amounts kept after refunds are shown
+              beside them, and an industry appears among a member’s top industries only when its net
+              amount is positive.
+            </p>
+          </Part>
+          <Part id="members" title="Current and former members">
+            <p>
+              A <strong>current member</strong> is someone whose latest term of office covers
+              today’s date, as recorded by the congress-legislators project (scheduled term ends, or
+              the actual date for members who resigned or died). Explore and the home page show
+              current members by default; “Include former members” adds everyone on record since
+              1789. Search, profiles and Compare work for anyone and label former members with their
+              years of service. <strong>Years in office</strong> counts days actually served across
+              all terms.
             </p>
           </Part>
           <Part id="votes" title="Votes">

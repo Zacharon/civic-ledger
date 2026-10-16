@@ -17,7 +17,7 @@ export function NavLinks() {
   return (
     <nav
       aria-label="Main"
-      className="-mx-1 min-w-0 flex-1 overflow-x-auto [mask-image:linear-gradient(to_right,black_85%,transparent)] lg:[mask-image:none]"
+      className="relative -mx-1 min-w-0 flex-1 overflow-x-auto [mask-image:linear-gradient(to_right,black_85%,transparent)] lg:[mask-image:none]"
     >
       <ul className="flex items-center gap-1 whitespace-nowrap text-sm">
         {LINKS.map(({ href, label }) => {

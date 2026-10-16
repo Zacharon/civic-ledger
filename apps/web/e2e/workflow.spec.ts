@@ -8,7 +8,7 @@ test('search, explore, profile, compare and evaluate a framework', async ({ page
   await page.getByRole('button', { name: 'Search' }).click();
 
   await expect(page).toHaveURL(/\/explore\?q=Ashvale/);
-  const table = page.getByRole('region', { name: /Members of Congress/ });
+  const table = page.getByRole('region', { name: /members of Congress/i });
   await expect(table.locator('tbody tr')).toHaveCount(1);
   await expect(table.getByRole('link', { name: 'Avery Ashvale' })).toBeVisible();
 
@@ -20,7 +20,7 @@ test('search, explore, profile, compare and evaluate a framework', async ({ page
     .filter({ hasText: /^Senate$/ })
     .click();
   await expect(page).toHaveURL(/chamber=senate/);
-  await expect(page.getByText(/^10 members/)).toBeVisible();
+  await expect(page.getByText(/^10 current members/)).toBeVisible();
 
   // Sort by total raised, largest first, via the column header.
   await table.getByRole('link', { name: /Total raised.*sort descending/ }).click();

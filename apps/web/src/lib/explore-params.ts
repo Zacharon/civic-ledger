@@ -47,9 +47,13 @@ export const parseAsStateCode = createParser<string>({
 
 export const PAGE_SIZES = [25, 50, 100] as const;
 export const CHAMBERS = ['house', 'senate'] as const;
+/** Absent = current members (the default); `scope=all` includes former members. */
+export const MEMBER_SCOPES = ['current', 'all'] as const;
+export type MemberScope = (typeof MEMBER_SCOPES)[number];
 
 export const exploreParsers = {
   q: parseAsString,
+  scope: parseAsStringLiteral(MEMBER_SCOPES),
   chamber: parseAsStringLiteral(CHAMBERS),
   state: parseAsStateCode,
   party: parseAsString,
@@ -63,6 +67,7 @@ export const serializeExplore = createSerializer(exploreParsers);
 
 export type ExploreState = {
   q: string | null;
+  scope: MemberScope | null;
   chamber: (typeof CHAMBERS)[number] | null;
   state: string | null;
   party: string | null;
@@ -71,6 +76,9 @@ export type ExploreState = {
   page: number;
   size: (typeof PAGE_SIZES)[number];
 };
+
+export const scopeOf = (state: Pick<ExploreState, 'scope'>): MemberScope =>
+  state.scope ?? 'current';
 
 /** Next sort when a header is activated: first direction → the other → back to default. */
 export function nextSort(

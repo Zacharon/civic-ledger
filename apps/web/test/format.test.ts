@@ -17,6 +17,7 @@ import {
 } from '../src/lib/format';
 import { pageWindow } from '../src/lib/pages';
 import { partyTone } from '../src/lib/party';
+import { runCountRows } from '../src/lib/run-counts';
 
 describe('formatCents (integer cents → dollars)', () => {
   it('formats whole dollars with separators', () => {
@@ -148,5 +149,37 @@ describe('pageWindow', () => {
     expect(pageWindow(1, 20)).toEqual([1, 2, 3, 4, 5, null, 20]);
     expect(pageWindow(10, 20)).toEqual([1, null, 9, 10, 11, null, 20]);
     expect(pageWindow(20, 20)).toEqual([1, null, 16, 17, 18, 19, 20]);
+  });
+});
+
+describe('runCountRows', () => {
+  it('formats cents as dollars, basis points as percent, acronyms upper-case, sorted', () => {
+    expect(
+      runCountRows({
+        ie_rows: 29260,
+        contribution_cents_total: 4463634730,
+        industry_coverage_bps: 7705,
+      }),
+    ).toEqual([
+      { key: 'contribution_cents_total', label: 'Contribution total', value: '$44,636,347' },
+      { key: 'ie_rows', label: 'IE rows', value: '29,260' },
+      { key: 'industry_coverage_bps', label: 'Industry coverage', value: '77.0%' },
+    ]);
+  });
+});
+
+describe('shortTitle', () => {
+  it('keeps short titles and cuts long ones at a word boundary', async () => {
+    const { shortTitle } = await import('../src/lib/format');
+    expect(shortTitle('Stop Insider Trading Act')).toEqual({
+      text: 'Stop Insider Trading Act',
+      truncated: false,
+    });
+    const long = `Providing for consideration of the bill (H.R. 9576) to establish the National Fraud Enforcement Division; ${'and for other purposes; '.repeat(10)}`;
+    const cut = shortTitle(long);
+    expect(cut.truncated).toBe(true);
+    expect(cut.text.length).toBeLessThanOrEqual(161);
+    expect(cut.text.endsWith('…')).toBe(true);
+    expect(long.startsWith(cut.text.slice(0, -1))).toBe(true);
   });
 });

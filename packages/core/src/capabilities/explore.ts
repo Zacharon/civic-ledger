@@ -11,7 +11,14 @@ import {
   PartySchema,
   StateCodeSchema,
 } from '../schemas/common';
-import { containsPattern, countCards, PersonCardRowSchema, selectCards } from './person-card';
+import {
+  containsPattern,
+  countCards,
+  MemberScopeSchema,
+  PersonCardRowSchema,
+  scopeWhere,
+  selectCards,
+} from './person-card';
 
 const FIXED_SORT_COLUMNS = [
   'sortName',
@@ -79,12 +86,13 @@ const SortSchema = z.object({
 export const ExploreTableInput = z.strictObject({
   filters: z
     .strictObject({
+      scope: MemberScopeSchema.default('current'),
       chamber: ChamberSchema.optional(),
       state: StateCodeSchema.optional(),
       party: PartySchema.optional(),
       q: z.string().trim().min(1).max(100).optional().describe('Name contains'),
     })
-    .default({}),
+    .default({ scope: 'current' }),
   sort: z
     .array(SortSchema)
     .max(3)
@@ -116,7 +124,8 @@ export const exploreTable = defineCapability({
   version: 1,
   kind: 'read',
   audience: 'public',
-  summary: 'Filter, sort and paginate the multi-axis table of officeholders (person_card).',
+  summary:
+    'Filter, sort and paginate the multi-axis table of officeholders (person_card). Default scope: current members.',
   input: ExploreTableInput,
   output: ExploreTableOutput,
   async handler({ db }, input) {
@@ -139,8 +148,9 @@ export const exploreTable = defineCapability({
       sql`${personCard.personId} asc`,
     ];
 
-    const { chamber, state, party, q } = input.filters;
+    const { scope, chamber, state, party, q } = input.filters;
     const where = and(
+      scopeWhere(scope),
       chamber ? eq(personCard.chamber, chamber) : undefined,
       state ? eq(personCard.state, state) : undefined,
       party ? eq(personCard.party, party) : undefined,

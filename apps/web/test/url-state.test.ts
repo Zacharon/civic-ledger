@@ -62,6 +62,7 @@ describe('Explore sort parameter', () => {
 describe('Explore → explore.table input', () => {
   const base = {
     q: null,
+    scope: null,
     chamber: null,
     state: null,
     party: null,
@@ -72,7 +73,12 @@ describe('Explore → explore.table input', () => {
   } as const;
 
   it('defaults to the neutral order (no sort terms) and page 1', () => {
-    expect(exploreTableInput(base)).toEqual({ filters: {}, sort: [], limit: 50, offset: 0 });
+    expect(exploreTableInput(base)).toEqual({
+      filters: { scope: 'current' },
+      sort: [],
+      limit: 50,
+      offset: 0,
+    });
     expect(describeSort([], [])).toBe('State, then name');
   });
 
@@ -90,7 +96,7 @@ describe('Explore → explore.table input', () => {
       size: 25,
     });
     expect(input).toEqual({
-      filters: { chamber: 'house', q: 'Ash' },
+      filters: { scope: 'current', chamber: 'house', q: 'Ash' },
       sort: [
         { column: 'totalReceiptsCents', direction: 'desc' },
         { column: 'sortName', direction: 'asc' },
@@ -99,6 +105,10 @@ describe('Explore → explore.table input', () => {
       limit: 25,
       offset: 50,
     });
+  });
+
+  it('maps scope=all to the former-members scope', () => {
+    expect(exploreTableInput({ ...base, scope: 'all' }).filters.scope).toBe('all');
   });
 
   it('drops unknown sort ids instead of sending them to core', () => {
@@ -114,6 +124,29 @@ describe('Explore → explore.table input', () => {
     expect(visibleColumns(['pac', 'total'], scorecards).map((c) => c.id)).toEqual(['total', 'pac']);
     const groups = allColumns(scorecards).map((c) => c.group);
     expect(groups.indexOf('scorecards')).toBeLessThan(groups.indexOf('promises'));
+  });
+
+  it('hides a default column nobody has data for, but keeps it choosable', () => {
+    const coverage = {
+      tenureYears: 539,
+      totalReceiptsCents: 533,
+      pacShare: 530,
+      smallDollarShare: 419,
+      industryCodingCoverage: 500,
+      outsideSupportCents: 533,
+      outsideOpposeCents: 533,
+      votesEligible: 535,
+      missedVoteRate: 535,
+      dwNominateDim1: 533,
+      dwNominateDim2: 533,
+      promisesRated: 0,
+      promiseKeptRate: 0,
+    };
+    const defaults = visibleColumns(null, [], coverage).map((c) => c.id);
+    expect(defaults).not.toContain('kept');
+    expect(defaults).toContain('small');
+    expect(visibleColumns(['kept'], [], coverage).map((c) => c.id)).toEqual(['kept']);
+    expect(allColumns([], coverage).find((c) => c.id === 'kept')?.withData).toBe(0);
   });
 });
 

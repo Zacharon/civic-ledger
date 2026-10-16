@@ -4,7 +4,8 @@ import { Search, X } from 'lucide-react';
 import { useQueryStates } from 'nuqs';
 import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
 import { type ColumnDef, IDENTITY_SORTS } from '@/lib/explore-columns';
-import { exploreParsers, PAGE_SIZES } from '@/lib/explore-params';
+import { exploreParsers, PAGE_SIZES, scopeOf } from '@/lib/explore-params';
+import { formatNumber } from '@/lib/format';
 import { ColumnPicker } from './column-picker';
 import { useExploreTransition } from './explore-transition';
 
@@ -14,6 +15,7 @@ interface Facet<T extends string = string> {
 }
 
 export interface ExploreFacets {
+  scopes: { current: number; all: number };
   chambers: Facet<'house' | 'senate'>[];
   states: Facet[];
   parties: Facet[];
@@ -65,9 +67,11 @@ export function ExploreControls({
     commitQuery(query);
   };
 
+  const scope = scopeOf(state);
   const sortValue = state.sort?.[0] ? `${state.sort[0].id}.${state.sort[0].direction}` : '';
   const sortable = columns.filter((c) => c.sortKey !== undefined);
   const active = [
+    scope === 'all' ? { key: 'scope', label: 'Including former members' } : null,
     state.q ? { key: 'q', label: `Name contains “${state.q}”` } : null,
     state.chamber ? { key: 'chamber', label: CHAMBER_LABEL[state.chamber] } : null,
     state.state ? { key: 'state', label: `State: ${state.state}` } : null,
@@ -80,7 +84,7 @@ export function ExploreControls({
         <form
           action="/explore"
           onSubmit={onSubmit}
-          className="grid grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-[minmax(14rem,1.4fr)_auto_minmax(8rem,0.6fr)_minmax(10rem,0.8fr)] lg:gap-x-4"
+          className="grid grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-[minmax(12rem,1.4fr)_auto_auto_minmax(7rem,0.5fr)_minmax(9rem,0.8fr)] lg:gap-x-4"
         >
           <div className="col-span-2 flex flex-col gap-1.5 lg:col-span-1">
             <label htmlFor={ids.q} className="text-sm font-semibold">
@@ -98,13 +102,38 @@ export function ExploreControls({
                 type="search"
                 value={query}
                 onChange={(e) => onQueryChange(e.target.value)}
-                placeholder="e.g. Ashvale"
+                placeholder="Last or full name"
                 autoComplete="off"
                 maxLength={100}
                 className="field w-full pl-9"
               />
             </div>
           </div>
+
+          <fieldset className="col-span-2 flex flex-col gap-1.5 lg:col-span-1">
+            <legend className="mb-1.5 text-sm font-semibold">Members</legend>
+            <Segmented
+              name="scope"
+              options={[
+                {
+                  value: 'current',
+                  label: 'Current',
+                  count: facets.scopes.current,
+                  title: 'Current members of Congress',
+                },
+                {
+                  value: 'all',
+                  label: 'Include former',
+                  count: facets.scopes.all,
+                  title: 'Include former members',
+                },
+              ]}
+              selected={scope}
+              onSelect={(value) =>
+                void setState({ scope: value === 'all' ? 'all' : null, page: null })
+              }
+            />
+          </fieldset>
 
           <fieldset className="col-span-2 flex flex-col gap-1.5 lg:col-span-1">
             <legend className="mb-1.5 text-sm font-semibold">Chamber</legend>
@@ -188,7 +217,7 @@ export function ExploreControls({
       <div className="flex flex-wrap items-end justify-between gap-3 border-t border-rule pt-4">
         <ul className="flex min-h-11 flex-wrap items-center gap-2" aria-label="Active filters">
           {active.length === 0 ? (
-            <li className="text-sm text-ink-3">No filters. Showing every member.</li>
+            <li className="text-sm text-ink-3">No filters. Showing every current member.</li>
           ) : (
             <>
               {active.map((f) => (
@@ -209,7 +238,14 @@ export function ExploreControls({
                   type="button"
                   onClick={() => {
                     setQuery('');
-                    void setState({ q: null, chamber: null, state: null, party: null, page: null });
+                    void setState({
+                      q: null,
+                      scope: null,
+                      chamber: null,
+                      state: null,
+                      party: null,
+                      page: null,
+                    });
                   }}
                   className="link min-h-9 px-1 text-sm"
                 >
@@ -275,6 +311,56 @@ export function ExploreControls({
           <ColumnPicker columns={columns} />
         </div>
       </div>
+    </div>
+  );
+}
+
+interface SegmentedOption {
+  value: string;
+  label: string;
+  count: number;
+  title: string;
+}
+
+/** Radio group drawn as one segmented control; every option shows its count. */
+function Segmented({
+  name,
+  options,
+  selected,
+  onSelect,
+}: {
+  name: string;
+  options: SegmentedOption[];
+  selected: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <div className="flex h-11 rounded-control border border-control bg-surface p-0.5 lg:inline-flex">
+      {options.map((option) => {
+        const checked = selected === option.value;
+        return (
+          <label
+            key={option.value}
+            className={`relative inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[3px] px-3 text-sm whitespace-nowrap lg:flex-none has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
+              checked ? 'bg-accent font-semibold text-accent-ink' : 'text-ink-2 hover:text-ink'
+            }`}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={option.value}
+              checked={checked}
+              onChange={() => onSelect(option.value)}
+              aria-label={`${option.title} (${formatNumber(option.count)})`}
+              className="sr-only"
+            />
+            {option.label}
+            <span aria-hidden="true" className={`num text-xs ${checked ? '' : 'text-ink-3'}`}>
+              {formatNumber(option.count)}
+            </span>
+          </label>
+        );
+      })}
     </div>
   );
 }

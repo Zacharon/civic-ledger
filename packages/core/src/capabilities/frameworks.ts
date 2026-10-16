@@ -33,7 +33,7 @@ import {
   VotePositionSchema,
 } from '../schemas/common';
 import { provenanceFields, withProvenance } from '../schemas/provenance';
-import { PersonSummarySchema } from './person-card';
+import { PersonSummarySchema, personSummaryColumns } from './person-card';
 
 // frameworks.list@1 ----------------------------------------------------------
 
@@ -240,15 +240,7 @@ export const frameworksEvaluate = defineCapability({
       scores.size === 0
         ? []
         : await db
-            .select({
-              personId: personCard.personId,
-              slug: personCard.slug,
-              fullName: personCard.fullName,
-              party: personCard.party,
-              state: personCard.state,
-              chamber: personCard.chamber,
-              district: personCard.district,
-            })
+            .select({ personId: personCard.personId, ...personSummaryColumns })
             .from(personCard)
             .where(inArray(personCard.personId, [...scores.keys()]))
             .orderBy(asc(personCard.state), asc(personCard.sortName), asc(personCard.personId));

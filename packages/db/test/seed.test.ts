@@ -15,6 +15,7 @@ const TABLES = [
   'committee_link',
   'committee_industry',
   'candidate_cycle_totals',
+  'candidate_cycle_summary',
   'committee_contribution',
   'independent_expenditure',
   'industry',
@@ -63,7 +64,7 @@ describe('dev seed', () => {
 
   it('loads every table', () => {
     for (const table of TABLES) expect(first[table], table).toBeGreaterThan(0);
-    expect(first.person).toBe(40);
+    expect(first.person).toBe(43);
   });
 
   it('is idempotent: a second load changes no row counts and reuses the run', async () => {

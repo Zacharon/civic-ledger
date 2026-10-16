@@ -4,7 +4,10 @@ import type { ReactNode } from 'react';
 import { formatNumber } from '@/lib/format';
 import { pageWindow } from '@/lib/pages';
 
-/** Page links (work without JavaScript). `hrefFor(page)` builds each URL. */
+/**
+ * Page links (work without JavaScript). `hrefFor(page)` builds each URL. Below `sm` only
+ * previous, the current page, "of N" and next are shown, so 44px targets fit on 320px.
+ */
 export function Pagination({
   page,
   pageSize,
@@ -41,11 +44,11 @@ export function Pagination({
           {window.map((p, i) =>
             p === null ? (
               // biome-ignore lint/suspicious/noArrayIndexKey: gaps have no identity
-              <li key={`gap-${i}`} aria-hidden="true" className="px-1 text-ink-3">
+              <li key={`gap-${i}`} aria-hidden="true" className="px-1 text-ink-3 max-sm:hidden">
                 …
               </li>
             ) : (
-              <li key={p}>
+              <li key={p} className={p === page ? undefined : 'max-sm:hidden'}>
                 <Link
                   href={hrefFor(p)}
                   scroll={false}
@@ -62,6 +65,9 @@ export function Pagination({
               </li>
             ),
           )}
+          <li aria-hidden="true" className="num px-1 text-ink-2 sm:hidden">
+            of {formatNumber(pages)}
+          </li>
           <li>
             <PageLink href={page < pages ? hrefFor(page + 1) : null} label="Next page">
               <ChevronRight aria-hidden="true" strokeWidth={1.75} className="size-4" />

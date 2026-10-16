@@ -5,6 +5,8 @@ import type { CapabilityOutput, EXPLORE_SORT_COLUMNS } from '@civic-ledger/core'
 export type ExploreRow = CapabilityOutput<'explore.table'>['rows'][number];
 export type ScorecardColumn = CapabilityOutput<'explore.table'>['scorecardColumns'][number];
 export type CoreSortColumn = keyof typeof EXPLORE_SORT_COLUMNS;
+/** People with a value per field, from explore.facets (`withData`). */
+export type FieldCoverage = CapabilityOutput<'explore.facets'>['withData'];
 
 export const COLUMN_GROUPS = [
   { id: 'office', label: 'Office' },
@@ -38,6 +40,10 @@ export interface ColumnDef {
   /** Direction a first click sorts in: numbers read largest first. */
   firstDirection: 'asc' | 'desc';
   defaultVisible: boolean;
+  /** Field whose explore.facets coverage decides whether the column has any data. */
+  dataField?: keyof FieldCoverage;
+  /** People in the current scope with a value; undefined = not measured. */
+  withData?: number;
   /** Only for scorecard columns. */
   scorecard?: ScorecardColumn;
 }
@@ -48,10 +54,11 @@ type FixedColumn = Omit<ColumnDef, 'sortKey' | 'scorecard'> & { sortKey?: CoreSo
 export const FIXED_COLUMNS: readonly FixedColumn[] = [
   {
     id: 'tenure',
+    dataField: 'tenureYears',
     group: 'office',
     label: 'Years in office',
     header: 'Tenure',
-    description: 'Years since the member’s first term began, in either chamber.',
+    description: 'Years actually served in Congress, across all terms in either chamber.',
     kind: 'years',
     sortKey: 'tenureYears',
     firstDirection: 'desc',
@@ -59,6 +66,7 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
   },
   {
     id: 'total',
+    dataField: 'totalReceiptsCents',
     group: 'money',
     label: 'Total raised',
     header: 'Raised',
@@ -70,6 +78,7 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
   },
   {
     id: 'pac',
+    dataField: 'pacShare',
     group: 'money',
     label: 'Share from PACs and other committees',
     header: 'From PACs',
@@ -81,11 +90,12 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
   },
   {
     id: 'small',
+    dataField: 'smallDollarShare',
     group: 'money',
     label: 'Share from small-dollar donors',
     header: 'Small donors',
     description:
-      'Unitemized individual contributions (under $200 per donor) as a share of total receipts.',
+      'Unitemized individual contributions (donors giving $200 or less) as a share of total receipts, both from the FEC candidate summary, whose period can end before the Raised total’s.',
     kind: 'share',
     sortKey: 'smallDollarShare',
     firstDirection: 'desc',
@@ -93,20 +103,24 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
   },
   {
     id: 'industries',
+    dataField: 'industryCodingCoverage',
     group: 'money',
     label: 'Top industries by PAC money',
     header: 'Top industries',
-    description: 'Largest industries among PAC contributions, by in-house coding.',
+    description:
+      'Largest industries by PAC money kept after refunds, by in-house coding (up to three).',
     kind: 'industries',
     firstDirection: 'desc',
     defaultVisible: false,
   },
   {
     id: 'coverage',
+    dataField: 'industryCodingCoverage',
     group: 'money',
     label: 'Industry coding coverage',
     header: 'Coded',
-    description: 'Share of PAC dollars assigned to an industry. The rest is “not coded”.',
+    description:
+      'Share of PAC dollars (before refunds) assigned to an industry. The rest is “not coded”.',
     kind: 'share',
     sortKey: 'industryCodingCoverage',
     firstDirection: 'desc',
@@ -114,6 +128,7 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
   },
   {
     id: 'outsideFor',
+    dataField: 'outsideSupportCents',
     group: 'money',
     label: 'Outside spending for',
     header: 'Outside, for',
@@ -125,6 +140,7 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
   },
   {
     id: 'outsideAgainst',
+    dataField: 'outsideOpposeCents',
     group: 'money',
     label: 'Outside spending against',
     header: 'Outside, against',
@@ -136,6 +152,7 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
   },
   {
     id: 'missed',
+    dataField: 'missedVoteRate',
     group: 'votes',
     label: 'Missed votes',
     header: 'Missed votes',
@@ -148,6 +165,7 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
   },
   {
     id: 'eligible',
+    dataField: 'votesEligible',
     group: 'votes',
     label: 'Roll calls eligible',
     header: 'Roll calls',
@@ -159,6 +177,7 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
   },
   {
     id: 'dim1',
+    dataField: 'dwNominateDim1',
     group: 'ideology',
     label: 'DW-NOMINATE first dimension',
     header: 'DW-NOMINATE',
@@ -171,6 +190,7 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
   },
   {
     id: 'dim2',
+    dataField: 'dwNominateDim2',
     group: 'ideology',
     label: 'DW-NOMINATE second dimension',
     header: 'Dim. 2',
@@ -182,6 +202,7 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
   },
   {
     id: 'kept',
+    dataField: 'promiseKeptRate',
     group: 'promises',
     label: 'Promises kept',
     header: 'Promises kept',
@@ -193,6 +214,7 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
   },
   {
     id: 'rated',
+    dataField: 'promisesRated',
     group: 'promises',
     label: 'Promises rated',
     header: 'Rated',
@@ -220,9 +242,21 @@ export function scorecardColumnDef(scorecard: ScorecardColumn): ColumnDef {
   };
 }
 
-/** Every column available for this dataset, in display order. */
-export function allColumns(scorecards: readonly ScorecardColumn[]): ColumnDef[] {
-  const fixed = FIXED_COLUMNS.map((c) => ({ ...c }) satisfies ColumnDef);
+/**
+ * Every column available for this dataset, in display order. With `coverage`, a column
+ * no one in the scope has data for is hidden by default (a whole column of "No data"
+ * says nothing) but stays available in the column picker.
+ */
+export function allColumns(
+  scorecards: readonly ScorecardColumn[],
+  coverage?: FieldCoverage,
+): ColumnDef[] {
+  const fixed = FIXED_COLUMNS.map((c): ColumnDef => {
+    const withData = c.dataField && coverage ? coverage[c.dataField] : undefined;
+    return withData === undefined
+      ? { ...c }
+      : { ...c, withData, defaultVisible: c.defaultVisible && withData > 0 };
+  });
   const promisesAt = fixed.findIndex((c) => c.group === 'promises');
   return [
     ...fixed.slice(0, promisesAt),
@@ -235,8 +269,9 @@ export function allColumns(scorecards: readonly ScorecardColumn[]): ColumnDef[] 
 export function visibleColumns(
   cols: readonly string[] | null,
   scorecards: readonly ScorecardColumn[],
+  coverage?: FieldCoverage,
 ): ColumnDef[] {
-  const all = allColumns(scorecards);
+  const all = allColumns(scorecards, coverage);
   if (cols === null) return all.filter((c) => c.defaultVisible);
   const wanted = new Set(cols);
   return all.filter((c) => wanted.has(c.id));

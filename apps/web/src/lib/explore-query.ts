@@ -5,10 +5,16 @@ import {
   SCORECARD_PREFIX,
   type ScorecardColumn,
 } from './explore-columns';
-import type { ExploreState, SortTerm } from './explore-params';
+import { type ExploreState, type MemberScope, type SortTerm, scopeOf } from './explore-params';
 
 export interface ExploreTableInput {
-  filters: { chamber?: 'house' | 'senate'; state?: string; party?: string; q?: string };
+  filters: {
+    scope: MemberScope;
+    chamber?: 'house' | 'senate';
+    state?: string;
+    party?: string;
+    q?: string;
+  };
   sort: { column: string; direction: 'asc' | 'desc' }[];
   limit: number;
   offset: number;
@@ -39,6 +45,7 @@ export function exploreTableInput(state: ExploreState): ExploreTableInput {
   const page = Math.max(1, state.page);
   return {
     filters: {
+      scope: scopeOf(state),
       ...(state.chamber ? { chamber: state.chamber } : {}),
       ...(state.state ? { state: state.state } : {}),
       ...(state.party ? { party: state.party.slice(0, 80) } : {}),

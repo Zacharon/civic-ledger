@@ -11,7 +11,15 @@ import { Pagination } from '@/components/pagination';
 import { PartyChip } from '@/components/party-chip';
 import { ScrollRegion } from '@/components/scroll-region';
 import { SourceList, SourceMark, SourceNotes } from '@/components/sources';
-import { formatDate, formatNumber, rollCallNumber, safeHref, seatLabel } from '@/lib/format';
+import {
+  formatDate,
+  formatNumber,
+  formerLabel,
+  rollCallNumber,
+  safeHref,
+  seatLabel,
+  shortTitle,
+} from '@/lib/format';
 import { decodeRules, describeTarget, encodeRules, type RuleSpec } from '@/lib/framework-url';
 import { POSITION_LABEL } from '@/lib/labels';
 import { read, readOrInvalid } from '@/server/capabilities';
@@ -343,7 +351,9 @@ function Results({
               <tr key={r.ruleIndex} className="border-b border-rule align-top">
                 <td className="num py-2 pr-3 text-ink-3">{r.ruleIndex + 1}</td>
                 <td className="py-2 pr-3">
-                  {r.bill?.title ?? r.rollcalls[0]?.question ?? describeTarget(r.target)}
+                  {r.bill
+                    ? shortTitle(r.bill.title).text
+                    : (r.rollcalls[0]?.question ?? describeTarget(r.target))}
                   <span className="block text-xs text-ink-3">
                     {describeTarget(r.target)}
                     {r.rollcalls.length > 0
@@ -444,6 +454,7 @@ function Results({
                     <span className="mt-0.5 flex items-center gap-2 text-xs text-ink-3">
                       <PartyChip party={r.person.party} />
                       {seatLabel(r.person.chamber, r.person.state, r.person.district)}
+                      {r.person.isCurrent ? null : <span>{formerLabel(r.person, 'Former')}</span>}
                     </span>
                   </th>
                   <td className="py-2.5 pr-4 whitespace-nowrap">

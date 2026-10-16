@@ -31,6 +31,7 @@ export function fecFiles(cycle: number) {
     weball: { zip: `weball${yy}.zip`, entry: `weball${yy}.txt` },
     pas2: { zip: `pas2${yy}.zip`, entry: 'itpas2.txt' },
     ie: `independent_expenditure_${cycle}.csv`,
+    summary: `candidate_summary_${cycle}.csv`,
   } as const;
 }
 
@@ -134,6 +135,15 @@ const PAS2 = [
   'MEMO_TEXT',
   'SUB_ID',
 ] as const;
+/** Candidate summary: lower-cased header names (headerCsvRows). Address columns are never read. */
+const SUMMARY = [
+  'cand_id',
+  'total_receipt',
+  'individual_contribution',
+  'individual_itemized_contribution',
+  'individual_unitemized_contribution',
+  'coverage_end_date',
+] as const;
 const IE = [
   'cand_id',
   'spe_id',
@@ -195,6 +205,17 @@ export interface TotalsRecord {
   coverageEndDate: string | null;
 }
 
+/** Itemized / unitemized split of individual gifts (candidate summary file). */
+export interface SummaryRecord {
+  kind: 'summary';
+  candidateId: string;
+  totalReceiptsCents: number;
+  individualCents: number;
+  itemizedIndividualCents: number;
+  unitemizedIndividualCents: number;
+  coverageEndDate: string | null;
+}
+
 export interface ContributionRecord {
   kind: 'contribution';
   subId: string;
@@ -229,6 +250,7 @@ export type FecRecord =
   | CandidateRecord
   | LinkRecord
   | TotalsRecord
+  | SummaryRecord
   | ContributionRecord
   | IeRecord
   | StatsRecord;
@@ -311,6 +333,20 @@ export async function* parseFec(snapshot: RawSnapshot, cycle: number): AsyncGene
         coverageEndDate: dateFromSlashed(r.CVG_END_DT),
       };
     }
+  }
+
+  for await (const row of headerCsvRows(createReadStream(path(files.summary)), SUMMARY, 'latin1')) {
+    const candidateId = fecId(row.cand_id);
+    if (!candidateId) continue;
+    yield {
+      kind: 'summary',
+      candidateId,
+      totalReceiptsCents: cents(row.total_receipt ?? ''),
+      individualCents: cents(row.individual_contribution ?? ''),
+      itemizedIndividualCents: cents(row.individual_itemized_contribution ?? ''),
+      unitemizedIndividualCents: cents(row.individual_unitemized_contribution ?? ''),
+      coverageEndDate: dateFromSlashed(row.coverage_end_date ?? ''),
+    };
   }
 
   const pas2: Pas2Row[] = [];

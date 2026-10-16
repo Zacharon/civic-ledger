@@ -18,8 +18,9 @@ export interface TopIndustry {
 
 /**
  * One row per person: the Explore table's only source. Defined in hand-written
- * migration `0001_person_card.sql`; `.existing()` keeps drizzle-kit from managing it.
- * Shares and rates are fractions in [0, 1]; null means "no data", never zero.
+ * migrations (`0004_person_card_scope_and_shares.sql` is the current definition);
+ * `.existing()` keeps drizzle-kit from managing it. Shares and rates are fractions in
+ * [0, 1]; null means "no data", never zero. `termStart`/`termEnd` are the latest term.
  */
 export const personCard = pgMaterializedView('person_card', {
   personId: integer('person_id').notNull(),
@@ -31,6 +32,9 @@ export const personCard = pgMaterializedView('person_card', {
   chamber: chamber('chamber'),
   district: integer('district'),
   termStart: date('term_start'),
+  termEnd: date('term_end'),
+  serviceStart: date('service_start'),
+  /** Years actually served: union of term date ranges up to the refresh date. */
   tenureYears: doublePrecision('tenure_years'),
   ideologyCongress: integer('ideology_congress'),
   dwNominateDim1: doublePrecision('dw_nominate_dim1'),
@@ -38,7 +42,9 @@ export const personCard = pgMaterializedView('person_card', {
   moneyCycle: integer('money_cycle'),
   totalReceiptsCents: bigint('total_receipts_cents', { mode: 'number' }),
   pacShare: doublePrecision('pac_share'),
+  /** From the FEC candidate summary; its own period, ending `smallDollarAsOf`. */
   smallDollarShare: doublePrecision('small_dollar_share'),
+  smallDollarAsOf: date('small_dollar_as_of'),
   topIndustries: jsonb('top_industries').$type<TopIndustry[]>().notNull(),
   industryCodingCoverage: doublePrecision('industry_coding_coverage'),
   outsideSupportCents: bigint('outside_support_cents', { mode: 'number' }),

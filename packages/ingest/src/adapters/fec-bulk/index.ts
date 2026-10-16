@@ -25,9 +25,10 @@ export const fecBulkAdapter: SourceAdapter<FecRecord> = {
       'U.S. government data. Contributor information may not be sold or used for soliciting contributions or commercial purposes (52 U.S.C. 30111(a)(4)); this site shows committee-level aggregates only.',
     licenseUrl: 'https://www.fec.gov/updates/sale-or-use-contributor-information/',
     description:
-      'Candidates, committees and their links, candidate cycle totals, PAC and party contributions to candidates, and independent expenditures for or against candidates.',
+      'Candidates, committees and their links, candidate cycle totals and summaries (itemized and unitemized individual gifts), PAC and party contributions to candidates, and independent expenditures for or against candidates.',
   },
-  version: 'fec-bulk@1',
+  // @2: adds the candidate summary file (itemized / unitemized individual split).
+  version: 'fec-bulk@2',
   dependsOn: ['congress-legislators'],
   scopes: ['cycle'],
   async plan(scope) {
@@ -44,6 +45,7 @@ export const fecBulkAdapter: SourceAdapter<FecRecord> = {
           timeoutMs: 300_000,
         })),
         { fileName: f.ie, url: `${BASE_URL}/${cycle}/${f.ie}`, timeoutMs: 300_000 },
+        { fileName: f.summary, url: `${BASE_URL}/${cycle}/${f.summary}`, timeoutMs: 300_000 },
       ],
     };
   },

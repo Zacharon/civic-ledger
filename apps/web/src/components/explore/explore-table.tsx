@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { PartyChip } from '@/components/party-chip';
 import { COLUMN_GROUPS, type ColumnDef, type ExploreRow } from '@/lib/explore-columns';
 import { type ExploreState, nextSort, type SortTerm, serializeExplore } from '@/lib/explore-params';
-import { chamberLabel, seatLabel } from '@/lib/format';
+import { chamberLabel, formerLabel, seatLabel } from '@/lib/format';
 import { MetricCell } from './cell';
 
 interface Props {
@@ -32,7 +32,7 @@ export function ExploreTable({ rows, columns, state, sort, caption }: Props) {
       aria-labelledby="explore-caption"
       // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be keyboard reachable (WCAG 2.1.1)
       tabIndex={0}
-      className="scroll-cue max-h-[calc(100dvh-8rem)] overflow-auto rounded-panel border border-rule"
+      className="scroll-cue relative max-h-[calc(100dvh-8rem)] overflow-auto rounded-panel border border-rule"
     >
       <table className="w-max min-w-full border-separate border-spacing-0 text-sm">
         <caption id="explore-caption" className="sr-only">
@@ -109,9 +109,18 @@ export function ExploreTable({ rows, columns, state, sort, caption }: Props) {
           {rows.map((row) => (
             <tr key={row.slug} className="xt-row">
               <th scope="row" className="xt-name">
-                <Link href={`/people/${row.slug}`} className="link-quiet block max-w-64 truncate">
+                <Link
+                  href={`/people/${row.slug}`}
+                  className="link-quiet block max-w-64 truncate"
+                  title={row.fullName}
+                >
                   {row.fullName}
                 </Link>
+                {row.isCurrent ? null : (
+                  <span className="block text-xs font-normal text-ink-3">
+                    {formerLabel(row, 'Former')}
+                  </span>
+                )}
               </th>
               <td className="xt-cell-start">
                 <PartyChip party={row.party} />
