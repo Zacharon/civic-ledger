@@ -119,6 +119,8 @@ export async function VotesSection({
                   <tr
                     key={`${v.rollcall.chamber}-${v.rollcall.congress}-${v.rollcall.number}`}
                     className="border-b border-rule align-top"
+                    data-rollcall={`${v.rollcall.chamber}.${v.rollcall.congress}.${v.rollcall.number}`}
+                    data-value={JSON.stringify([v.position, v.tally.yea, v.tally.nay])}
                   >
                     <td className="num py-2.5 pr-4 whitespace-nowrap text-ink-2">
                       {formatDate(v.rollcall.voteDate)}

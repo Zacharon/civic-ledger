@@ -1,0 +1,53 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-app-parity-20261016
+
+ ❯ test-pg/migrations-forward.pgtest.ts (6 tests | 5 failed) 49711ms
+   ❯ forward migrations over a realistic dataset at every earlier version (6)
+     × upgrading from 0000_init preserves rows, cards and every capability answer 6545ms
+     × upgrading from 0001_person_card preserves rows, cards and every capability answer 7077ms
+     × upgrading from 0002_ingest_columns preserves rows, cards and every capability answer 6768ms
+     × upgrading from 0003_candidate_summary preserves rows, cards and every capability answer 6931ms
+     × upgrading from 0004_person_card_scope_and_shares preserves rows, cards and every capability answer 7678ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test-pg/migrations-forward.pgtest.ts > forward migrations over a realistic dataset at every earlier version > upgrading from 0000_init preserves rows, cards and every capability answer
+ FAIL  test-pg/migrations-forward.pgtest.ts > forward migrations over a realistic dataset at every earlier version > upgrading from 0001_person_card preserves rows, cards and every capability answer
+ FAIL  test-pg/migrations-forward.pgtest.ts > forward migrations over a realistic dataset at every earlier version > upgrading from 0002_ingest_columns preserves rows, cards and every capability answer
+ FAIL  test-pg/migrations-forward.pgtest.ts > forward migrations over a realistic dataset at every earlier version > upgrading from 0003_candidate_summary preserves rows, cards and every capability answer
+ FAIL  test-pg/migrations-forward.pgtest.ts > forward migrations over a realistic dataset at every earlier version > upgrading from 0004_person_card_scope_and_shares preserves rows, cards and every capability answer
+AssertionError: expected [ { person_id: 27, …(28) }, …(42) ] to deeply equal [ { person_id: 27, …(28) }, …(42) ]
+
+- Expected
++ Received
+
+@@ -49,11 +49,11 @@
+    {
+      "chamber": "senate",
+      "district": null,
+      "dw_nominate_dim1": -0.366,
+      "dw_nominate_dim2": 0.004,
+-     "full_name": "Avery Ashvale",
++     "full_name": "Lost in upgrade",
+      "ideology_congress": 119,
+      "industry_coding_coverage": 1,
+      "missed_vote_rate": 0.08333333333333333,
+      "money_cycle": 2024,
+      "outside_oppose_cents": "32007100",
+
+ ❯ test-pg/migrations-forward.pgtest.ts:278:44
+    276|       expect(loaded.get('person')).toBeGreaterThan(30);
+    277|       expect(loaded.get('vote_position')).toBeGreaterThan(100);
+    278|       expect(await personCard(old.db.url)).toEqual(await personCard(re…
+       |                                            ^
+    279|       const upgraded = await answers(old.handle);
+    280|       expect(upgraded).toEqual(await answers(reference.handle));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 1 passed (6)
+   Start at  11:04:40
+   Duration  65.52s (tests 96%, import 3%)
+

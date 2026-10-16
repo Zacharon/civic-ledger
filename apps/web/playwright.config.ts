@@ -5,8 +5,9 @@ import { defineConfig, devices } from '@playwright/test';
  * Port 3300 serves the fictional seed; 3301 the seed plus 560 fictional members (600 rows)
  * for the performance budget. Each server gets its own throwaway PGlite.
  */
-const PORT = 3300;
-const SCALE_PORT = 3301;
+// E2E_PORT / E2E_SCALE_PORT let two worktrees run the suite on one machine at once.
+const PORT = Number(process.env.E2E_PORT ?? 3300);
+const SCALE_PORT = Number(process.env.E2E_SCALE_PORT ?? 3301);
 
 export default defineConfig({
   testDir: './e2e',

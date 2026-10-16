@@ -87,3 +87,45 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:pg
+
+  # Playwright: AI-free workflows, axe, keyboard, URL state, before-hydration actions,
+  # UI = /api/v1 = MCP on one Postgres (shared-values), then the performance budget.
+  # `test:e2e` builds first; each Next server seeds its own throwaway PGlite.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      # shared-values.spec.ts creates its own database here instead of an embedded Postgres.
+      PG_TEST_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @civic-ledger/web exec playwright install --with-deps chromium
+      - name: Seed check (fictional dev data, PGlite)
+        run: pnpm db:seed
+      - run: pnpm --filter @civic-ledger/web test:e2e
+      - name: Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: apps/web/test-results
+          retention-days: 7

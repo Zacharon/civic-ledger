@@ -11,8 +11,9 @@ Related: [API.md](API.md) (contract), [ARCHITECTURE.md](ARCHITECTURE.md) section
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `DATABASE_URL` | empty = PGlite `.pglite/dev` | Postgres for ingest, migrations and (when `DATABASE_URL_READONLY` is unset) the app and MCP server |
+| `DATABASE_URL` | empty = PGlite `.pglite/dev` | Postgres for ingest, migrations and (when `DATABASE_URL_READONLY` is unset: development only, or with `DB_ALLOW_OWNER_CREDENTIALS=1`) the app and MCP server |
 | `DATABASE_URL_READONLY` | unset | Select-only role used by the web app, the MCP server and `pnpm ingest:report`; see [Database roles](#database-roles-and-connections) |
+| `DB_ALLOW_OWNER_CREDENTIALS` | unset | `1` lets a production web/MCP process run without `DATABASE_URL_READONLY` (on `DATABASE_URL` or a local PGlite). Otherwise `NODE_ENV=production` web (`next start`) and MCP exit 1 at startup. |
 | `DB_POOL_MAX` | 10 | pg pool size per process |
 | `DB_STATEMENT_TIMEOUT_MS` | 15000 | Web / MCP statement timeout (`0` disables) |
 | `INGEST_DB_STATEMENT_TIMEOUT_MS` | 600000 | Ingest, `db:migrate`, `db:seed` statement timeout (`0` disables) |
@@ -48,7 +49,7 @@ DECISIONS A44).
 
 | Process | Connection string | Needs |
 |---|---|---|
-| Web app, MCP server, `pnpm ingest:report` | `DATABASE_URL_READONLY` (falls back to `DATABASE_URL` when unset) | `SELECT` only |
+| Web app, MCP server, `pnpm ingest:report` | `DATABASE_URL_READONLY` (required in production; falls back to `DATABASE_URL` only outside production or when acknowledged) | `SELECT` only |
 | `pnpm ingest` | `DATABASE_URL` | read and write rows; refresh the two materialized views |
 | `pnpm db:migrate`, `db:seed` | `DATABASE_URL` as the schema owner | DDL |
 

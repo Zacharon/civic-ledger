@@ -24,6 +24,8 @@ jobs:
       NEXT_TELEMETRY_DISABLED: 1
       TRUSTED_PROXY_HEADER: x-forwarded-for
       PORT: 3411
+      # next start runs as production; this throwaway PGlite has no read-only role (VC-068).
+      DB_ALLOW_OWNER_CREDENTIALS: 1
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6

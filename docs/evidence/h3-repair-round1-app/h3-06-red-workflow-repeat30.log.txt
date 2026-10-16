@@ -1,0 +1,205 @@
+
+Running 60 tests using 4 workers
+
+[1/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[2/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[3/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[4/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[5/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[6/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[7/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+  1) [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework 
+
+    Error: expect(page).not.toHaveURL(expected) failed
+
+    Expected pattern: not /q=/
+    Received string: "http://localhost:3300/explore?q=Ashvale"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "not toHaveURL" with timeout 10000ms
+        22 × locator resolved to <html lang="en" class="_2LNKrW_variable _1SQq7a_variable">…</html>
+           - unexpected value "http://localhost:3300/explore?q=Ashvale"
+
+
+      15 |   // Filter: clear the name, keep only the Senate.
+      16 |   await page.getByRole('button', { name: /Name contains/ }).click();
+    > 17 |   await expect(page).not.toHaveURL(/q=/);
+         |                          ^
+      18 |   await page
+      19 |     .locator('label')
+      20 |     .filter({ hasText: /^Senate$/ })
+        at C:\Users\user\Workspace\_worktrees\Civic_Ledger\fix\h3-app-parity-20261016\apps\web\e2e\workflow.spec.ts:17:26
+
+    Error Context: test-results\workflow-search-explore-pr-2615b-re-and-evaluate-a-framework-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\workflow-search-explore-pr-2615b-re-and-evaluate-a-framework-desktop\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\workflow-search-explore-pr-2615b-re-and-evaluate-a-framework-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework 
+
+    Error: expect(page).not.toHaveURL(expected) failed
+
+    Expected pattern: not /q=/
+    Received string: "http://localhost:3300/explore?q=Ashvale"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "not toHaveURL" with timeout 10000ms
+        22 × locator resolved to <html lang="en" class="_2LNKrW_variable _1SQq7a_variable">…</html>
+           - unexpected value "http://localhost:3300/explore?q=Ashvale"
+
+
+      15 |   // Filter: clear the name, keep only the Senate.
+      16 |   await page.getByRole('button', { name: /Name contains/ }).click();
+    > 17 |   await expect(page).not.toHaveURL(/q=/);
+         |                          ^
+      18 |   await page
+      19 |     .locator('label')
+      20 |     .filter({ hasText: /^Senate$/ })
+        at C:\Users\user\Workspace\_worktrees\Civic_Ledger\fix\h3-app-parity-20261016\apps\web\e2e\workflow.spec.ts:17:26
+
+    Error Context: test-results\workflow-search-explore-pr-2615b-re-and-evaluate-a-framework-desktop-repeat1\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\workflow-search-explore-pr-2615b-re-and-evaluate-a-framework-desktop-repeat1\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\workflow-search-explore-pr-2615b-re-and-evaluate-a-framework-desktop-repeat1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[8/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[9/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[10/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[11/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[12/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[13/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+  3) [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework 
+
+    Error: expect(page).not.toHaveURL(expected) failed
+
+    Expected pattern: not /q=/
+    Received string: "http://localhost:3300/explore?q=Ashvale"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "not toHaveURL" with timeout 10000ms
+        22 × locator resolved to <html lang="en" class="_2LNKrW_variable _1SQq7a_variable">…</html>
+           - unexpected value "http://localhost:3300/explore?q=Ashvale"
+
+
+      15 |   // Filter: clear the name, keep only the Senate.
+      16 |   await page.getByRole('button', { name: /Name contains/ }).click();
+    > 17 |   await expect(page).not.toHaveURL(/q=/);
+         |                          ^
+      18 |   await page
+      19 |     .locator('label')
+      20 |     .filter({ hasText: /^Senate$/ })
+        at C:\Users\user\Workspace\_worktrees\Civic_Ledger\fix\h3-app-parity-20261016\apps\web\e2e\workflow.spec.ts:17:26
+
+    Error Context: test-results\workflow-search-explore-pr-2615b-re-and-evaluate-a-framework-desktop-repeat3\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\workflow-search-explore-pr-2615b-re-and-evaluate-a-framework-desktop-repeat3\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\workflow-search-explore-pr-2615b-re-and-evaluate-a-framework-desktop-repeat3\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[14/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[15/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[16/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[17/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[18/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[19/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[20/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[21/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[22/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[23/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[24/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[25/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[26/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[27/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[28/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[29/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[30/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[31/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[32/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[33/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[34/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[35/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[36/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[37/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[38/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[39/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[40/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[41/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[42/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[43/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[44/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[45/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[46/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+  4) [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework 
+
+    Error: expect(page).not.toHaveURL(expected) failed
+
+    Expected pattern: not /q=/
+    Received string: "http://localhost:3300/explore?q=Ashvale"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "not toHaveURL" with timeout 10000ms
+        22 × locator resolved to <html lang="en" class="_2LNKrW_variable _1SQq7a_variable">…</html>
+           - unexpected value "http://localhost:3300/explore?q=Ashvale"
+
+
+      15 |   // Filter: clear the name, keep only the Senate.
+      16 |   await page.getByRole('button', { name: /Name contains/ }).click();
+    > 17 |   await expect(page).not.toHaveURL(/q=/);
+         |                          ^
+      18 |   await page
+      19 |     .locator('label')
+      20 |     .filter({ hasText: /^Senate$/ })
+        at C:\Users\user\Workspace\_worktrees\Civic_Ledger\fix\h3-app-parity-20261016\apps\web\e2e\workflow.spec.ts:17:26
+
+    Error Context: test-results\workflow-search-explore-pr-2615b-re-and-evaluate-a-framework-desktop-repeat20\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\workflow-search-explore-pr-2615b-re-and-evaluate-a-framework-desktop-repeat20\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\workflow-search-explore-pr-2615b-re-and-evaluate-a-framework-desktop-repeat20\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[47/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[48/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[49/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[50/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[51/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[52/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[53/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[54/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[55/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[56/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[57/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[58/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[59/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[60/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+  4 failed
+    [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework 
+    [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework 
+    [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework 
+    [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework 
+  56 passed (3.2m)

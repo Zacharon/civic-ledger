@@ -146,8 +146,13 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
         <Fact
           label={card.moneyCycle ? `Raised, ${card.moneyCycle}` : 'Raised'}
           value={formatCents(card.totalReceiptsCents, { compact: true })}
+          raw={['totalReceiptsCents', card.totalReceiptsCents]}
         />
-        <Fact label="From PACs" value={formatShare(card.pacShare)} />
+        <Fact
+          label="From PACs"
+          value={formatShare(card.pacShare)}
+          raw={['pacShare', card.pacShare]}
+        />
         <Fact
           label={
             card.smallDollarAsOf
@@ -155,11 +160,13 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
               : 'Small donors'
           }
           value={formatShare(card.smallDollarShare)}
+          raw={['smallDollarShare', card.smallDollarShare]}
         />
         <Fact
           label="Missed votes"
           value={formatShare(card.missedVoteRate)}
           empty={card.isCurrent ? 'No data' : 'No votes loaded'}
+          raw={['missedVoteRate', card.missedVoteRate]}
         />
         <Fact
           label={
@@ -171,6 +178,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
             )
           }
           empty={card.isCurrent ? 'No data' : 'No votes loaded'}
+          raw={['dwNominateDim1', card.dwNominateDim1]}
         />
         <Fact
           label="Promises kept"
@@ -180,6 +188,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
               : `${formatShare(card.promiseKeptRate)} of ${card.promisesRated}`
           }
           empty={card.promisesRated === null ? 'None tracked' : 'None rated yet'}
+          raw={['promiseKeptRate', card.promiseKeptRate]}
         />
       </dl>
       <p className="mt-2 text-xs text-ink-3">
@@ -272,17 +281,24 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
   );
 }
 
+/** `raw` is the card field behind the value, exposed as `data-fact` / `data-value`. */
 function Fact({
   label,
   value,
   empty = 'No data',
+  raw,
 }: {
   label: string;
   value: ReactNode;
   empty?: string;
+  raw: [field: string, value: number | null];
 }) {
   return (
-    <div className="border-rule px-1 py-4 sm:px-4 [&:not(:first-child)]:border-l max-sm:[&:nth-child(odd)]:border-l-0">
+    <div
+      data-fact={raw[0]}
+      data-value={JSON.stringify(raw[1])}
+      className="border-rule px-1 py-4 sm:px-4 [&:not(:first-child)]:border-l max-sm:[&:nth-child(odd)]:border-l-0"
+    >
       <dt className="text-sm text-ink-2">{label}</dt>
       <dd className="num mt-1 text-xl font-semibold">
         {value ?? <span className="text-base font-normal text-ink-3">{empty}</span>}

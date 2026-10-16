@@ -1,0 +1,39 @@
+
+Running 1 test using 1 worker
+
+[1/1] [desktop] › e2e\shared-values.spec.ts:282:1 › pages show the values the API and the MCP server return for the same input
+  1) [desktop] › e2e\shared-values.spec.ts:282:1 › pages show the values the API and the MCP server return for the same input 
+
+    Error: indigo-ivystead pac text
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "11%"
+    Received: "35%"
+
+      116 |     expect(cell.value, `${cell.owner} ${cell.column}`).toEqual(field(row));
+      117 |     const text = shownText(cell.column, cell.value);
+    > 118 |     if (text !== null) expect(cell.text, `${cell.owner} ${cell.column} text`).toBe(text);
+          |                                                                               ^
+      119 |   }
+      120 | }
+      121 |
+        at expectCellsMatch (C:\Users\user\Workspace\_worktrees\Civic_Ledger\fix\h3-app-parity-20261016\apps\web\e2e\shared-values.spec.ts:118:79)
+        at checkExplore (C:\Users\user\Workspace\_worktrees\Civic_Ledger\fix\h3-app-parity-20261016\apps\web\e2e\shared-values.spec.ts:147:3)
+        at C:\Users\user\Workspace\_worktrees\Civic_Ledger\fix\h3-app-parity-20261016\apps\web\e2e\shared-values.spec.ts:285:16
+
+    Error Context: test-results\shared-values-pages-show-t-7cb81-r-return-for-the-same-input-desktop\error-context.md
+
+    Error Context: test-results\shared-values-pages-show-t-7cb81-r-return-for-the-same-input-desktop\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\shared-values-pages-show-t-7cb81-r-return-for-the-same-input-desktop\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\shared-values-pages-show-t-7cb81-r-return-for-the-same-input-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [desktop] › e2e\shared-values.spec.ts:282:1 › pages show the values the API and the MCP server return for the same input 

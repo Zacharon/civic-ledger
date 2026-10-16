@@ -50,6 +50,8 @@ const server = spawn(process.execPath, [next, 'start', '-p', port], {
     // single-bucket acknowledgement, and page loads must not trip the page limiter.
     RATE_LIMIT_SINGLE_BUCKET: '1',
     PAGE_RATE_LIMIT_PER_MINUTE: '100000',
+    // A throwaway local PGlite has no roles; production mode needs the explicit go-ahead.
+    DB_ALLOW_OWNER_CREDENTIALS: '1',
   },
   stdio: 'inherit',
 });

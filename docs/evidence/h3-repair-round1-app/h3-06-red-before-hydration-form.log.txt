@@ -1,0 +1,76 @@
+
+Running 2 tests using 2 workers
+
+[1/2] [desktop] › e2e\before-hydration.spec.ts:90:1 › a name typed before the page has hydrated is searched
+[2/2] [desktop] › e2e\before-hydration.spec.ts:69:1 › filters chosen before the page has hydrated are applied, not just drawn
+  1) [desktop] › e2e\before-hydration.spec.ts:90:1 › a name typed before the page has hydrated is searched 
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /q=Ashvale/
+    Received string:  "http://localhost:3300/explore"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 10000ms
+        20 × locator resolved to <html lang="en" class="_2LNKrW_variable _1SQq7a_variable">…</html>
+           - unexpected value "http://localhost:3300/explore"
+
+
+      93 |   await page.getByLabel('Name', { exact: true }).fill('Ashvale');
+      94 |   release();
+    > 95 |   await expect(page).toHaveURL(/q=Ashvale/);
+         |                      ^
+      96 |   const table = page.getByRole('region', { name: /members of Congress/i });
+      97 |   await expect(table.locator('tbody tr')).toHaveCount(1);
+      98 |   await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Ashvale');
+        at C:\Users\user\Workspace\_worktrees\Civic_Ledger\fix\h3-app-parity-20261016\apps\web\e2e\before-hydration.spec.ts:95:22
+
+    Error Context: test-results\before-hydration-a-name-ty-0a39b-ge-has-hydrated-is-searched-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\before-hydration-a-name-ty-0a39b-ge-has-hydrated-is-searched-desktop\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\before-hydration-a-name-ty-0a39b-ge-has-hydrated-is-searched-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2) [desktop] › e2e\before-hydration.spec.ts:69:1 › filters chosen before the page has hydrated are applied, not just drawn 
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /chamber=senate/
+    Received string:  "http://localhost:3300/explore"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 10000ms
+        21 × locator resolved to <html lang="en" class="_2LNKrW_variable _1SQq7a_variable">…</html>
+           - unexpected value "http://localhost:3300/explore"
+
+
+      81 |   await page.getByLabel('Sort by').selectOption('total.desc');
+      82 |   release();
+    > 83 |   await expect(page).toHaveURL(/chamber=senate/);
+         |                      ^
+      84 |   await expect(page).toHaveURL(new RegExp(`state=${firstState}`));
+      85 |   await expect(page).toHaveURL(/sort=total\.desc/);
+      86 |   await expect(activeFilters(page).getByText('Senate')).toBeVisible();
+        at C:\Users\user\Workspace\_worktrees\Civic_Ledger\fix\h3-app-parity-20261016\apps\web\e2e\before-hydration.spec.ts:83:22
+
+    Error Context: test-results\before-hydration-filters-c-9571e--are-applied-not-just-drawn-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\before-hydration-filters-c-9571e--are-applied-not-just-drawn-desktop\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\before-hydration-filters-c-9571e--are-applied-not-just-drawn-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [desktop] › e2e\before-hydration.spec.ts:69:1 › filters chosen before the page has hydrated are applied, not just drawn 
+    [desktop] › e2e\before-hydration.spec.ts:90:1 › a name typed before the page has hydrated is searched 

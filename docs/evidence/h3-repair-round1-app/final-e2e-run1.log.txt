@@ -1,0 +1,96 @@
+$ next build && playwright test --project=desktop --project=performance
+▲ Next.js 16.4.1 (Turbopack)
+✓ Running next.config.ts took 99ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.5s
+  Running TypeScript ...
+  Finished TypeScript in 1844ms ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/9) ...
+  Generating static pages using 7 workers (2/9) 
+  Generating static pages using 7 workers (4/9) 
+  Generating static pages using 7 workers (6/9) 
+✓ Generating static pages using 7 workers (9/9) in 455ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /api/health
+├ ƒ /api/live
+├ ƒ /api/v1/[capability]
+├ ƒ /api/v1/openapi.json
+├ ƒ /compare
+├ ƒ /explore
+├ ƒ /frameworks
+├ ƒ /methodology
+├ ƒ /people/[slug]
+├ ƒ /policy
+├ ƒ /policy/[area]
+└ ƒ /sources
+
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+
+
+Running 52 tests using 4 workers
+
+  ok  1 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › / has no WCAG 2.2 AA violations (5.3s)
+  ok  2 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › /explore?chamber=senate&sort=total.desc&cols=tenure,total,pac,small,industries,coverage,outsideFor,outsideAgainst,missed,eligible,dim1,dim2,kept,rated has no WCAG 2.2 AA violations (7.9s)
+  ok  5 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › /compare has no WCAG 2.2 AA violations (2.7s)
+  ok  4 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › /people/avery-ashvale has no WCAG 2.2 AA violations (8.8s)
+  ok  3 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › /explore has no WCAG 2.2 AA violations (10.3s)
+  ok  7 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › /policy has no WCAG 2.2 AA violations (3.5s)
+  ok  6 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › /compare?ids=avery-ashvale,blair-brindlemoor,cameron-corrowind has no WCAG 2.2 AA violations (4.1s)
+  ok  9 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › /frameworks has no WCAG 2.2 AA violations (2.9s)
+  ok  8 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › /policy/health has no WCAG 2.2 AA violations (4.9s)
+  ok 11 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › /sources has no WCAG 2.2 AA violations (2.9s)
+  ok 10 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › /frameworks?build=1 has no WCAG 2.2 AA violations (4.4s)
+  ok 12 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › /methodology has no WCAG 2.2 AA violations (2.9s)
+  ok 13 [desktop] › e2e\a11y.spec.ts:38:7 › axe (light) › /no-such-page has no WCAG 2.2 AA violations (2.6s)
+  ok 16 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › / has no WCAG 2.2 AA violations (4.1s)
+  ok 14 [desktop] › e2e\a11y.spec.ts:44:5 › axe (light) › framework results have no violations (5.8s)
+  ok 15 [desktop] › e2e\a11y.spec.ts:54:5 › axe (light) › open column picker has no violations (7.1s)
+  ok 17 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › /explore has no WCAG 2.2 AA violations (8.0s)
+  ok 20 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › /compare has no WCAG 2.2 AA violations (2.5s)
+  ok 18 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › /explore?chamber=senate&sort=total.desc&cols=tenure,total,pac,small,industries,coverage,outsideFor,outsideAgainst,missed,eligible,dim1,dim2,kept,rated has no WCAG 2.2 AA violations (6.1s)
+  ok 19 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › /people/avery-ashvale has no WCAG 2.2 AA violations (7.0s)
+  ok 21 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › /compare?ids=avery-ashvale,blair-brindlemoor,cameron-corrowind has no WCAG 2.2 AA violations (3.4s)
+  ok 22 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › /policy has no WCAG 2.2 AA violations (2.6s)
+  ok 24 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › /frameworks has no WCAG 2.2 AA violations (2.4s)
+  ok 23 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › /policy/health has no WCAG 2.2 AA violations (4.4s)
+  ok 26 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › /sources has no WCAG 2.2 AA violations (2.8s)
+  ok 25 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › /frameworks?build=1 has no WCAG 2.2 AA violations (4.4s)
+  ok 27 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › /methodology has no WCAG 2.2 AA violations (2.9s)
+  ok 28 [desktop] › e2e\a11y.spec.ts:38:7 › axe (dark) › /no-such-page has no WCAG 2.2 AA violations (2.6s)
+  ok 29 [desktop] › e2e\a11y.spec.ts:44:5 › axe (dark) › framework results have no violations (5.4s)
+  ok 31 [desktop] › e2e\a11y.spec.ts:66:5 › axe (mobile, 390px) › / has no violations on a phone (3.5s)
+  ok 34 [desktop] › e2e\before-hydration.spec.ts:22:1 › removing a filter before the page has hydrated is not lost (1.9s)
+  ok 35 [desktop] › e2e\before-hydration.spec.ts:37:1 › clearing every filter before the page has hydrated is not lost (1.8s)
+  ok 30 [desktop] › e2e\a11y.spec.ts:54:5 › axe (dark) › open column picker has no violations (9.4s)
+  ok 36 [desktop] › e2e\before-hydration.spec.ts:51:1 › a filter removed after hydration still updates in place (1.2s)
+  ok 33 [desktop] › e2e\a11y.spec.ts:66:5 › axe (mobile, 390px) › /people/avery-ashvale has no violations on a phone (7.0s)
+  ok 38 [desktop] › e2e\before-hydration.spec.ts:94:1 › a name typed before the page has hydrated is searched (2.3s)
+  ok 37 [desktop] › e2e\before-hydration.spec.ts:73:1 › filters chosen before the page has hydrated are applied, not just drawn (2.7s)
+  ok 32 [desktop] › e2e\a11y.spec.ts:66:5 › axe (mobile, 390px) › /explore has no violations on a phone (11.5s)
+  ok 41 [desktop] › e2e\url-state.spec.ts:3:1 › Explore state round-trips through the URL (2.8s)
+  ok 40 [desktop] › e2e\keyboard.spec.ts:41:1 › filters and the column picker work with the keyboard (4.9s)
+  ok 43 [desktop] › e2e\url-state.spec.ts:29:1 › the default sort is neutral and never ideological (1.8s)
+  ok 39 [desktop] › e2e\keyboard.spec.ts:14:1 › Explore is fully usable from the keyboard (7.8s)
+  ok 44 [desktop] › e2e\url-state.spec.ts:36:1 › invalid URL state degrades to a readable message, not a crash (3.7s)
+  ok 45 [desktop] › e2e\url-state.spec.ts:49:1 › Explore shows current members by default and can include former members (6.4s)
+  ok 47 [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL (4.4s)
+  ok 46 [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework (7.7s)
+  ok 42 [desktop] › e2e\shared-values.spec.ts:282:1 › pages show the values the API and the MCP server return for the same input (5.1s)
+  ok 48 [desktop] › e2e\shared-values.spec.ts:292:1 › a data change plus read-model refresh reaches the UI, the API and MCP alike (5.8s)
+  ok 49 [desktop] › e2e\shared-values.spec.ts:306:1 › after restarting the web and MCP processes all three still agree (12.1s)
+  ok 50 [desktop] › e2e\shared-values.spec.ts:320:1 › a production web server without the read-only role refuses to start (1.5s)
+  ok 51 [performance] › e2e\performance.spec.ts:53:1 › the long tail renders: long names and all-missing rows (2.6s)
+Explore, 600 members, 100 rows rendered: cold LCP 1128 ms; warm LCP 780 ms, CLS 0.000
+  ok 52 [performance] › e2e\performance.spec.ts:36:1 › Explore LCP stays under 2 seconds with 600 members (4.4s)
+
+  52 passed (2.5m)
+run 1 exit=0

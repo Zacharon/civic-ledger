@@ -4,10 +4,12 @@ import { Search, X } from 'lucide-react';
 import { useQueryStates } from 'nuqs';
 import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
 import { type ColumnDef, IDENTITY_SORTS } from '@/lib/explore-columns';
-import { exploreParsers, PAGE_SIZES, scopeOf } from '@/lib/explore-params';
+import { exploreParsers, PAGE_SIZES, scopeOf, serializeExplore } from '@/lib/explore-params';
+import { changesBeforeHydration } from '@/lib/explore-pending';
 import { formatNumber } from '@/lib/format';
 import { ColumnPicker } from './column-picker';
 import { useExploreTransition } from './explore-transition';
+import { UrlActionButton } from './url-action-button';
 
 interface Facet<T extends string = string> {
   value: T;
@@ -23,6 +25,8 @@ export interface ExploreFacets {
 
 const CHAMBER_LABEL = { house: 'House', senate: 'Senate' } as const;
 const SEARCH_DELAY_MS = 350;
+/** "Clear filters" resets what is filtered and keeps how it is viewed (sort, columns, rows). */
+const NO_FILTERS = { q: null, scope: null, chamber: null, state: null, party: null, page: null };
 
 /** Filters, sort, page size and columns. Every change is a URL change (shareable). */
 export function ExploreControls({
@@ -39,15 +43,32 @@ export function ExploreControls({
     scroll: false,
     startTransition,
   });
-  const ids = { q: useId(), state: useId(), party: useId(), sort: useId(), size: useId() };
+  const ids = {
+    form: useId(),
+    q: useId(),
+    state: useId(),
+    party: useId(),
+    sort: useId(),
+    size: useId(),
+  };
 
   const [query, setQuery] = useState(state.q ?? '');
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const formRef = useRef<HTMLFormElement>(null);
   const urlQuery = state.q ?? '';
   // Back/forward navigation changes the URL under us: mirror it into the input.
   useEffect(() => {
     setQuery(urlQuery);
   }, [urlQuery]);
+  // A choice made while the scripts were still loading is drawn but was never applied.
+  // Declared after the mirror above so a name typed early wins over the URL's on mount.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, at hydration; later changes have handlers
+  useEffect(() => {
+    const patch = formRef.current ? changesBeforeHydration(formRef.current, state) : null;
+    if (!patch) return;
+    if (patch.q !== undefined) setQuery(patch.q ?? '');
+    void setState({ ...patch, page: null });
+  }, []);
 
   const commitQuery = (value: string) => {
     clearTimeout(timer.current);
@@ -82,6 +103,8 @@ export function ExploreControls({
     <div className="space-y-4">
       <search>
         <form
+          ref={formRef}
+          id={ids.form}
           action="/explore"
           onSubmit={onSubmit}
           className="grid grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-[minmax(12rem,1.4fr)_auto_auto_minmax(7rem,0.5fr)_minmax(9rem,0.8fr)] lg:gap-x-4"
@@ -222,35 +245,28 @@ export function ExploreControls({
             <>
               {active.map((f) => (
                 <li key={f.key}>
-                  <button
-                    type="button"
-                    onClick={() => void setState({ [f.key]: null, page: null })}
+                  <UrlActionButton
+                    href={serializeExplore('/explore', { ...state, [f.key]: null, page: null })}
+                    onActivate={() => void setState({ [f.key]: null, page: null })}
                     className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-control bg-accent-wash px-2.5 text-sm hover:border-ink-2"
                   >
                     {f.label}
                     <X aria-hidden="true" strokeWidth={1.75} className="size-3.5" />
                     <span className="sr-only">(remove filter)</span>
-                  </button>
+                  </UrlActionButton>
                 </li>
               ))}
               <li>
-                <button
-                  type="button"
-                  onClick={() => {
+                <UrlActionButton
+                  href={serializeExplore('/explore', { ...state, ...NO_FILTERS })}
+                  onActivate={() => {
                     setQuery('');
-                    void setState({
-                      q: null,
-                      scope: null,
-                      chamber: null,
-                      state: null,
-                      party: null,
-                      page: null,
-                    });
+                    void setState(NO_FILTERS);
                   }}
                   className="link min-h-9 px-1 text-sm"
                 >
                   Clear filters
-                </button>
+                </UrlActionButton>
               </li>
             </>
           )}
@@ -263,6 +279,8 @@ export function ExploreControls({
             </label>
             <select
               id={ids.sort}
+              name="sort"
+              form={ids.form}
               value={sortValue}
               onChange={(e) => {
                 const [id, direction] = e.target.value.split('.');
@@ -294,6 +312,8 @@ export function ExploreControls({
             </label>
             <select
               id={ids.size}
+              name="size"
+              form={ids.form}
               value={state.size}
               onChange={(e) => {
                 const size = PAGE_SIZES.find((s) => s === Number(e.target.value));

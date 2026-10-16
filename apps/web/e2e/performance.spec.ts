@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
 /** Second web server: the fictional seed plus 560 fictional members (600 rows). */
-const SCALE_URL = 'http://localhost:3301';
+const SCALE_URL = `http://localhost:${process.env.E2E_SCALE_PORT ?? 3301}`;
 
 interface LayoutShift extends PerformanceEntry {
   value: number;

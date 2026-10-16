@@ -1,0 +1,9 @@
+
+Running 5 tests using 4 workers
+
+[1/5] [desktop] › e2e\before-hydration.spec.ts:22:1 › removing a filter before the page has hydrated is not lost
+[2/5] [desktop] › e2e\before-hydration.spec.ts:35:1 › clearing every filter before the page has hydrated is not lost
+[3/5] [desktop] › e2e\before-hydration.spec.ts:69:1 › filters chosen before the page has hydrated are applied, not just drawn
+[4/5] [desktop] › e2e\before-hydration.spec.ts:49:1 › a filter removed after hydration still updates in place
+[5/5] [desktop] › e2e\before-hydration.spec.ts:90:1 › a name typed before the page has hydrated is searched
+  5 passed (43.9s)
