@@ -1,0 +1,139 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+ ❯ packages/ingest/test/shrink-scope.test.ts (4 tests | 4 failed) 19125ms
+   ❯ shrink guard per dataset and scope (H3-02) (4)
+     × P3: refuses a votes load whose positions collapse into unmatched-member diagnostics 5601ms
+     × P4: refuses a cycle whose totals file collapses while another cycle dilutes the source 4409ms
+     × one-file collapse: refuses an emptied independent-expenditure file within one cycle 4322ms
+     × --allow-shrink commits the load and records the overridden violation on the receipt 4790ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/ingest/test/shrink-scope.test.ts > shrink guard per dataset and scope (H3-02) > P3: refuses a votes load whose positions collapse into unmatched-member diagnostics
+AssertionError: expected 'succeeded' to be 'failed' // Object.is equality
+
+Expected: "failed"
+Received: "succeeded"
+
+ ❯ packages/ingest/test/shrink-scope.test.ts:72:28
+     70|     const receipt = await ingestFixture(rt, 'voteview', unmatched);
+     71|
+     72|     expect(receipt.status).toBe('failed');
+       |                            ^
+     73|     expect(receipt.error).toMatch(/^shrink guard: .*vote_positions/s);
+     74|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  packages/ingest/test/shrink-scope.test.ts > shrink guard per dataset and scope (H3-02) > P4: refuses a cycle whose totals file collapses while another cycle dilutes the source
+AssertionError: expected 'succeeded' to be 'failed' // Object.is equality
+
+Expected: "failed"
+Received: "succeeded"
+
+ ❯ packages/ingest/test/shrink-scope.test.ts:98:28
+     96|     );
+     97|
+     98|     expect(receipt.status).toBe('failed');
+       |                            ^
+     99|     expect(receipt.error).toMatch(/^shrink guard: .*candidate_cycle_to…
+    100|     expect(await count('candidate_cycle_totals', 'cycle = 2026')).toBe…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  packages/ingest/test/shrink-scope.test.ts > shrink guard per dataset and scope (H3-02) > one-file collapse: refuses an emptied independent-expenditure file within one cycle
+AssertionError: expected 'succeeded' to be 'failed' // Object.is equality
+
+Expected: "failed"
+Received: "succeeded"
+
+ ❯ packages/ingest/test/shrink-scope.test.ts:115:28
+    113|     const receipt = await ingestFixture(rt, 'fec-bulk', collapsed);
+    114|
+    115|     expect(receipt.status).toBe('failed');
+       |                            ^
+    116|     expect(receipt.error).toMatch(/^shrink guard: .*independent_expend…
+    117|     expect(await count('independent_expenditure')).toBe(8);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  packages/ingest/test/shrink-scope.test.ts > shrink guard per dataset and scope (H3-02) > --allow-shrink commits the load and records the overridden violation on the receipt
+AssertionError: expected { runId: 3, …(14) } to match object { note: StringMatching{…} }
+(51 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "note": StringMatching /^shrink guard overridden \(--allow-shrink\): .*independent_expenditure/s,
++   "actor": "operator",
++   "adapterVersion": "fec-bulk@2",
++   "counts": {
++     "candidacies": 8,
++     "candidacies_presidential_skipped": 0,
++     "candidates": 19,
++     "candidates_matched_to_person": 8,
++     "committee_links": 27,
++     "committees": 55,
++     "contributions": 24,
++     "contributions_matched_to_person": 17,
++     "contributions_recipient_via_committee": 1,
++     "contributions_unknown_committee": 0,
++     "contributions_unresolved_recipient": 1,
++     "ie_candidate_ids_uppercased": 0,
++     "ie_duplicate_reports": 0,
++     "ie_implausible_amount_dropped": 0,
++     "ie_invalid_support_oppose": 0,
++     "ie_matched_to_person": 0,
++     "ie_rows": 0,
++     "ie_superseded_filings": 0,
++     "ie_unattributed_dropped": 0,
++     "independent_expenditures": 0,
++     "links_non_candidate_id": 0,
++     "links_unknown_committee": 1,
++     "pas2_amendment_superseded": 1,
++     "pas2_duplicate_reports": 1,
++     "pas2_excluded_type": 1,
++     "pas2_memo_dropped": 1,
++     "pas2_rows": 29,
++     "persons_with_several_fec_ids_in_cycle": 2,
++     "stale_rows_deleted": 8,
++     "summaries": 14,
++     "summaries_attributed_via_other_id": 1,
++     "summaries_matched_to_person": 3,
++     "summary_period_differs_from_totals": 0,
++     "summary_unitemized_out_of_range": 1,
++     "totals": 19,
++     "totals_matched_to_person": 6,
++   },
++   "deduplicated": false,
++   "error": null,
++   "finishedAt": "2026-10-16T08:53:58.148Z",
++   "operation": "ingest.run",
++   "readModelRefreshedAfter": "2026-10-16T08:53:58.102Z",
++   "readModelRefreshedBefore": "2026-10-16T08:53:57.885Z",
++   "runId": 3,
++   "scope": "cycle:2026",
++   "snapshotChecksum": "1225e6706b05986c4ebf80ce59d994466dc7e079e9d757c99c61f764601063ed",
++   "source": "fec-bulk",
++   "startedAt": "2026-10-16T08:53:57.964Z",
++   "status": "succeeded",
+  }
+
+ ❯ packages/ingest/test/shrink-scope.test.ts:134:21
+    132|
+    133|     expect(receipt.status).toBe('succeeded');
+    134|     expect(receipt).toMatchObject({
+       |                     ^
+    135|       note: expect.stringMatching(/^shrink guard overridden \(--allow-…
+    136|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  04:53:36
+   Duration  22.11s (tests 88%, import 9%, transform 3%)
+

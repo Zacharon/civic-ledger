@@ -1,0 +1,78 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+ ❯ test-pg/publication.pgtest.ts (4 tests | 2 failed | 2 skipped) 5517ms
+   ❯ publication boundary (Postgres) (4)
+     × refresh 1 fails: no facts, no read model and no success receipt are published 2987ms
+     × refresh 2 fails after refresh 1: the first read model is not left ahead of the second 2528ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test-pg/publication.pgtest.ts > publication boundary (Postgres) > refresh 1 fails: no facts, no read model and no success receipt are published
+AssertionError: expected { markerFacts: 1, …(3) } to deeply equal { markerFacts: +0, …(3) }
+
+- Expected
++ Received
+
+  {
+    "cardRefreshedAt": "2026-10-16 04:51:23.173288-04",
+    "markerCards": 0,
+-   "markerFacts": 0,
++   "markerFacts": 1,
+    "scorecardRows": 0,
+  }
+
+ ❯ expectUnpublished packages/ingest/test/support/publication-scenarios.ts:85:40
+     83|
+     84| async function expectUnpublished(handle: DbHandle, before: PublishedSt…
+     85|   expect(await publishedState(handle)).toEqual(before);
+       |                                        ^
+     86|   const [run] = await rows<{ status: string }>(
+     87|     handle.db,
+ ❯ packages/ingest/test/support/publication-scenarios.ts:112:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test-pg/publication.pgtest.ts > publication boundary (Postgres) > refresh 2 fails after refresh 1: the first read model is not left ahead of the second
+AssertionError: expected { Object (markerFacts, markerCards, ...) } to deeply equal { markerFacts: +0, …(3) }
+
+- Expected
++ Received
+
+  {
+-   "cardRefreshedAt": "2026-10-16 04:51:25.764777-04",
+-   "markerCards": 0,
+-   "markerFacts": 0,
++   "cardRefreshedAt": "2026-10-16 04:51:25.918786-04",
++   "markerCards": 1,
++   "markerFacts": 1,
+    "scorecardRows": 0,
+  }
+
+ ❯ expectUnpublished packages/ingest/test/support/publication-scenarios.ts:85:40
+     83|
+     84| async function expectUnpublished(handle: DbHandle, before: PublishedSt…
+     85|   expect(await publishedState(handle)).toEqual(before);
+       |                                        ^
+     86|   const [run] = await rows<{ status: string }>(
+     87|     handle.db,
+ ❯ packages/ingest/test/support/publication-scenarios.ts:126:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 skipped (4)
+   Start at  04:51:07
+   Duration  19.18s (tests 69%, import 25%, transform 6%)
+
+file:///C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016/node_modules/.pnpm/embedded-postgres@17.10.0-beta.17/node_modules/embedded-postgres/dist/index.js:393
+        done();
+        ^
+
+TypeError: done is not a function
+    at file:///C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016/node_modules/.pnpm/embedded-postgres@17.10.0-beta.17/node_modules/embedded-postgres/dist/index.js:393:9
+    at Generator.next (<anonymous>)
+    at fulfilled (file:///C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016/node_modules/.pnpm/embedded-postgres@17.10.0-beta.17/node_modules/embedded-postgres/dist/index.js:4:58)
+
+Node.js v24.16.0

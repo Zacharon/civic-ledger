@@ -1,0 +1,37 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+ ❯ packages/core/test/coverage-null.test.ts (3 tests | 1 failed) 6702ms
+   ❯ industry-coding coverage: card versus money.summary (H3-03) (3)
+     × all positive PAC money uncoded: both report 0, not null 105ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/core/test/coverage-null.test.ts > industry-coding coverage: card versus money.summary (H3-03) > all positive PAC money uncoded: both report 0, not null
+AssertionError: expected { money: +0, card: null } to deeply equal { money: +0, card: +0 }
+
+- Expected
++ Received
+
+  {
+-   "card": 0,
++   "card": null,
+    "money": 0,
+  }
+
+ ❯ packages/core/test/coverage-null.test.ts:89:48
+     87| describe('industry-coding coverage: card versus money.summary (H3-03)'…
+     88|   it('all positive PAC money uncoded: both report 0, not null', async …
+     89|     expect(await coverageOf(cases.allUncoded)).toEqual({ money: 0, car…
+       |                                                ^
+     90|   });
+     91|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  04:54:52
+   Duration  9.37s (tests 75%, import 21%, transform 4%)
+

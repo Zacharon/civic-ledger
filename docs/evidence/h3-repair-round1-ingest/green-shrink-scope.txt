@@ -1,0 +1,13 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+ ✓ packages/ingest/test/shrink-scope.test.ts > shrink guard per dataset and scope (H3-02) > P3: refuses a votes load whose positions collapse into unmatched-member diagnostics 7077ms
+ ✓ packages/ingest/test/shrink-scope.test.ts > shrink guard per dataset and scope (H3-02) > P4: refuses a cycle whose totals file collapses while another cycle dilutes the source 7752ms
+ ✓ packages/ingest/test/shrink-scope.test.ts > shrink guard per dataset and scope (H3-02) > one-file collapse: refuses an emptied independent-expenditure file within one cycle 6927ms
+ ✓ packages/ingest/test/shrink-scope.test.ts > shrink guard per dataset and scope (H3-02) > --allow-shrink commits the load and records the overridden violation on the receipt 7174ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  10:52:12
+   Duration  31.69s (tests 92%, import 6%, transform 2%)
+

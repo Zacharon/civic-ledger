@@ -1,0 +1,21 @@
+$ vitest run --config vitest.pg.config.ts "--" "--reporter=verbose"
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+{"level":"error","msg":"database pool error","err":"terminating connection due to administrator command"}
+
+ Test Files  6 passed (6)
+      Tests  38 passed (38)
+   Start at  10:55:46
+   Duration  167.02s (tests 76%, import 22%, transform 2%)
+
+file:///C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016/node_modules/.pnpm/embedded-postgres@17.10.0-beta.17/node_modules/embedded-postgres/dist/index.js:393
+        done();
+        ^
+
+TypeError: done is not a function
+    at file:///C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016/node_modules/.pnpm/embedded-postgres@17.10.0-beta.17/node_modules/embedded-postgres/dist/index.js:393:9
+    at Generator.next (<anonymous>)
+    at fulfilled (file:///C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016/node_modules/.pnpm/embedded-postgres@17.10.0-beta.17/node_modules/embedded-postgres/dist/index.js:4:58)
+
+Node.js v24.16.0

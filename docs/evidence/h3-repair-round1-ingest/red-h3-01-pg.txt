@@ -1,0 +1,119 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+ ❯ test-pg/publication.pgtest.ts (4 tests | 4 failed) 15757ms
+   ❯ publication boundary (Postgres) (4)
+     × refresh 1 fails: no facts, no read model and no success receipt are published 3271ms
+     × refresh 2 fails after refresh 1: the first read model is not left ahead of the second 3077ms
+     × the final ledger write fails: the facts and read models roll back with it 2966ms
+     × a process that dies after loading leaves no committed facts and an abandoned receipt 6440ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test-pg/publication.pgtest.ts > publication boundary (Postgres) > refresh 1 fails: no facts, no read model and no success receipt are published
+AssertionError: expected { markerFacts: 1, …(3) } to deeply equal { markerFacts: +0, …(3) }
+
+- Expected
++ Received
+
+  {
+    "cardRefreshedAt": "2026-10-16 04:48:35.993855-04",
+    "markerCards": 0,
+-   "markerFacts": 0,
++   "markerFacts": 1,
+    "scorecardRows": 0,
+  }
+
+ ❯ expectUnpublished packages/ingest/test/support/publication-scenarios.ts:85:40
+     83|
+     84| async function expectUnpublished(handle: DbHandle, before: PublishedSt…
+     85|   expect(await publishedState(handle)).toEqual(before);
+       |                                        ^
+     86|   const [run] = await rows<{ status: string }>(
+     87|     handle.db,
+ ❯ packages/ingest/test/support/publication-scenarios.ts:112:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  test-pg/publication.pgtest.ts > publication boundary (Postgres) > refresh 2 fails after refresh 1: the first read model is not left ahead of the second
+AssertionError: expected { Object (markerFacts, markerCards, ...) } to deeply equal { markerFacts: +0, …(3) }
+
+- Expected
++ Received
+
+  {
+-   "cardRefreshedAt": "2026-10-16 04:48:39.010622-04",
+-   "markerCards": 0,
+-   "markerFacts": 0,
++   "cardRefreshedAt": "2026-10-16 04:48:39.175616-04",
++   "markerCards": 1,
++   "markerFacts": 1,
+    "scorecardRows": 0,
+  }
+
+ ❯ expectUnpublished packages/ingest/test/support/publication-scenarios.ts:85:40
+     83|
+     84| async function expectUnpublished(handle: DbHandle, before: PublishedSt…
+     85|   expect(await publishedState(handle)).toEqual(before);
+       |                                        ^
+     86|   const [run] = await rows<{ status: string }>(
+     87|     handle.db,
+ ❯ packages/ingest/test/support/publication-scenarios.ts:126:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  test-pg/publication.pgtest.ts > publication boundary (Postgres) > the final ledger write fails: the facts and read models roll back with it
+AssertionError: expected { Object (markerFacts, markerCards, ...) } to deeply equal { markerFacts: +0, …(3) }
+
+- Expected
++ Received
+
+  {
+-   "cardRefreshedAt": "2026-10-16 04:48:41.937989-04",
+-   "markerCards": 0,
+-   "markerFacts": 0,
++   "cardRefreshedAt": "2026-10-16 04:48:42.111105-04",
++   "markerCards": 1,
++   "markerFacts": 1,
+    "scorecardRows": 0,
+  }
+
+ ❯ expectUnpublished packages/ingest/test/support/publication-scenarios.ts:85:40
+     83|
+     84| async function expectUnpublished(handle: DbHandle, before: PublishedSt…
+     85|   expect(await publishedState(handle)).toEqual(before);
+       |                                        ^
+     86|   const [run] = await rows<{ status: string }>(
+     87|     handle.db,
+ ❯ packages/ingest/test/support/publication-scenarios.ts:135:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  test-pg/publication.pgtest.ts > publication boundary (Postgres) > a process that dies after loading leaves no committed facts and an abandoned receipt
+AssertionError: expected { people: 9, running: 1 } to deeply equal { people: +0, running: 1 }
+
+- Expected
++ Received
+
+  {
+-   "people": 0,
++   "people": 9,
+    "running": 1,
+  }
+
+ ❯ test-pg/publication.pgtest.ts:25:19
+     23|         (select count(*) from ingest_run where status = 'running')::in…
+     24|     );
+     25|     expect(state).toEqual({ people: 0, running: 1 });
+       |                   ^
+     26|     const next = await ingestFixture(await testRuntime(db.handle), 'co…
+     27|     expect(next.status).toBe('succeeded');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  04:48:16
+   Duration  32.62s (tests 83%, import 10%, transform 7%)
+

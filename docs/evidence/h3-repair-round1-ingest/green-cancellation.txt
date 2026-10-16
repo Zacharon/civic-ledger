@@ -1,0 +1,13 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+ ✓ packages/ingest/test/cancellation.test.ts > cancellation (H3-04) > P5: a run whose signal is already aborted loads nothing and says cancelled 5763ms
+ ✓ packages/ingest/test/cancellation.test.ts > cancellation (H3-04) > an abort during the load rolls the load back 4833ms
+ ✓ packages/ingest/test/cancellation.test.ts > cancellation (H3-04) > an abort during publication (read-model refresh) rolls everything back 5917ms
+ ✓ packages/ingest/test/cancellation.test.ts > cancellation (H3-04) > a whole-run deadline cancels a run that outlives it 5582ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  10:53:03
+   Duration  25.51s (tests 89%, import 9%, transform 2%)
+

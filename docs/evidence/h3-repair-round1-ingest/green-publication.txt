@@ -1,0 +1,13 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+ ✓ packages/ingest/test/publication.test.ts > publication boundary (PGlite) > refresh 1 fails: no facts, no read model and no success receipt are published 6193ms
+ ✓ packages/ingest/test/publication.test.ts > publication boundary (PGlite) > refresh 2 fails after refresh 1: the first read model is not left ahead of the second 9952ms
+ ✓ packages/ingest/test/publication.test.ts > publication boundary (PGlite) > the final ledger write fails: the facts and read models roll back with it 5075ms
+ ✓ packages/ingest/test/publication.test.ts > process loss during publication (PGlite data directory) > a process that dies after loading leaves no committed facts and an abandoned receipt 22311ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  10:51:23
+   Duration  46.81s (tests 94%, import 5%, transform 1%)
+

@@ -1,0 +1,15 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+ ✓ packages/ingest/test/replay-manifest.test.ts > snapshot replay A -> B -> A (H3-07, probe P2) > refuses to treat an old snapshot as restoration and says how to replay it 7052ms
+ ✓ packages/ingest/test/replay-manifest.test.ts > snapshot replay A -> B -> A (H3-07, probe P2) > --force-replay loads the old snapshot as a new current run and names the original 5563ms
+ ✓ packages/ingest/test/replay-manifest.test.ts > snapshot replay A -> B -> A (H3-07, probe P2) > still deduplicates an immediate repeat of the current snapshot 6793ms
+ ✓ packages/ingest/test/replay-manifest.test.ts > raw snapshot manifest schema version (H3-08) > writes schema_version 1 into every fetched manifest 6096ms
+ ✓ packages/ingest/test/replay-manifest.test.ts > raw snapshot manifest schema version (H3-08) > accepts a v1 manifest and a legacy manifest without a version 3750ms
+ ✓ packages/ingest/test/replay-manifest.test.ts > raw snapshot manifest schema version (H3-08) > rejects a snapshot whose manifest has an unknown schema version 4114ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  10:54:03
+   Duration  36.66s (tests 92%, import 7%, transform 1%)
+

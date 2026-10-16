@@ -1,0 +1,13 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+ ✓ packages/ingest/test/bounded.test.ts > streaming FEC parse (H3-05) > hands on pas2 rows before reading the whole pas2 file 7273ms
+ ✓ packages/ingest/test/bounded.test.ts > streaming FEC parse (H3-05) > hands on independent-expenditure rows before reading the whole IE file 5914ms
+ ✓ packages/ingest/test/bounded.test.ts > byte caps (H3-05) > fails a download that exceeds the per-file byte cap 5281ms
+ ✓ packages/ingest/test/bounded.test.ts > byte caps (H3-05) > fails a zip entry that inflates past the decompression cap 6782ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  10:53:31
+   Duration  28.19s (tests 91%, import 7%, transform 2%)
+

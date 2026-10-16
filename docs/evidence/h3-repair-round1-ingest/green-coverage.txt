@@ -1,0 +1,12 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+ ✓ packages/core/test/coverage-null.test.ts > industry-coding coverage: card versus money.summary (H3-03) > all positive PAC money uncoded: both report 0, not null 154ms
+ ✓ packages/core/test/coverage-null.test.ts > industry-coding coverage: card versus money.summary (H3-03) > only refunds (no positive base): both report null 68ms
+ ✓ packages/core/test/coverage-null.test.ts > industry-coding coverage: card versus money.summary (H3-03) > mixed coded, uncoded and refunds: both report the gross-coded share 80ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  10:52:46
+   Duration  12.85s (tests 76%, import 21%, transform 4%)
+

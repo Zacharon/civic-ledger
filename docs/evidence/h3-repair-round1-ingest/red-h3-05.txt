@@ -1,0 +1,75 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+ ❯ packages/ingest/test/bounded.test.ts (4 tests | 4 failed) 14357ms
+   ❯ streaming FEC parse (H3-05) (2)
+     × hands on pas2 rows before reading the whole pas2 file 4154ms
+     × hands on independent-expenditure rows before reading the whole IE file 3295ms
+   ❯ byte caps (H3-05) (2)
+     × fails a download that exceeds the per-file byte cap 3397ms
+     × fails a zip entry that inflates past the decompression cap 3508ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/ingest/test/bounded.test.ts > streaming FEC parse (H3-05) > hands on pas2 rows before reading the whole pas2 file
+AssertionError: expected 0 to be greater than 0
+ ❯ packages/ingest/test/bounded.test.ts:73:44
+     71|     const lastSummary = kinds.lastIndexOf('summary');
+     72|     expect(lastSummary).toBeGreaterThanOrEqual(0);
+     73|     expect(kinds.length - 1 - lastSummary).toBeGreaterThan(0);
+       |                                            ^
+     74|   });
+     75|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  packages/ingest/test/bounded.test.ts > streaming FEC parse (H3-05) > hands on independent-expenditure rows before reading the whole IE file
+AssertionError: expected 0 to be greater than 0
+ ❯ packages/ingest/test/bounded.test.ts:85:23
+     83|     const afterPas2 = kinds.length - 1 - kinds.indexOf('stats:pas2');
+     84|     expect(kinds.indexOf('stats:pas2')).toBeGreaterThanOrEqual(0);
+     85|     expect(afterPas2).toBeGreaterThan(0);
+       |                       ^
+     86|   });
+     87| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  packages/ingest/test/bounded.test.ts > byte caps (H3-05) > fails a download that exceeds the per-file byte cap
+AssertionError: expected 'succeeded' to be 'failed' // Object.is equality
+
+Expected: "failed"
+Received: "succeeded"
+
+ ❯ packages/ingest/test/bounded.test.ts:99:28
+     97|     const rt = await testRuntime(handle, { http: deps, limits: { maxDo…
+     98|     const receipt = await runIngest({ source: 'voteview', scope: SCOPE…
+     99|     expect(receipt.status).toBe('failed');
+       |                            ^
+    100|     expect(receipt.error).toMatch(/exceeds the 1024-byte download cap/…
+    101|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  packages/ingest/test/bounded.test.ts > byte caps (H3-05) > fails a zip entry that inflates past the decompression cap
+AssertionError: expected 'succeeded' to be 'failed' // Object.is equality
+
+Expected: "failed"
+Received: "succeeded"
+
+ ❯ packages/ingest/test/bounded.test.ts:107:28
+    105|     await ingestFixture(rt, 'congress-legislators');
+    106|     const receipt = await ingestFixture(rt, 'fec-bulk');
+    107|     expect(receipt.status).toBe('failed');
+       |                            ^
+    108|     expect(receipt.error).toMatch(/exceeds the 200-byte decompression …
+    109|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  04:58:07
+   Duration  17.12s (tests 85%, import 12%, transform 3%)
+

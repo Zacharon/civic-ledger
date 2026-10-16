@@ -1,0 +1,87 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-ingest-receipts-20261016
+
+ ❯ packages/ingest/test/replay-manifest.test.ts (6 tests | 4 failed) 22960ms
+   ❯ snapshot replay A -> B -> A (H3-07, probe P2) (3)
+     × refuses to treat an old snapshot as restoration and says how to replay it 4497ms
+     × --force-replay loads the old snapshot as a new current run and names the original 3734ms
+   ❯ raw snapshot manifest schema version (H3-08) (3)
+     × writes schema_version 1 into every fetched manifest 3913ms
+     × rejects a snapshot whose manifest has an unknown schema version 3668ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/ingest/test/replay-manifest.test.ts > snapshot replay A -> B -> A (H3-07, probe P2) > refuses to treat an old snapshot as restoration and says how to replay it
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ packages/ingest/test/replay-manifest.test.ts:38:32
+     36|
+     37|     const again = await ingestFixture(rt, 'congress-legislators', A);
+     38|     expect(again.deduplicated).toBe(false);
+       |                                ^
+     39|     expect(again.status).toBe('failed');
+     40|     expect(again.error).toMatch(/^snapshot_superseded: .*run \d+ .*--f…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  packages/ingest/test/replay-manifest.test.ts > snapshot replay A -> B -> A (H3-07, probe P2) > --force-replay loads the old snapshot as a new current run and names the original
+CapabilityError: Input failed validation
+ ❯ invalidInput packages/core/src/errors.ts:74:10
+     72|   message = 'Input failed validation',
+     73| ): CapabilityError {
+     74|   return new CapabilityError('invalid_input', message, {
+       |          ^
+     75|     issues: error.issues.map((issue) => ({
+     76|       path: issue.path.map(String).join('.'),
+ ❯ runIngest packages/ingest/src/runtime/run.ts:66:30
+ ❯ packages/ingest/test/replay-manifest.test.ts:49:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  packages/ingest/test/replay-manifest.test.ts > raw snapshot manifest schema version (H3-08) > writes schema_version 1 into every fetched manifest
+AssertionError: expected undefined to be 1 // Object.is equality
+
+- Expected:
+1
+
++ Received:
+undefined
+
+ ❯ packages/ingest/test/replay-manifest.test.ts:90:37
+     88|     const day = new Date().toISOString().slice(0, 10);
+     89|     const manifest = JSON.parse(await readFile(join(rt.rawRoot, 'votev…
+     90|     expect(manifest.schema_version).toBe(1);
+       |                                     ^
+     91|   });
+     92|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  packages/ingest/test/replay-manifest.test.ts > raw snapshot manifest schema version (H3-08) > rejects a snapshot whose manifest has an unknown schema version
+AssertionError: expected 'succeeded' to be 'failed' // Object.is equality
+
+Expected: "failed"
+Received: "succeeded"
+
+ ❯ packages/ingest/test/replay-manifest.test.ts:116:28
+    114|       await snapshotWithManifest({ schema_version: 99, source: 'congre…
+    115|     );
+    116|     expect(receipt.status).toBe('failed');
+       |                            ^
+    117|     expect(receipt.error).toMatch(/manifest schema_version 99 is not s…
+    118|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 2 passed (6)
+   Start at  04:58:59
+   Duration  25.64s (tests 91%, import 7%, transform 2%)
+
