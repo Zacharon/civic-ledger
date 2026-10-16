@@ -12,7 +12,8 @@
       "!**/migrations/meta",
       "!**/next-env.d.ts",
       "!pnpm-lock.yaml",
-      "!**/test/fixtures"
+      "!**/test/fixtures",
+      "!**/screenshots/**/*.json"
     ]
   },
   "formatter": {

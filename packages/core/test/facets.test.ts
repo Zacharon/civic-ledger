@@ -30,6 +30,22 @@ describe('explore.facets@1', () => {
     }
   });
 
+  it('counts the people with data for each Explore field, per scope', async () => {
+    const [current, all, table] = await Promise.all([
+      dispatch('explore.facets', {}, db.ctx()),
+      dispatch('explore.facets', { scope: 'all' }, db.ctx()),
+      dispatch('explore.table', { limit: 100 }, db.ctx()),
+    ]);
+    const nonNull = (pick: (r: (typeof table.rows)[number]) => unknown) =>
+      table.rows.filter((r) => pick(r) !== null).length;
+    expect(current.withData.totalReceiptsCents).toBe(nonNull((r) => r.totalReceiptsCents));
+    expect(current.withData.promiseKeptRate).toBe(nonNull((r) => r.promiseKeptRate));
+    expect(current.withData.smallDollarShare).toBe(nonNull((r) => r.smallDollarShare));
+    // Former members in the seed have tenure but no votes, money or ideology.
+    expect(all.withData.tenureYears).toBe(current.withData.tenureYears + 3);
+    expect(all.withData.dwNominateDim1).toBe(current.withData.dwNominateDim1);
+  });
+
   it('rejects unexpected input', async () => {
     await expectCapabilityError(
       dispatch('explore.facets', { state: 'ZV' }, db.ctx()),

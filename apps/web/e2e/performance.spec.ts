@@ -10,7 +10,7 @@ interface LayoutShift extends PerformanceEntry {
 
 async function measure(page: Page, url: string) {
   await page.goto(url);
-  await expect(page.getByText(/^600 members/)).toBeVisible();
+  await expect(page.getByText(/^600 current members/)).toBeVisible();
   return page.evaluate(
     () =>
       new Promise<{ lcp: number; cls: number }>((resolve) => {

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { formatCents, formatDate, formatNumber, formatShare, safeHref } from '@/lib/format';
+import { formatCents, formatDate, formatShare, safeHref } from '@/lib/format';
+import { runCountRows } from '@/lib/run-counts';
 import { read } from '@/server/capabilities';
 
 export const metadata: Metadata = {
@@ -112,13 +113,13 @@ export default async function SourcesPage() {
                       <dt className="text-ink-2">Records loaded</dt>
                       <dd>
                         <ul className="grid grid-cols-2 gap-x-6 gap-y-0.5 sm:grid-cols-3">
-                          {Object.entries(run.counts).map(([key, count]) => (
+                          {runCountRows(run.counts).map((row) => (
                             <li
-                              key={key}
+                              key={row.key}
                               className="flex justify-between gap-3 border-b border-rule py-0.5"
                             >
-                              <span className="text-ink-2">{humanize(key)}</span>
-                              <span className="num">{formatNumber(count)}</span>
+                              <span className="min-w-0 text-ink-2">{row.label}</span>
+                              <span className="num whitespace-nowrap">{row.value}</span>
                             </li>
                           ))}
                         </ul>
@@ -159,12 +160,4 @@ export default async function SourcesPage() {
       </section>
     </div>
   );
-}
-
-function humanize(key: string): string {
-  const spaced = key
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/[_-]/g, ' ')
-    .toLowerCase();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }

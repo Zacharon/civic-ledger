@@ -20,6 +20,7 @@ import {
   ordinal,
   safeHref,
   seatLabel,
+  serviceYears,
 } from '@/lib/format';
 import { readOrNotFound } from '@/server/capabilities';
 import { sourceInfos } from '@/server/sources';
@@ -102,16 +103,29 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
             <SourceMark notes={headerNotes} n={personMark} />
           </h1>
           <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-lg text-ink-2">
+            {card.isCurrent ? null : (
+              <span className="chip border border-control bg-sunk font-semibold text-ink">
+                Former member
+              </span>
+            )}
             <PartyChip party={card.party} full />
             <span>
+              {card.isCurrent ? '' : 'Last served as '}
               {title && seat ? `${title}, ${seat}` : (seat ?? 'Seat unknown')}
               <SourceMark notes={headerNotes} n={termMark} />
             </span>
           </p>
-          {card.termStart ? (
+          {card.isCurrent && card.termStart ? (
             <p className="mt-1 text-ink-2">
               Current term began {formatDate(card.termStart)}
               {card.tenureYears !== null ? `; ${formatYears(card.tenureYears)} in Congress` : ''}.
+            </p>
+          ) : null}
+          {!card.isCurrent && card.serviceStart ? (
+            <p className="mt-1 text-ink-2">
+              Served <span className="num">{serviceYears(card)}</span>
+              {card.tenureYears !== null ? ` (${formatYears(card.tenureYears)} in Congress)` : ''}
+              {`; last term ended ${formatDate(card.termEnd) ?? 'on an unknown date'}.`}
             </p>
           ) : null}
         </div>
@@ -134,8 +148,19 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
           value={formatCents(card.totalReceiptsCents, { compact: true })}
         />
         <Fact label="From PACs" value={formatShare(card.pacShare)} />
-        <Fact label="Small donors" value={formatShare(card.smallDollarShare)} />
-        <Fact label="Missed votes" value={formatShare(card.missedVoteRate)} />
+        <Fact
+          label={
+            card.smallDollarAsOf
+              ? `Small donors, through ${formatDate(card.smallDollarAsOf)?.replace(/, \d{4}$/, '')}`
+              : 'Small donors'
+          }
+          value={formatShare(card.smallDollarShare)}
+        />
+        <Fact
+          label="Missed votes"
+          value={formatShare(card.missedVoteRate)}
+          empty={card.isCurrent ? 'No data' : 'No votes loaded'}
+        />
         <Fact
           label={
             card.ideologyCongress ? `DW-NOMINATE, ${ordinal(card.ideologyCongress)}` : 'DW-NOMINATE'
@@ -145,6 +170,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
               <PositionStrip value={card.dwNominateDim1} width={64} />
             )
           }
+          empty={card.isCurrent ? 'No data' : 'No votes loaded'}
         />
         <Fact
           label="Promises kept"

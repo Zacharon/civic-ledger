@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { PartyChip } from '@/components/party-chip';
 import type { ColumnDef, ExploreRow } from '@/lib/explore-columns';
-import { chamberLabel, seatLabel } from '@/lib/format';
+import { chamberLabel, formerLabel, seatLabel } from '@/lib/format';
 import { MetricCell } from './cell';
 
 /** Small screens: one card per member with the same visible columns as the table. */
@@ -20,7 +20,11 @@ export function ExploreCards({ rows, columns }: { rows: ExploreRow[]; columns: C
             <PartyChip party={row.party} />
           </div>
           <p className="mt-0.5 text-sm text-ink-2">
-            {[chamberLabel(row.chamber), seatLabel(row.chamber, row.state, row.district)]
+            {[
+              chamberLabel(row.chamber),
+              seatLabel(row.chamber, row.state, row.district),
+              formerLabel(row, 'Former'),
+            ]
               .filter(Boolean)
               .join(' · ') || 'Seat unknown'}
           </p>

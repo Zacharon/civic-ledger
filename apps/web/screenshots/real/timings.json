@@ -1,0 +1,86 @@
+{
+  "home": {
+    "path": "/",
+    "coldMs": 849,
+    "warmMs": [360, 277, 309],
+    "bytes": 40884,
+    "overflowPx": [0, 0]
+  },
+  "explore": {
+    "path": "/explore",
+    "coldMs": 392,
+    "warmMs": [399, 423, 337],
+    "bytes": 349108,
+    "overflowPx": [0, 0]
+  },
+  "explore-senate-pac": {
+    "path": "/explore?chamber=senate&sort=pac.desc",
+    "coldMs": 268,
+    "warmMs": [355, 243, 291],
+    "bytes": 345047,
+    "overflowPx": [0, 0]
+  },
+  "profile-long-tenure": {
+    "path": "/people/chuck-grassley-g000386",
+    "coldMs": 518,
+    "warmMs": [362, 366, 359],
+    "bytes": 209868,
+    "overflowPx": [0, 0]
+  },
+  "profile-first-term": {
+    "path": "/people/randy-fine-f000484",
+    "coldMs": 798,
+    "warmMs": [799, 844, 690],
+    "bytes": 434134,
+    "overflowPx": [0, 0]
+  },
+  "profile-former": {
+    "path": "/people/sherrod-brown-b000944",
+    "coldMs": 557,
+    "warmMs": [376, 339, 341],
+    "bytes": 207016,
+    "overflowPx": [0, 0]
+  },
+  "profile-senate": {
+    "path": "/people/jon-husted-h001104",
+    "coldMs": 440,
+    "warmMs": [379, 429, 402],
+    "bytes": 321457,
+    "overflowPx": [0, 0]
+  },
+  "compare": {
+    "path": "/compare?ids=chuck-grassley-g000386,randy-fine-f000484,jon-husted-h001104",
+    "coldMs": 191,
+    "warmMs": [185, 154, 154],
+    "bytes": 50726,
+    "overflowPx": [0, 0]
+  },
+  "policy-index": {
+    "path": "/policy",
+    "coldMs": 200,
+    "warmMs": [195, 197, 194],
+    "bytes": 39703,
+    "overflowPx": [0, 0]
+  },
+  "policy-area": {
+    "path": "/policy/congress",
+    "coldMs": 505,
+    "warmMs": [495, 467, 506],
+    "bytes": 760968,
+    "overflowPx": [0, 0]
+  },
+  "frameworks": {
+    "path": "/frameworks",
+    "coldMs": 191,
+    "warmMs": [183, 166, 160],
+    "bytes": 16278,
+    "overflowPx": [0, 0]
+  },
+  "sources": {
+    "path": "/sources",
+    "coldMs": 135,
+    "warmMs": [142, 135, 133],
+    "bytes": 77567,
+    "overflowPx": [0, 0]
+  }
+}

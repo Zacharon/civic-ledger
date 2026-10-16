@@ -107,3 +107,13 @@ Measured while building `packages/ingest`; the rules adopted are in DECISIONS A1
   (chamber, session, clerk number); some titles contain U+FFFD replacement characters.
 - **congress-legislators**: 452 historical terms have no party; 1,359 historical House terms
   use district -1 (unknown / general ticket).
+- **candidate_summary_2026.csv** (fetched 2026-10-16, 4,482 rows, quoted CSV with header):
+  `Link_Image,Cand_Name,Cand_Id,Cand_Office,Cand_Office_St,Cand_Office_Dist,Cand_Party_Affiliation,Cand_Incumbent_Challenger_Open_Seat,Total_Receipt,Total_Disbursement,Cash_On_Hand_COP,Debt_Owed_By_Committee,Coverage_End_Date,Cand_Street_1,Cand_Street_2,Cand_City,Cand_State,Cand_Zip,Individual_Itemized_Contribution,Individual_Unitemized_Contribution,Individual_Contribution,Other_Committee_Contribution,Party_Committee_Contribution,Cand_Contribution,Total_Contribution,Transfer_From_Other_Auth_Committee,Cand_Loan,Other_Loan,Total_Loan,Offsets_To_Operating_Expenditure,Offsets_To_Fundraising,Offsets_To_Leagal_Accounting,Other_Receipts,Operating_Expenditure,Exempt_Legal_Accounting_Disbursement,Fundraising_Disbursement,Transfer_To_Other_Auth_Committee,Cand_Loan_Repayment,Other_Loan_Repayment,Total_Loan_Repayment,Individual_Refund,Party_Committee_Refund,Other_Committee_Refund,Total_Contribution_Refund,Other_Disbursements,Net_Contribution,Net_Operating_Expenditure,Cash_On_Hand_BOP,Debt_Owe_To_Committee,Coverage_Start_Date`
+  (dates MM/DD/YYYY, decimal dollars; 1,689 rows with no filing have blank dates and zeros).
+  Itemized + unitemized = individual in 4,473 rows; one negative unitemized (filer error). It
+  is refreshed separately from weball: of 533 current members with weball totals, 414 have a
+  summary row and only 119 agree on total receipts (summary through 06/30, weball 09/30), and
+  it can list a different FEC id than the one weball totals attach to. Loaded per DECISIONS
+  A31; candidate addresses are never read.
+- **Refunds** (pas2 negative rows, 6,885 in 2026) can exceed a member's gifts from the same
+  group of committees; every share uses gross positive dollars (DECISIONS A29).

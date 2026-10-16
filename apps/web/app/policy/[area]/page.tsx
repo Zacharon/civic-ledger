@@ -2,16 +2,19 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { TallyBar } from '@/components/charts/tally-bar';
+import { FullTitle } from '@/components/full-title';
 import { Pagination } from '@/components/pagination';
 import { PartyChip } from '@/components/party-chip';
 import { SourceList, SourceMark, SourceNotes } from '@/components/sources';
 import {
   formatDate,
   formatNumber,
+  formerLabel,
   ordinal,
   rollCallNumber,
   safeHref,
   seatLabel,
+  shortTitle,
 } from '@/lib/format';
 import { POSITION_LABEL } from '@/lib/labels';
 import { read } from '@/server/capabilities';
@@ -150,15 +153,16 @@ export default async function PolicyAreaPage({
                         {v.bill ? (
                           billHref ? (
                             <a className="link-quiet" href={billHref} rel="noreferrer">
-                              {v.bill.title}
+                              {shortTitle(v.bill.title).text}
                             </a>
                           ) : (
-                            v.bill.title
+                            shortTitle(v.bill.title).text
                           )
                         ) : (
                           v.rollcall.question
                         )}
                       </h3>
+                      {v.bill ? <FullTitle title={v.bill.title} /> : null}
                       <p className="mt-1 text-sm text-ink-2">
                         {v.rollcall.question}:{' '}
                         <span className="font-semibold text-ink">{v.rollcall.result}</span>
@@ -220,7 +224,7 @@ export default async function PolicyAreaPage({
                 the roll calls above.
               </p>
               <section
-                className="mt-4 max-h-[70dvh] overflow-auto rounded-panel border border-rule bg-surface"
+                className="relative mt-4 max-h-[70dvh] overflow-auto rounded-panel border border-rule bg-surface"
                 aria-label="Member positions"
                 // biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable region must be keyboard reachable
                 tabIndex={0}
@@ -243,7 +247,9 @@ export default async function PolicyAreaPage({
                           title={v.bill?.title ?? v.rollcall.question}
                         >
                           R{i + 1}
-                          <span className="sr-only">: {v.bill?.title ?? v.rollcall.question}</span>
+                          <span className="sr-only">
+                            : {shortTitle(v.bill?.title ?? v.rollcall.question).text}
+                          </span>
                         </th>
                       ))}
                     </tr>
@@ -264,6 +270,7 @@ export default async function PolicyAreaPage({
                           <PartyChip party={r.person.party} />{' '}
                           <span className="text-xs text-ink-3">
                             {seatLabel(r.person.chamber, r.person.state, r.person.district)}
+                            {r.person.isCurrent ? '' : ` · ${formerLabel(r.person, 'Former')}`}
                           </span>
                         </th>
                         {votes.items.map((v, i) => {

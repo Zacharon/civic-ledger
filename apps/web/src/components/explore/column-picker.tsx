@@ -63,6 +63,11 @@ export function ColumnPicker({ columns }: { columns: ColumnDef[] }) {
                                 Self-described: {c.scorecard.selfDescribedOrientation}
                               </span>
                             ) : null}
+                            {c.withData === 0 ? (
+                              <span className="block text-xs text-ink-3">
+                                No data yet for anyone shown
+                              </span>
+                            ) : null}
                           </span>
                         </label>
                       </li>

@@ -44,9 +44,15 @@ beforeAll(async () => {
       { q: 'a', chamber: 'senate', limit: 5, offset: 1 },
       { state: 'ZY' },
       { party: 'Harbor Party', limit: 3 },
+      { q: 'Oakhurst' },
+      { scope: 'current', limit: 5 },
     ],
-    'people.get': [{ slug: a }, { slug: b }],
-    'people.compare': [{ slugs: [a, b] }, { slugs: [a, b, c] }],
+    'people.get': [{ slug: a }, { slug: b }, { slug: 'cornelius-oakhurst' }],
+    'people.compare': [
+      { slugs: [a, b] },
+      { slugs: [a, b, c] },
+      { slugs: [a, 'philippa-wrenfield'] },
+    ],
     'explore.table': [
       {},
       {
@@ -55,6 +61,7 @@ beforeAll(async () => {
         limit: 10,
       },
       { filters: { state: 'ZV', q: 'a' }, limit: 5, offset: 2 },
+      { filters: { scope: 'all' }, sort: [{ column: 'tenureYears', direction: 'desc' }] },
     ],
     'money.summary': [{ slug: a }, { slug: a, cycle: 2024 }],
     'votes.list': [
@@ -72,7 +79,7 @@ beforeAll(async () => {
       { framework: spec, people: { slugs: [a, b] } },
     ],
     'sources.status': [{}],
-    'explore.facets': [{}],
+    'explore.facets': [{}, { scope: 'all' }],
   };
 });
 
@@ -115,6 +122,8 @@ const INVALID: Array<[string, Record<string, unknown>, 'invalid_input' | 'not_fo
   ['explore.table', { sort: [{ column: 'ideology' }] }, 'invalid_input'],
   ['explore.table', { filters: { chamber: 'lords' } }, 'invalid_input'],
   ['explore.table', { filters: { nope: 1 } }, 'invalid_input'],
+  ['explore.table', { filters: { scope: 'former' } }, 'invalid_input'],
+  ['explore.facets', { scope: 'everyone' }, 'invalid_input'],
   ['money.summary', { slug: 'a-slug', cycle: 1800 }, 'invalid_input'],
   ['votes.list', { congress: 'x' }, 'invalid_input'],
   ['scores.list', { slug: 'nobody-by-this-name' }, 'not_found'],

@@ -5,7 +5,6 @@ import {
   committeeContribution,
   committeeIndustry,
   type Db,
-  independentExpenditure,
   industry,
   person,
 } from '@civic-ledger/db';
@@ -22,7 +21,12 @@ import {
   ShareSchema,
   SlugSchema,
 } from '../schemas/common';
-import { provenanceFields, withProvenance } from '../schemas/provenance';
+import { withProvenance } from '../schemas/provenance';
+import {
+  emptyOutsideSpending,
+  loadOutsideSpending,
+  OutsideSpendingSchema,
+} from './outside-spending';
 
 const TOP_COMMITTEES = 10;
 
@@ -110,20 +114,7 @@ export const MoneySummaryOutput = z.object({
       }),
     )
     .describe('Largest net givers'),
-  outsideSpending: z.object({
-    supportCents: CentsSchema,
-    opposeCents: CentsSchema,
-    items: z.array(
-      z.object({
-        spenderName: z.string(),
-        supportOppose: z.enum(['support', 'oppose']),
-        amountCents: CentsSchema,
-        expenditureDate: IsoDateSchema.nullable(),
-        purpose: z.string().nullable(),
-        provenance: ProvenanceSchema,
-      }),
-    ),
-  }),
+  outsideSpending: OutsideSpendingSchema,
 });
 
 export const moneySummary = defineCapability({
@@ -190,7 +181,7 @@ function emptyMoney() {
     },
     industries: [],
     topCommittees: [],
-    outsideSpending: { supportCents: 0, opposeCents: 0, items: [] },
+    outsideSpending: emptyOutsideSpending(),
   };
 }
 
@@ -356,27 +347,4 @@ async function loadTopCommittees(db: Db, personId: number, cycle: number) {
         ? null
         : { id: r.industryId, name: r.industryName, sector: r.industrySector },
   }));
-}
-
-async function loadOutsideSpending(db: Db, personId: number, cycle: number) {
-  const ie = independentExpenditure;
-  const rows = await db
-    .select({
-      spenderName: ie.spenderName,
-      supportOppose: ie.supportOppose,
-      amountCents: ie.amountCents,
-      expenditureDate: ie.expenditureDate,
-      purpose: ie.purpose,
-      ...provenanceFields(ie),
-    })
-    .from(ie)
-    .where(and(eq(ie.personId, personId), eq(ie.cycle, cycle)))
-    .orderBy(desc(ie.amountCents), ie.fecTransactionId);
-  const total = (side: 'support' | 'oppose') =>
-    rows.filter((r) => r.supportOppose === side).reduce((n, r) => n + r.amountCents, 0);
-  return {
-    supportCents: total('support'),
-    opposeCents: total('oppose'),
-    items: rows.map(withProvenance),
-  };
 }

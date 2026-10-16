@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { FullTitle } from '@/components/full-title';
 import { Pagination } from '@/components/pagination';
 import { ScrollRegion } from '@/components/scroll-region';
 import { SourceList, SourceMark, SourceNotes } from '@/components/sources';
@@ -10,6 +11,7 @@ import {
   ordinal,
   rollCallNumber,
   safeHref,
+  shortTitle,
 } from '@/lib/format';
 import { POSITION_LABEL } from '@/lib/labels';
 import { read } from '@/server/capabilities';
@@ -125,10 +127,10 @@ export async function VotesSection({
                       {bill ? (
                         billHref ? (
                           <a className="link" href={billHref} rel="noreferrer">
-                            {bill.title}
+                            {shortTitle(bill.title).text}
                           </a>
                         ) : (
-                          bill.title
+                          shortTitle(bill.title).text
                         )
                       ) : (
                         v.rollcall.question
@@ -140,6 +142,7 @@ export async function VotesSection({
                         {v.policyArea ? ` · ${v.policyArea.name}` : ''} · {v.rollcall.question}
                         <SourceMark notes={notes} n={notes.cite(v.rollcall.provenance)} />
                       </span>
+                      {bill ? <FullTitle title={bill.title} /> : null}
                     </td>
                     <td className="py-2.5 pr-4 text-ink-2">{v.rollcall.result}</td>
                     <td className="num py-2.5 pr-4 text-right whitespace-nowrap text-ink-2">

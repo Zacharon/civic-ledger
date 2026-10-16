@@ -1,5 +1,5 @@
 import { type Db, personCard } from '@civic-ledger/db';
-import { and, asc, isNotNull, type SQL, sql } from 'drizzle-orm';
+import { and, asc, count, isNotNull, type SQL, sql } from 'drizzle-orm';
 import type { PgColumn } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { defineCapability } from '../capability';
@@ -7,6 +7,31 @@ import { ChamberSchema, PartySchema, StateCodeSchema } from '../schemas/common';
 import { isCurrentMember, MemberScopeSchema, scopeWhere } from './person-card';
 
 const countOf = <T extends z.ZodType>(value: T) => z.object({ value, count: z.int().min(1) });
+
+/** Rows with a value (non-null) per Explore field, for the scope's `where`. */
+const coverageCounts = {
+  tenureYears: count(personCard.tenureYears),
+  totalReceiptsCents: count(personCard.totalReceiptsCents),
+  pacShare: count(personCard.pacShare),
+  smallDollarShare: count(personCard.smallDollarShare),
+  industryCodingCoverage: count(personCard.industryCodingCoverage),
+  outsideSupportCents: count(personCard.outsideSupportCents),
+  outsideOpposeCents: count(personCard.outsideOpposeCents),
+  votesEligible: count(personCard.votesEligible),
+  missedVoteRate: count(personCard.missedVoteRate),
+  dwNominateDim1: count(personCard.dwNominateDim1),
+  dwNominateDim2: count(personCard.dwNominateDim2),
+  promisesRated: count(personCard.promisesRated),
+  promiseKeptRate: count(personCard.promiseKeptRate),
+};
+const WithDataSchema = z
+  .object(
+    Object.fromEntries(Object.keys(coverageCounts).map((k) => [k, z.int().min(0)])) as Record<
+      keyof typeof coverageCounts,
+      z.ZodInt
+    >,
+  )
+  .describe('People in the scope with a value (not "no data") for each Explore field');
 
 export const ExploreFacetsInput = z.strictObject({
   scope: MemberScopeSchema.default('current').describe('Which people the counts cover'),
@@ -21,6 +46,7 @@ export const ExploreFacetsOutput = z.object({
   states: z.array(countOf(StateCodeSchema)),
   parties: z.array(countOf(PartySchema)),
   total: z.int().min(0).describe('People in the requested scope'),
+  withData: WithDataSchema,
 });
 
 /**
@@ -39,10 +65,11 @@ export const exploreFacets = defineCapability({
   output: ExploreFacetsOutput,
   async handler({ db }, { scope }) {
     const where = scopeWhere(scope);
-    const [chambers, states, parties, [counts]] = await Promise.all([
+    const [chambers, states, parties, [withData], [counts]] = await Promise.all([
       distinctCounts(db, personCard.chamber, where),
       distinctCounts(db, personCard.state, where),
       distinctCounts(db, personCard.party, where),
+      db.select(coverageCounts).from(personCard).where(where),
       db
         .select({
           all: sql<number>`count(*)::int`,
@@ -61,9 +88,16 @@ export const exploreFacets = defineCapability({
       states,
       parties,
       total: scopes[scope],
+      withData: withData ?? emptyCoverage(),
     };
   },
 });
+
+const emptyCoverage = () =>
+  Object.fromEntries(Object.keys(coverageCounts).map((k) => [k, 0])) as Record<
+    keyof typeof coverageCounts,
+    number
+  >;
 
 async function distinctCounts(db: Db, column: PgColumn, scope: SQL | undefined) {
   const value = sql<string>`${column}::text`;

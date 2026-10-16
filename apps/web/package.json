@@ -9,7 +9,8 @@
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "test:e2e": "next build && playwright test --project=desktop --project=performance",
-    "screenshots": "next build && playwright test --project=screenshots"
+    "screenshots": "next build && playwright test --project=screenshots",
+    "screenshots:real": "playwright test -c playwright.real.config.ts"
   },
   "dependencies": {
     "@civic-ledger/core": "workspace:*",

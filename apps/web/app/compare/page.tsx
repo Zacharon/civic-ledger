@@ -7,7 +7,7 @@ import { ShareBar } from '@/components/charts/share-bar';
 import { MetricCell } from '@/components/explore/cell';
 import { PartyChip } from '@/components/party-chip';
 import { allColumns, COLUMN_GROUPS } from '@/lib/explore-columns';
-import { chamberLabel, formatNumber, seatLabel } from '@/lib/format';
+import { chamberLabel, formatNumber, formerLabel, seatLabel } from '@/lib/format';
 import { read } from '@/server/capabilities';
 
 export const metadata: Metadata = {
@@ -105,6 +105,9 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
                       <span className="flex items-center gap-2 text-sm text-ink-2">
                         <PartyChip party={m.party} />
                         {seatLabel(m.chamber, m.state, m.district)}
+                        {m.isCurrent ? null : (
+                          <span className="text-ink-3">{formerLabel(m, 'Former')}</span>
+                        )}
                       </span>
                     </Link>
                   </li>
@@ -144,7 +147,7 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
       ) : comparison ? (
         <>
           <section
-            className="mt-10 overflow-x-auto rounded-panel border border-rule bg-surface"
+            className="relative mt-10 overflow-x-auto rounded-panel border border-rule bg-surface"
             aria-label="Comparison table"
             // biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable region must be keyboard reachable
             tabIndex={0}
@@ -172,6 +175,9 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
                         <PartyChip party={p.party} />
                         {chamberLabel(p.chamber)} · {seatLabel(p.chamber, p.state, p.district)}
                       </span>
+                      {p.isCurrent ? null : (
+                        <span className="mt-1 block text-sm text-ink-3">{formerLabel(p)}</span>
+                      )}
                       <Link
                         href={compareHref(ids.filter((id) => id !== p.slug))}
                         className="mt-2 inline-flex min-h-9 items-center gap-1 text-ink-3 hover:text-ink"
@@ -235,8 +241,9 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
             </p>
             <ul className="mt-4 divide-y divide-rule border-y border-rule">
               {comparison.voteAgreement.map((pair) => {
-                const name = (slug: string) =>
-                  comparison.people.find((p) => p.slug === slug)?.fullName ?? slug;
+                const find = (slug: string) => comparison.people.find((p) => p.slug === slug);
+                const name = (slug: string) => find(slug)?.fullName ?? slug;
+                const crossChamber = find(pair.a)?.chamber !== find(pair.b)?.chamber;
                 return (
                   <li
                     key={`${pair.a}-${pair.b}`}
@@ -247,7 +254,11 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
                     </span>
                     <span className="flex items-center gap-4 text-sm text-ink-2">
                       {pair.sharedVotes === 0 ? (
-                        'No shared roll calls'
+                        crossChamber ? (
+                          'Different chambers, so no shared roll calls'
+                        ) : (
+                          'No shared roll calls'
+                        )
                       ) : (
                         <>
                           <span className="num">

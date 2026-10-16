@@ -155,3 +155,38 @@ export function rollCallNumber(r: {
   if (r.clerkNumber === null) return `seq. ${r.number}`;
   return r.session === null ? `${r.clerkNumber}` : `${r.clerkNumber}, session ${r.session}`;
 }
+
+export interface ServiceSpan {
+  isCurrent: boolean;
+  serviceStart: string | null;
+  termEnd: string | null;
+}
+
+/** `1995–2009`: first term start to last term end, by year. */
+export function serviceYears({ serviceStart, termEnd }: ServiceSpan): string | null {
+  if (!serviceStart) return null;
+  const from = serviceStart.slice(0, 4);
+  const to = termEnd ? termEnd.slice(0, 4) : 'present';
+  return from === to ? from : `${from}–${to}`;
+}
+
+/** `Former member, 1995–2009` for people whose latest term has ended; null when current. */
+export function formerLabel(span: ServiceSpan, prefix = 'Former member'): string | null {
+  if (span.isCurrent) return null;
+  const years = serviceYears(span);
+  return years ? `${prefix}, ${years}` : prefix;
+}
+
+/**
+ * Official titles of House rules run to 300+ words. Cut at a word boundary near `max`
+ * characters; callers show the full text behind a disclosure (`FullTitle`).
+ */
+export function shortTitle(title: string, max = 160): { text: string; truncated: boolean } {
+  if (title.length <= max) return { text: title, truncated: false };
+  const cut = title.slice(0, max);
+  const space = cut.lastIndexOf(' ');
+  return {
+    text: `${cut.slice(0, space > max / 2 ? space : max).replace(/[;,:\s]+$/, '')}…`,
+    truncated: true,
+  };
+}

@@ -90,7 +90,7 @@ upsert. All fact tables carry the provenance columns
 ### Read model
 
 `person_card` (materialized view, refreshed at the end of each successful ingest)
-holds one row per person per scope (current Congress by default) with every
+holds one row per person (DECISIONS A7; current vs former members is a query-time scope, A30) with every
 sortable column: party, state, chamber, tenure, DW-NOMINATE dim1/dim2, total
 receipts, PAC share, small-dollar share, top 3 industries (+ coding coverage),
 outside spending for/against, missed-vote %, promise kept rate (where rated),

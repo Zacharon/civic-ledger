@@ -25,8 +25,8 @@ for public reads; it does not need to.
 | `people.search@1` | read | Search box, Explore filters | `GET /api/v1/people.search`, MCP `people_search` |
 | `people.get@1` | read | Profile page | `GET /api/v1/people.get`, MCP `people_get` |
 | `people.compare@1` | read | Compare page | `GET /api/v1/people.compare`, MCP `people_compare` |
-| `explore.table@1` | read | Explore table (sort/filter/paginate) | `GET /api/v1/explore.table`, MCP `explore_table` |
-| `explore.facets@1` | read | Explore filter options (states, parties, chambers) | `GET /api/v1/explore.facets`, MCP `explore_facets` |
+| `explore.table@1` | read | Explore table (sort/filter/paginate; scope current by default, or all incl. former members) | `GET /api/v1/explore.table`, MCP `explore_table` |
+| `explore.facets@1` | read | Explore filter options (states, parties, chambers, scope counts, per-field data coverage) | `GET /api/v1/explore.facets`, MCP `explore_facets` |
 | `money.summary@1` | read | Profile → Money | `GET /api/v1/money.summary`, MCP `money_summary` |
 | `votes.list@1` | read | Profile → Votes, Policy page | `GET /api/v1/votes.list`, MCP `votes_list` |
 | `scores.list@1` | read | Profile → Scores | `GET /api/v1/scores.list`, MCP `scores_list` |

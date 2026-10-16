@@ -66,7 +66,35 @@ beforeAll(async () => {
   await exec(sql`
     update candidate_cycle_summary set unitemized_individual_cents = -730983
     where person_id = (select id from person where slug = ${ONLY_REFUNDS})`);
+  // 60 small expenditures from one spender: more than the itemized cap.
+  await exec(sql`
+    insert into independent_expenditure
+      (spender_fec_committee_id, fec_transaction_id, spender_name, candidate_fec_id, person_id,
+       support_oppose, cycle, amount_cents, expenditure_date, source_id, source_key,
+       ingest_run_id, retrieved_at)
+    select 'C99TEST01', 'TEST-' || g, 'Test Spender (fictional)', t.fec_candidate_id, p.id,
+      'oppose', t.cycle, 10000 + g, date '2024-10-01' + g, 'dev-seed', 'test-ie:' || g, 1, now()
+    from generate_series(1, 60) g
+    join person p on p.slug = ${REFUNDED}
+    join candidate_cycle_totals t on t.person_id = p.id`);
   await refreshPersonCard(db.handle().db);
+});
+
+describe('outside spending', () => {
+  it('sums every expenditure per spender and lists only the largest items', async () => {
+    const { outsideSpending: o } = await dispatch('money.summary', { slug: REFUNDED }, db.ctx());
+    expect(o.items).toHaveLength(50);
+    expect(o.itemCount).toBeGreaterThanOrEqual(60);
+    const bySide = (side: 'support' | 'oppose') =>
+      o.spenders.filter((s) => s.supportOppose === side).reduce((n, s) => n + s.amountCents, 0);
+    expect(bySide('support')).toBe(o.supportCents);
+    expect(bySide('oppose')).toBe(o.opposeCents);
+    const test = o.spenders.find((s) => s.spenderFecCommitteeId === 'C99TEST01');
+    expect(test).toMatchObject({ expenditures: 60, amountCents: 60 * 10000 + 1830 });
+    expect(test?.latestDate).toBe('2024-11-30');
+    const amounts = o.items.map((i) => i.amountCents);
+    expect(amounts).toEqual([...amounts].sort((a, b) => b - a));
+  });
 });
 
 describe('share math with refunds', () => {
