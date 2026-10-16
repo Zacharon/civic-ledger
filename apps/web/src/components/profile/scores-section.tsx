@@ -1,3 +1,4 @@
+import type { CapabilityOutput } from '@civic-ledger/core';
 import Link from 'next/link';
 import { MemberScatter } from '@/components/charts/member-scatter';
 import { PositionStrip } from '@/components/charts/position-strip';
@@ -127,7 +128,7 @@ export async function ScoresSection({
             <p className="mt-3 text-sm text-ink-2">No cleared scorecard has scored this member.</p>
           ) : (
             <ul className="mt-3 divide-y divide-rule border-y border-rule">
-              {scores.scorecards.map((s) => {
+              {latestByPublisher(scores.scorecards).map(({ latest: s, earlier }) => {
                 const method = safeHref(s.methodologyUrl);
                 const span = s.scale.max - s.scale.min;
                 const position = span > 0 ? (s.score - s.scale.min) / span : 0;
@@ -163,6 +164,18 @@ export async function ScoresSection({
                         </a>
                       ) : null}
                     </p>
+                    {earlier.length > 0 ? (
+                      <p className="mt-1 text-xs text-ink-3">
+                        Earlier:{' '}
+                        {earlier.map((e, i) => (
+                          <span key={e.year}>
+                            {i > 0 ? ', ' : ''}
+                            <span className="num">{e.year}</span> {formatScore(e.score)}
+                            <SourceMark notes={notes} n={notes.cite(e.provenance)} />
+                          </span>
+                        ))}
+                      </p>
+                    ) : null}
                   </li>
                 );
               })}
@@ -199,4 +212,17 @@ export async function ScoresSection({
       <SourceList notes={notes} />
     </ProfileSection>
   );
+}
+
+type Scorecard = CapabilityOutput<'scores.list'>['scorecards'][number];
+
+/** One entry per publisher: its latest year up front, earlier years as a footnote line. */
+function latestByPublisher(scorecards: Scorecard[]) {
+  const groups = new Map<string, Scorecard[]>();
+  for (const s of scorecards)
+    groups.set(s.publisher.id, [...(groups.get(s.publisher.id) ?? []), s]);
+  return [...groups.values()].flatMap((list) => {
+    const [latest, ...earlier] = [...list].sort((a, b) => b.year - a.year);
+    return latest ? [{ latest, earlier }] : [];
+  });
 }

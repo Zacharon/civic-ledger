@@ -38,7 +38,7 @@ facts, cites them, and does not editorialize.
 | Role | Face | Notes |
 |---|---|---|
 | Display (h1, h2, profile names) | **Newsreader** variable (opsz 6–72, wght 200–800) | Designed for news reading; optical sizing keeps large headings refined. Never for numbers in tables. |
-| UI, body, data | **Schibsted Grotesk** variable (wght 400–900) | Built for a news publisher; ships `tnum`, so every aligned number uses tabular figures. |
+| UI, body, data | **Instrument Sans** variable (wght 400–700) | Crisp grotesque with proportional figures for prose and a `tnum` set whose comma and period stay narrow, so tabular money columns read as numbers, not code. |
 
 - Self-hosted from `@fontsource-variable/*` through `next/font/local` (no CDN, no runtime
   fetch), `display: swap`, metric-adjusted fallbacks to avoid layout shift.
@@ -177,7 +177,7 @@ retry) and populated.
 
 | Date | Decision | Rationale |
 |---|---|---|
-| 2026-10-16 | Newsreader + Schibsted Grotesk, self-hosted via next/font/local | News-native pair; Schibsted has `tnum` (Libre Franklin's fontsource build does not). |
+| 2026-10-16 | Newsreader + Instrument Sans, self-hosted via next/font/local | Libre Franklin's build has no `tnum`; Schibsted Grotesk's `tnum` widens commas and periods to figure width (`$1 ,154 ,000`), seen in the first screenshots. Instrument Sans keeps punctuation narrow. |
 | 2026-10-16 | Ledger green accent `#1D6B50` | Not red or blue; ties to ledger paper; AA on paper in both modes. |
 | 2026-10-16 | No theme toggle; follow the OS | Both modes keep the identity; avoids client JS and a flash of wrong theme. |
 | 2026-10-16 | Hand-rolled SVG charts, no chart library | Server-rendered, zero client JS, full control over neutrality rules. |

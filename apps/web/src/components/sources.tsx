@@ -70,13 +70,14 @@ export function SourceMark({ notes, n }: { notes: SourceNotes; n: number | null 
   const numbers = (Array.isArray(n) ? n : [n]).filter((x): x is number => x !== null);
   if (numbers.length === 0) return null;
   return (
-    <sup className="ml-0.5 text-[0.7em] font-semibold leading-none">
+    <sup className="text-[0.7em] leading-none font-semibold">
       {numbers.map((x, i) => (
         <span key={x}>
           {i > 0 ? ',' : null}
+          {/* 24px target (WCAG 2.5.8) without changing the line height. */}
           <a
             href={`#${notes.sectionId}-source-${x}`}
-            className="text-accent no-underline hover:underline"
+            className="-my-2 inline-flex min-h-6 min-w-6 items-center justify-center text-accent no-underline hover:underline"
             aria-label={`Source ${x}`}
           >
             {x}

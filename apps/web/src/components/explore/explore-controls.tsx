@@ -33,6 +33,7 @@ export function ExploreControls({
   const { startTransition } = useExploreTransition();
   const [state, setState] = useQueryStates(exploreParsers, {
     shallow: false,
+    history: 'push',
     scroll: false,
     startTransition,
   });

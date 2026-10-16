@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function NotFound() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-20 sm:px-6">
+    <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 [&>*]:max-w-3xl">
       <p className="num text-sm font-semibold text-ink-3">404</p>
       <h1 className="rule-total mt-2 inline-block pb-1 font-serif text-4xl font-medium tracking-tight">
         No entry in the ledger

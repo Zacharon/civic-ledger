@@ -9,6 +9,7 @@ import {
 } from '@/components/frameworks/framework-builder';
 import { Pagination } from '@/components/pagination';
 import { PartyChip } from '@/components/party-chip';
+import { ScrollRegion } from '@/components/scroll-region';
 import { SourceList, SourceMark, SourceNotes } from '@/components/sources';
 import { formatDate, formatNumber, safeHref, seatLabel } from '@/lib/format';
 import { decodeRules, describeTarget, encodeRules, type RuleSpec } from '@/lib/framework-url';
@@ -111,7 +112,7 @@ export default async function FrameworksPage({ searchParams }: PageProps<'/frame
   };
 
   return (
-    <div className="mx-auto max-w-[1280px] px-4 pt-8 sm:px-6 sm:pt-10">
+    <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10">
       <header className="max-w-3xl">
         <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">Frameworks</h1>
         <p className="mt-3 text-ink-2">
@@ -256,6 +257,7 @@ export default async function FrameworksPage({ searchParams }: PageProps<'/frame
           ) : (
             <Results
               evaluation={evaluation.data}
+              rationales={(prebuilt?.spec.rules ?? []).map((r) => r.rationale ?? null)}
               facets={facets}
               baseParams={baseParams}
               selected={{ chamber, state, party }}
@@ -285,6 +287,7 @@ function toCandidate(v: CapabilityOutput<'votes.list'>['items'][number]): Candid
 
 function Results({
   evaluation,
+  rationales,
   facets,
   baseParams,
   selected,
@@ -292,6 +295,7 @@ function Results({
   pageHref,
 }: {
   evaluation: CapabilityOutput<'frameworks.evaluate'>;
+  rationales: (string | null)[];
   facets: CapabilityOutput<'explore.facets'>;
   baseParams: () => URLSearchParams;
   selected: { chamber: string | undefined; state: string | undefined; party: string | undefined };
@@ -310,7 +314,7 @@ function Results({
           ({resolved} of {evaluation.rules.length} resolved)
         </span>
       </h3>
-      <div className="mt-2 overflow-x-auto">
+      <ScrollRegion label="Framework rules" className="mt-2">
         <table className="w-full min-w-[40rem] text-sm">
           <caption className="sr-only">Framework rules and the roll calls each one scored</caption>
           <thead>
@@ -344,6 +348,11 @@ function Results({
                       ? ` · scored ${r.rollcalls.map((rc) => `${rc.chamber === 'house' ? 'House' : 'Senate'} #${rc.number} (${rc.result})`).join(', ')}`
                       : ''}
                   </span>
+                  {rationales[r.ruleIndex] ? (
+                    <span className="mt-1 block text-xs text-ink-2">
+                      Author’s rationale: {rationales[r.ruleIndex]}
+                    </span>
+                  ) : null}
                 </td>
                 <td className="py-2 pr-3 font-semibold">
                   {r.alignedPosition === 'yea' ? 'Yea' : 'Nay'}
@@ -358,7 +367,7 @@ function Results({
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
 
       <form action="/frameworks#results" className="mt-10 flex flex-wrap items-end gap-3">
         {hidden.map(([k, v]) => (
@@ -402,7 +411,7 @@ function Results({
       {evaluation.results.length === 0 ? (
         <p className="mt-3 text-ink-2">No member in this selection voted on these roll calls.</p>
       ) : (
-        <div className="mt-2 overflow-x-auto">
+        <ScrollRegion label="Member results" className="mt-2">
           <table className="w-full min-w-[44rem] text-sm">
             <caption className="sr-only">
               Alignment with this framework, member by member, with the votes used
@@ -470,7 +479,7 @@ function Results({
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       )}
       {evaluation.total > PAGE_SIZE ? (
         <div className="mt-4">

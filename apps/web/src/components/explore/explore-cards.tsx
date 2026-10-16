@@ -25,11 +25,11 @@ export function ExploreCards({ rows, columns }: { rows: ExploreRow[]; columns: C
               .join(' · ') || 'Seat unknown'}
           </p>
           {columns.length > 0 ? (
-            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <dl className="xc mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               {columns.map((c) => (
-                <div key={c.id} className="min-w-0">
-                  <dt className="truncate text-xs text-ink-3">{c.header}</dt>
-                  <dd className="mt-0.5 [&>span]:justify-start">
+                <div key={c.id}>
+                  <dt className="text-xs text-ink-3">{c.header}</dt>
+                  <dd>
                     <MetricCell column={c} row={row} />
                   </dd>
                 </div>

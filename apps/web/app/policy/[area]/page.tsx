@@ -80,7 +80,7 @@ export default async function PolicyAreaPage({
   };
 
   return (
-    <div className="mx-auto max-w-[1280px] px-4 pt-8 sm:px-6 sm:pt-10">
+    <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10">
       <nav aria-label="Breadcrumb" className="text-sm text-ink-2">
         <Link href="/policy" className="link">
           Policy areas

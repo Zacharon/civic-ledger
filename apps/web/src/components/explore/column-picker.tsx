@@ -12,7 +12,7 @@ export function ColumnPicker({ columns }: { columns: ColumnDef[] }) {
   const { startTransition } = useExploreTransition();
   const [{ cols }, setState] = useQueryStates(
     { cols: exploreParsers.cols },
-    { shallow: false, scroll: false, startTransition },
+    { shallow: false, history: 'push', scroll: false, startTransition },
   );
   const visible = new Set(cols ?? columns.filter((c) => c.defaultVisible).map((c) => c.id));
 

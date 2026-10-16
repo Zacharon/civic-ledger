@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { Pagination } from '@/components/pagination';
+import { ScrollRegion } from '@/components/scroll-region';
 import { SourceList, SourceMark, SourceNotes } from '@/components/sources';
 import { formatDate, formatNumber, formatShare, ordinal, safeHref } from '@/lib/format';
 import { POSITION_LABEL } from '@/lib/labels';
@@ -75,7 +77,7 @@ export async function VotesSection({
           No roll calls {activeArea ? `on ${activeArea.name} bills ` : ''}for this member.
         </p>
       ) : (
-        <div className="mt-6 overflow-x-auto">
+        <ScrollRegion label="Roll calls" className="mt-6">
           <table className="w-full min-w-[44rem] text-sm">
             <caption className="sr-only">
               {activeArea ? `${activeArea.name} roll calls` : 'Roll calls'}
@@ -148,7 +150,7 @@ export async function VotesSection({
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       )}
 
       {votes.total > PAGE_SIZE ? (
@@ -175,7 +177,7 @@ function AreaLink({
 }: {
   href: string;
   current: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <Link

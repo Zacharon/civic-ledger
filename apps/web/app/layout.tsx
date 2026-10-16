@@ -3,7 +3,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import type { ReactNode } from 'react';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { newsreader, schibsted } from './fonts';
+import { instrumentSans, newsreader } from './fonts';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${newsreader.variable} ${schibsted.variable}`}>
+    <html lang="en" className={`${newsreader.variable} ${instrumentSans.variable}`}>
       <body className="flex min-h-dvh flex-col bg-paper font-sans text-ink antialiased">
         <a href="#main" className="skip-link">
           Skip to content

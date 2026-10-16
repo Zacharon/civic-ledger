@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { BarList } from '@/components/charts/bar-list';
 import { ReceiptsStack } from '@/components/charts/receipts-stack';
+import { ScrollRegion } from '@/components/scroll-region';
 import { SourceList, SourceMark, SourceNotes } from '@/components/sources';
 import { formatCents, formatDate, formatShare } from '@/lib/format';
 import { read } from '@/server/capabilities';
@@ -159,7 +160,7 @@ export async function MoneySection({ slug, cycle }: { slug: string; cycle: numbe
       {topCommittees.length > 0 ? (
         <div className="mt-12">
           <h3 className="font-semibold">Largest contributing committees</h3>
-          <div className="mt-3 overflow-x-auto">
+          <ScrollRegion label="Largest contributing committees" className="mt-3">
             <table className="w-full min-w-[32rem] text-sm">
               <thead>
                 <tr className="border-b border-control text-left text-ink-2">
@@ -188,7 +189,7 @@ export async function MoneySection({ slug, cycle }: { slug: string; cycle: numbe
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         </div>
       ) : null}
 
@@ -220,7 +221,7 @@ export async function MoneySection({ slug, cycle }: { slug: string; cycle: numbe
           )}
         </Figure>
         {outsideSpending.items.length > 0 ? (
-          <div className="overflow-x-auto">
+          <ScrollRegion label="Independent expenditures">
             <table className="w-full min-w-[30rem] text-sm">
               <caption className="sr-only">Independent expenditures</caption>
               <thead>
@@ -262,7 +263,7 @@ export async function MoneySection({ slug, cycle }: { slug: string; cycle: numbe
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         ) : null}
       </div>
 

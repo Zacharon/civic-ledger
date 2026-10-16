@@ -19,11 +19,11 @@ export const newsreader = localFont({
   adjustFontFallback: 'Times New Roman',
 });
 
-export const schibsted = localFont({
-  src: '../node_modules/@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2',
-  weight: '400 900',
+export const instrumentSans = localFont({
+  src: '../node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2',
+  weight: '400 700',
   display: 'swap',
-  variable: '--font-schibsted',
+  variable: '--font-instrument',
   fallback: ['Arial', 'sans-serif'],
   adjustFontFallback: 'Arial',
 });

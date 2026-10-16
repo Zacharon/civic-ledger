@@ -71,7 +71,7 @@
   --color-data-3: var(--data-3);
   --color-data-4: var(--data-4);
   --color-data-other: var(--data-other);
-  --font-sans: var(--font-schibsted), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-instrument), ui-sans-serif, sans-serif;
   --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
 }
 
@@ -232,6 +232,95 @@
   }
   select.field {
     padding-right: 2rem;
+  }
+
+  /*
+   * Data-dense primitives as classes, not utility strings: Explore renders up to
+   * 100 rows × ~15 cells twice (table and cards) plus the RSC payload, so markup
+   * size is a performance budget (DESIGN.md). Values arrive as CSS variables.
+   */
+  .xt-cell {
+    @apply border-b border-rule px-3 py-2.5 text-right whitespace-nowrap;
+  }
+  .xt-cell-start {
+    @apply border-b border-rule px-3 py-2.5 text-left whitespace-nowrap;
+  }
+  .xt-name {
+    @apply sticky left-0 z-[1] border-b border-rule bg-surface px-3 py-2.5 text-left font-medium;
+  }
+  .xt-group {
+    border-left: 1px solid var(--rule);
+  }
+  .xt-row:hover > * {
+    background-color: var(--surface-sunk);
+  }
+
+  .chip {
+    @apply inline-flex min-w-7 items-center justify-center rounded-control px-1.5 py-px text-xs leading-5 font-semibold;
+    background: var(--surface-sunk);
+    color: var(--ink-2);
+  }
+  .chip-democratic {
+    background: var(--party-dem-bg);
+    color: var(--party-dem-ink);
+  }
+  .chip-republican {
+    background: var(--party-rep-bg);
+    color: var(--party-rep-ink);
+  }
+
+  .nodata {
+    @apply text-sm text-ink-3;
+  }
+
+  /* Share meter: `<span class="share" style="--v:27%">27%</span>`; neutral ink only. */
+  .share {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .share::after {
+    content: "";
+    flex: none;
+    width: 48px;
+    height: 6px;
+    border-radius: 1px;
+    background:
+      linear-gradient(var(--bar), var(--bar)) 0 0 / var(--v, 0%) 100% no-repeat,
+      var(--surface-sunk);
+  }
+
+  /*
+   * Ideology by position, never color: a dot on a hairline axis with a centre tick.
+   * `--x` is the position along the axis as a percentage (0% = −1, 100% = +1).
+   */
+  .pos {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .pos::after {
+    content: "";
+    flex: none;
+    width: var(--w, 56px);
+    height: 12px;
+    background:
+      radial-gradient(circle, var(--ink) 0 3.5px, var(--surface) 4px 5.5px, transparent 6px)
+      var(--x, 50%) 0 / 12px 12px no-repeat,
+      linear-gradient(var(--line-control), var(--line-control)) center / 1px 8px no-repeat,
+      linear-gradient(var(--line-control), var(--line-control)) center / calc(100% - 10px) 1px
+      no-repeat;
+  }
+  .pos-bare {
+    gap: 0;
+  }
+  .xc dd > .share,
+  .xc dd > .pos {
+    justify-content: flex-start;
   }
 
   /* Prose for methodology and long-form copy. */

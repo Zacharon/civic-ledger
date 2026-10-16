@@ -107,29 +107,21 @@ export function ExploreTable({ rows, columns, state, sort, caption }: Props) {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.slug} className="group">
-              <th
-                scope="row"
-                className="sticky left-0 z-[1] border-b border-rule bg-surface px-3 py-2.5 text-left font-medium group-hover:bg-sunk"
-              >
+            <tr key={row.slug} className="xt-row">
+              <th scope="row" className="xt-name">
                 <Link href={`/people/${row.slug}`} className="link-quiet block max-w-64 truncate">
                   {row.fullName}
                 </Link>
               </th>
-              <td className="border-b border-rule px-3 py-2.5 group-hover:bg-sunk/60">
+              <td className="xt-cell-start">
                 <PartyChip party={row.party} />
               </td>
-              <td className="whitespace-nowrap border-b border-rule px-3 py-2.5 text-ink-2 group-hover:bg-sunk/60">
+              <td className="xt-cell-start text-ink-2">
                 {seatLabel(row.chamber, row.state, row.district) ?? 'No data'}
                 <span className="ml-1.5 text-xs text-ink-3">{chamberLabel(row.chamber)}</span>
               </td>
               {columns.map((c, i) => (
-                <td
-                  key={c.id}
-                  className={`whitespace-nowrap border-b border-rule px-3 py-2.5 text-right group-hover:bg-sunk/60 ${
-                    startsGroup(columns, i) ? 'border-l' : ''
-                  }`}
-                >
+                <td key={c.id} className={startsGroup(columns, i) ? 'xt-cell xt-group' : 'xt-cell'}>
                   <MetricCell column={c} row={row} />
                 </td>
               ))}

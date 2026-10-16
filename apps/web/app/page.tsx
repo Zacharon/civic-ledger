@@ -1,5 +1,6 @@
 import { ArrowRight, Search } from 'lucide-react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { MetricCell } from '@/components/explore/cell';
 import { PartyChip } from '@/components/party-chip';
 import { columnById } from '@/lib/explore-columns';
@@ -246,15 +247,7 @@ export default async function HomePage() {
   );
 }
 
-function Entry({
-  term,
-  href,
-  children,
-}: {
-  term: string;
-  href: string;
-  children: React.ReactNode;
-}) {
+function Entry({ term, href, children }: { term: string; href: string; children: ReactNode }) {
   return (
     <div className="border-b border-rule py-5">
       <dt>

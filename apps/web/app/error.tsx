@@ -15,7 +15,7 @@ export default function ErrorPage({
   }, [error]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-20 sm:px-6">
+    <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 [&>*]:max-w-3xl">
       <h1 className="font-serif text-4xl font-medium tracking-tight">
         The ledger could not be read
       </h1>

@@ -1,6 +1,8 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { formatNumber } from '@/lib/format';
+import { pageWindow } from '@/lib/pages';
 
 /** Page links (work without JavaScript). `hrefFor(page)` builds each URL. */
 export function Pagination({
@@ -78,7 +80,7 @@ function PageLink({
 }: {
   href: string | null;
   label: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const className = 'inline-flex size-11 items-center justify-center rounded-control';
   if (!href) {
@@ -99,13 +101,4 @@ function PageLink({
       <span className="sr-only">{label}</span>
     </Link>
   );
-}
-
-/** 1 … 4 5 [6] 7 8 … 20 */
-export function pageWindow(page: number, pages: number): (number | null)[] {
-  if (pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
-  const start = Math.max(2, Math.min(page - 1, pages - 4));
-  const end = Math.min(pages - 1, Math.max(page + 1, 5));
-  const middle = Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  return [1, ...(start > 2 ? [null] : []), ...middle, ...(end < pages - 1 ? [null] : []), pages];
 }

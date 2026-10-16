@@ -21,7 +21,7 @@ const SECTIONS = [
 
 export default function MethodologyPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 sm:pt-10">
+    <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10 [&>*]:max-w-5xl">
       <header className="max-w-3xl">
         <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">Methodology</h1>
         <p className="mt-3 text-ink-2">
