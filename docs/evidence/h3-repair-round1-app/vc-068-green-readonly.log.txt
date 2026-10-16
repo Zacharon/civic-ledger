@@ -1,0 +1,9 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-app-parity-20261016
+
+
+ Test Files  3 passed (3)
+      Tests  11 passed (11)
+   Start at  04:59:46
+   Duration  10.24s (tests 74%, import 24%, transform 2%)
+

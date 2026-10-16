@@ -1,0 +1,64 @@
+
+Running 60 tests using 4 workers
+
+[1/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[2/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[3/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[4/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[5/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[6/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[7/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[8/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[9/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[10/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[11/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[12/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[13/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[14/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[15/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[16/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[17/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[18/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[19/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[20/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[21/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[22/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[23/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[24/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[25/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[26/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[27/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[28/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[29/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[30/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[31/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[32/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[33/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[34/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[35/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[36/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[37/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[38/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[39/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[40/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[41/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[42/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[43/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[44/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[45/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[46/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[47/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[48/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[49/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[50/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[51/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[52/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[53/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[54/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[55/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[56/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[57/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[58/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+[59/60] [desktop] › e2e\workflow.spec.ts:5:1 › search, explore, profile, compare and evaluate a framework
+[60/60] [desktop] › e2e\workflow.spec.ts:85:1 › build a framework from scratch; the spec lives in the URL
+  60 passed (3.3m)

@@ -1,0 +1,8 @@
+
+Running 4 tests using 1 worker
+
+[1/4] [desktop] › e2e\shared-values.spec.ts:282:1 › pages show the values the API and the MCP server return for the same input
+[2/4] [desktop] › e2e\shared-values.spec.ts:292:1 › a data change plus read-model refresh reaches the UI, the API and MCP alike
+[3/4] [desktop] › e2e\shared-values.spec.ts:306:1 › after restarting the web and MCP processes all three still agree
+[4/4] [desktop] › e2e\shared-values.spec.ts:320:1 › a production web server without the read-only role refuses to start
+  4 passed (2.1m)

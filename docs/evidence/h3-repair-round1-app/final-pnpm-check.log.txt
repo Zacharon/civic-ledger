@@ -1,0 +1,62 @@
+$ pnpm lint && pnpm typecheck && pnpm test && pnpm build
+$ biome check .
+Checked 257 files in 457ms. No fixes applied.
+$ tsc --noEmit -p tsconfig.json && pnpm -r typecheck
+Scope: 5 of 6 workspace projects
+packages/db typecheck$ tsc --noEmit
+packages/db typecheck: Done
+packages/core typecheck$ tsc --noEmit
+packages/core typecheck: Done
+packages/ingest typecheck$ tsc --noEmit
+packages/mcp typecheck$ tsc --noEmit
+packages/mcp typecheck: Done
+packages/ingest typecheck: Done
+apps/web typecheck$ next typegen && tsc --noEmit
+apps/web typecheck: Generating route types...
+apps/web typecheck: ✓ Types generated successfully
+apps/web typecheck: Done
+$ vitest run
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-app-parity-20261016
+
+
+ Test Files  36 passed (36)
+      Tests  347 passed (347)
+   Start at  11:13:09
+   Duration  135.20s (tests 78%, import 21%, transform 1%)
+
+$ pnpm -r --if-present build
+Scope: 5 of 6 workspace projects
+apps/web build$ next build
+apps/web build: ▲ Next.js 16.4.1 (Turbopack)
+apps/web build: ✓ Running next.config.ts took 132ms
+apps/web build:   Creating an optimized production build ...
+apps/web build: ✓ Compiled successfully in 3.1s
+apps/web build:   Running TypeScript ...
+apps/web build:   Finished TypeScript in 2.8s ...
+apps/web build:   Collecting page data using 7 workers ...
+apps/web build:   Generating static pages using 7 workers (0/9) ...
+apps/web build:   Generating static pages using 7 workers (2/9) 
+apps/web build:   Generating static pages using 7 workers (4/9) 
+apps/web build:   Generating static pages using 7 workers (6/9) 
+apps/web build: ✓ Generating static pages using 7 workers (9/9) in 639ms
+apps/web build:   Finalizing page optimization ...
+apps/web build: Route (app)
+apps/web build: ┌ ƒ /
+apps/web build: ├ ƒ /_not-found
+apps/web build: ├ ƒ /api/health
+apps/web build: ├ ƒ /api/live
+apps/web build: ├ ƒ /api/v1/[capability]
+apps/web build: ├ ƒ /api/v1/openapi.json
+apps/web build: ├ ƒ /compare
+apps/web build: ├ ƒ /explore
+apps/web build: ├ ƒ /frameworks
+apps/web build: ├ ƒ /methodology
+apps/web build: ├ ƒ /people/[slug]
+apps/web build: ├ ƒ /policy
+apps/web build: ├ ƒ /policy/[area]
+apps/web build: └ ƒ /sources
+apps/web build: ƒ Proxy (Middleware)
+apps/web build: ƒ  (Dynamic)  server-rendered on demand
+apps/web build: Done
+exit=0

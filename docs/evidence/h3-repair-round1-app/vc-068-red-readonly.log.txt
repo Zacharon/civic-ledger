@@ -1,0 +1,118 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3-app-parity-20261016
+
+ ❯ packages/db/test/client-readonly.test.ts (5 tests | 3 failed) 25ms
+   ❯ read-only consumers in production (5)
+     × refuse to fall back to DATABASE_URL, naming the fix and never the URL 9ms
+     × refuse a local PGlite too (it has no roles at all) 4ms
+     × fall back only with the explicit acknowledgement 2ms
+ ❯ packages/mcp/test/cli-credentials.test.ts (3 tests | 2 failed) 16373ms
+   ❯ mcp server startup credentials (3)
+     × exits 1 with a clear message instead of connecting as DATABASE_URL 4075ms
+     × also refuses an unacknowledged --pglite directory in production 8946ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/db/test/client-readonly.test.ts > read-only consumers in production > refuse to fall back to DATABASE_URL, naming the fix and never the URL
+AssertionError: expected '' to match /DATABASE_URL_READONLY is not set/
+
+- Expected:
+/DATABASE_URL_READONLY is not set/
+
++ Received:
+""
+
+ ❯ packages/db/test/client-readonly.test.ts:24:21
+     22|       message = error instanceof Error ? error.message : String(error);
+     23|     }
+     24|     expect(message).toMatch(/DATABASE_URL_READONLY is not set/);
+       |                     ^
+     25|     expect(message).toContain(`${OWNER_CREDENTIALS_ACK}=1`);
+     26|     expect(message).not.toContain('owner-secret');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  packages/db/test/client-readonly.test.ts > read-only consumers in production > refuse a local PGlite too (it has no roles at all)
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ packages/db/test/client-readonly.test.ts:31:67
+     29|
+     30|   it('refuse a local PGlite too (it has no roles at all)', () => {
+     31|     expect(() => dbConfigFromEnv(PRODUCTION, { readOnly: true })).toTh…
+       |                                                                   ^
+     32|       /a local PGlite directory anyway, set DB_ALLOW_OWNER_CREDENTIALS…
+     33|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  packages/db/test/client-readonly.test.ts > read-only consumers in production > fall back only with the explicit acknowledgement
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ packages/db/test/client-readonly.test.ts:48:9
+     46|           { readOnly: true },
+     47|         ),
+     48|       ).toThrow(/DATABASE_URL_READONLY/);
+       |         ^
+     49|     }
+     50|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  packages/mcp/test/cli-credentials.test.ts > mcp server startup credentials > exits 1 with a clear message instead of connecting as DATABASE_URL
+AssertionError: expected 'database is not ready (run pnpm db:mi…' to match /DATABASE_URL_READONLY is not set/
+
+- Expected:
+/DATABASE_URL_READONLY is not set/
+
++ Received:
+"database is not ready (run pnpm db:migrate and db:seed): Failed query: select \"id\", \"name\", \"url\", \"license\", \"license_url\", \"description\" from \"source\" order by \"source\".\"id\" asc
+params: "
+
+ ❯ packages/mcp/test/cli-credentials.test.ts:31:24
+     29|     };
+     30|     expect(line.message).toBe('mcp server failed to start');
+     31|     expect(line.cause).toMatch(/DATABASE_URL_READONLY is not set/);
+       |                        ^
+     32|     expect(result.stderr).not.toContain('owner-secret');
+     33|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  packages/mcp/test/cli-credentials.test.ts > mcp server startup credentials > also refuses an unacknowledged --pglite directory in production
+AssertionError: expected '{"level":"error","time":"2026-10-16T0…' to match /DB_ALLOW_OWNER_CREDENTIALS=1/
+
+- Expected:
+/DB_ALLOW_OWNER_CREDENTIALS=1/
+
++ Received:
+"{\"level\":\"error\",\"time\":\"2026-10-16T08:59:31.441Z\",\"name\":\"civic-ledger\",\"message\":\"mcp server failed to start\",\"cause\":\"database is not ready (run pnpm db:migrate and db:seed): Failed query: select \\\"id\\\", \\\"name\\\", \\\"url\\\", \\\"license\\\", \\\"license_url\\\", \\\"description\\\" from \\\"source\\\" order by \\\"source\\\".\\\"id\\\" asc\\nparams: \"}
+"
+
+ ❯ packages/mcp/test/cli-credentials.test.ts:38:27
+     36|     const result = startCli({ NODE_ENV: 'production' }, ['--pglite', '…
+     37|     expect(result.status).toBe(1);
+     38|     expect(result.stderr).toMatch(/DB_ALLOW_OWNER_CREDENTIALS=1/);
+       |                           ^
+     39|   });
+     40|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  5 failed | 3 passed (8)
+   Start at  04:59:18
+   Duration  16.85s (tests 92%, import 8%, transform 1%)
+

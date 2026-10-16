@@ -14,7 +14,7 @@ H3-08, migration 0005, ingest receipts, safe recovery.
 
 **Red.** `pnpm --filter web exec playwright test e2e/workflow.spec.ts --project=desktop
 --repeat-each=30` (4 workers, both Playwright web servers running) on the unchanged
-code: **exit 1, 4 failed, 56 passed** (`h3-06-red-workflow-repeat30.log`). All four
+code: **exit 1, 4 failed, 56 passed** (`h3-06-red-workflow-repeat30.log.txt`). All four
 failures are the reported one:
 
 ```text
@@ -39,7 +39,7 @@ changed (visible state contradicting the data shown).
 **Deterministic reproduction** (committed with the fix): `apps/web/e2e/before-hydration.spec.ts`
 holds every `/_next/static/chunks/**/*.js` request until after the user acts. On the
 unchanged code: chips and "Clear filters" **2 failed, 1 passed** (the hydrated control);
-form fields **2 failed** (`h3-06-red-before-hydration-*.log`), e.g.
+form fields **2 failed** (`h3-06-red-before-hydration-*.log.txt`), e.g.
 
 ```text
 Error: expect(page).toHaveURL(expected) failed
@@ -61,10 +61,10 @@ Received string:  "http://localhost:3300/explore"
   compares with the server-drawn value, not the URL value, so an option the select
   cannot show (e.g. a header-only sort) is never mistaken for a change.
 
-**Green, same checks.** `before-hydration.spec.ts`: **5 passed** (`h3-06-green-before-hydration.log`).
+**Green, same checks.** `before-hydration.spec.ts`: **5 passed** (`h3-06-green-before-hydration.log.txt`).
 `workflow.spec.ts --repeat-each=30`, same command: **exit 0, 60 passed, 0 failed**
-(`h3-06-green-workflow-repeat30.log`). Full suite after the fix: **48 passed**
-(`e2e-full-after-h306.log`). `workflow.spec.ts` itself is unchanged.
+(`h3-06-green-workflow-repeat30.log.txt`). Full suite after the fix: **48 passed**
+(`e2e-full-after-h306.log.txt`). `workflow.spec.ts` itself is unchanged.
 
 **Residual limits.** 30 repeats is a sample: with the observed 4/30 rate, 0/30 by chance
 has probability about 1.4 %; final three consecutive full runs below add to it. Other
@@ -92,10 +92,10 @@ Pages gained `data-slug`, `data-column`, `data-value`, `data-fact`, `data-stat` 
 (`metricValue` in `cell.tsx` mirrors `MetricCell`; the test's own field map is written
 independently). No visual change.
 
-**Green:** 4 passed, 2.1 min (`parity-green-shared-values.log`). **Negative control:**
+**Green:** 4 passed, 2.1 min (`parity-green-shared-values.log.txt`). **Negative control:**
 the Explore PAC cell temporarily wired to `smallDollarShare` (visible text only) fails
 the first test: `indigo-ivystead pac text  Expected: "11%"  Received: "35%"`
-(`parity-negative-control.log`; change reverted, not committed).
+(`parity-negative-control.log.txt`; change reverted, not committed).
 
 **Residual limits.** Not value-compared: profile Scores, Promises, Platform, Career,
 outside-spending and industry figures, Policy pages, Sources page, Home. The data change
@@ -107,7 +107,7 @@ H3-01, other branch). The database server itself was not restarted. One browser
 
 **Red.** `client-readonly.test.ts` and `cli-credentials.test.ts` run against the
 unchanged `packages/db/src/client.ts` and `packages/mcp/src/cli.ts` (restored from
-`HEAD` for the run): **5 failed, 3 passed** (`vc-068-red-readonly.log`). The unchanged
+`HEAD` for the run): **5 failed, 3 passed** (`vc-068-red-readonly.log.txt`). The unchanged
 production MCP CLI ignored the missing role and tried to connect as the owner URL:
 
 ```text
@@ -124,7 +124,7 @@ directory; the message names both and never contains a URL. Development and writ
 evaluates the rule before connecting, also for `--pglite`. The e2e PGlite servers and
 the `agent-parity` CI job set the acknowledgement explicitly (throwaway PGlite).
 
-**Green.** Same tests plus `db-config.test.ts`: **11 passed** (`vc-068-green-readonly.log`).
+**Green.** Same tests plus `db-config.test.ts`: **11 passed** (`vc-068-green-readonly.log.txt`).
 Real role: `test-pg/readonly-credentials.pgtest.ts` **3 passed** (production config ends on
 `civic_web_ro`, every public capability served, plain write 25006 and read-write
 transaction 42501, owner only with the acknowledgement). Real process:
@@ -156,7 +156,7 @@ the same type.
 
 **Green:** 5 passed (journal check + 0000, 0001, 0002, 0003). **Negative control:** a
 temporary `0099` migration that renames one person makes every case fail (`+ "full_name":
-"Lost in upgrade"`) and adds a sixth case on its own (`migrations-negative-control.log`;
+"Lost in upgrade"`) and adds a sixth case on its own (`migrations-negative-control.log.txt`;
 removed, never committed). The existing `migrations.pgtest.ts` is unchanged.
 
 **Residual limits.** Previous-app compatibility is structural (columns and types), not an
@@ -180,3 +180,23 @@ locally automated; supervision, safe recovery and receipts not re-rated: repair 
 progress on the ingest branch). `docs/API.md`: fields added since it was written (`scope`,
 `scopes`, `total`, `withData`, card fields, `smallDollar`, `outsideSpending.spenders` /
 `itemCount` / `items`, run `scope`) and the production credential rule.
+
+## Final verification (local, this branch)
+
+| Check | Result |
+|---|---|
+| `pnpm check` | exit 0: Biome 257 files clean, typecheck all workspaces, Vitest **36 files, 347 tests** passed, Next production build (`final-pnpm-check.log.txt`) |
+| `pnpm test:pg` | exit 0: **7 files, 42 tests** passed on embedded Postgres 17 (`final-test-pg.log.txt`) |
+| `pnpm --filter @civic-ledger/web test:e2e`, run 1 | exit 0, **52 passed** (2.5 min); warm LCP 780 ms, CLS 0.000 |
+| same, run 2 (consecutive) | exit 0, **52 passed** (2.4 min); warm LCP 780 ms |
+| same, run 3 (consecutive) | exit 0, **52 passed** (2.5 min); warm LCP 736 ms |
+| same, a fourth run on the default ports 3300/3301 | exit 0, **52 passed** (2.4 min) (`final-e2e-default-ports.log.txt`) |
+
+The three runs used `E2E_PORT=3320 E2E_SCALE_PORT=3321` (new, `playwright.config.ts`;
+defaults unchanged at 3300/3301). A first attempt at three runs on the default ports
+never started any test: `http://localhost:3300/sources is already used`, the parallel
+ingest worktree was running its own suite on the same fixed port at that moment. No
+retries locally (`retries: 0` outside CI); 52 = 43 previous + 5 before-hydration + 4
+shared-values. Logs: `final-e2e-run{1,2,3}.log.txt`.
+
+Not run: GitHub CI, hosted environment, live data, manual screen reader, real users.
