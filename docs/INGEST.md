@@ -50,16 +50,19 @@ with `runId`, `source` and `scope` on every line (`LOG_LEVEL=debug` for more). E
    at most 3 retries with full-jitter backoff on 429/5xx/network errors only, follow
    redirects (FEC → S3) and send `If-None-Match` / `If-Modified-Since` from
    `data/raw/<source>/http-cache.json`.
-4. If (source, adapter version, snapshot checksum) already succeeded, the provisional row
-   is dropped and the original receipt is returned with `"deduplicated": true`.
-5. Streams, parses and upserts in batches, then deletes rows the source no longer
-   asserts (DECISIONS A18). The whole load is **one transaction** (each batch is a
-   savepoint inside it, DECISIONS A41), so nothing is visible, and nothing changes, unless
-   the run succeeds.
-6. Before committing, the shrink guard compares the load with what the source already
-   has (see below). A violation rolls the transaction back and records `failed`.
-7. Refreshes `person_card` / `person_card_scorecard` only after the commit, then records
-   `succeeded`, counts and refresh times.
+4. If (source, adapter version, snapshot checksum) already succeeded and that run is still
+   the latest successful run of the scope, the provisional row is dropped and the original
+   receipt is returned with `"deduplicated": true`. If a later run superseded it, the run
+   is refused with `snapshot_superseded` (see "How to rerun").
+5. Opens **one transaction** (DECISIONS A50) and, inside it: streams, parses and upserts
+   in batches (each a savepoint), stages FEC pas2/IE rows and dedupes them in SQL
+   (A53), deletes rows the source no longer asserts (A18), runs the shrink guard (below),
+   refreshes `person_card` and `person_card_scorecard` (`CONCURRENTLY`: readers keep the
+   old rows), and writes the `succeeded` receipt with counts and refresh times.
+6. Commits. Facts, both read models and the receipt become visible together. Any error,
+   refusal, Ctrl-C or deadline before this point rolls all of it back; the receipt then
+   says `failed` or `cancelled`. Written before the transaction (and kept on failure):
+   the `source` metadata row and the `running` receipt with its snapshot checksum.
 
 ## Proposed schedules (UTC, GitHub Actions cron once D1 picks the database)
 
@@ -78,6 +81,10 @@ re-codes new committees and re-resolves framework targets even when the YAML is 
 | Symptom | Meaning | Action |
 |---|---|---|
 | `conflict: run_in_progress` | Another run of that source holds the lock. | Wait; check the `running` row in `sources.status`. |
+| receipt `status: cancelled` | Ctrl-C or the run deadline (`--deadline-minutes`, `INGEST_RUN_DEADLINE_MS`) stopped the run before its commit. Nothing was committed. | Rerun when ready (a longer deadline if it timed out). |
+| `failed`, `error: snapshot_superseded: …` | You replayed a snapshot an older run loaded, after a later run loaded other data. Replay is not a restore. | Rerun with `--force-replay` if you really want that snapshot back; the receipt records `replayOf`. |
+| `failed`, `error: … download cap` / `… decompression cap` | A file or zip entry is larger than `INGEST_MAX_DOWNLOAD_BYTES` / `INGEST_MAX_DECOMPRESSED_BYTES`. | Check the upstream file; raise the cap only if the size is genuine. |
+| `failed`, `error: … manifest schema_version N is not supported` | `--snapshot` points at a snapshot written by a newer build. | Use a build that reads that version. |
 | receipt `status: failed`, `error: GET … HTTP 404` | File moved or not published yet (new cycle/congress). | Check the URL in DATA_SOURCES.md; nothing was loaded. |
 | `failed` after retries on 5xx / timeout | Source down or slow. | Rerun later; nothing was loaded. |
 | `failed`, `error: shrink guard: …` | The upstream file looks truncated or empty (see below). Nothing was changed. | Check the upstream file (size, row count). If the source really shrank, rerun with `--allow-shrink`. |
@@ -85,29 +92,39 @@ re-codes new committees and re-resolves framework targets even when the YAML is 
 | `Curated data is invalid: file:line …` | A merged YAML file fails the schema. | Fix the file; nothing from the curated run was loaded. |
 | Voteview TLS error | Their certificate chain; never disable verification. | Retry later; report upstream if it persists. |
 
-A failed or refused run leaves the database exactly as it was, and the read model is not
-refreshed, so the site keeps serving the last good state.
+A failed, refused or cancelled run leaves facts, read models and counts as they were (the
+transaction rolled back), so the site keeps serving the last good state. A process that
+dies mid-run leaves a `running` row, which the next run of that source marks `failed`
+(`abandoned: …`); its transaction never committed. Only the source metadata row and the
+run's own receipt row are written outside the transaction.
 
 ## Shrink guard (data-loss protection)
 
 Sources are complete snapshots, so a stale-row sweep deletes whatever the new file no
 longer contains. An empty or truncated file that still downloads with HTTP 200 would
-therefore wipe a source's rows. Before a load commits, the runtime refuses it (status
-`failed`, transaction rolled back, nothing changed) when either holds:
+therefore wipe a source's rows. Each guarded adapter declares its datasets
+(`shrinkDatasets`: table, explicit loaded-row counter, sweep counter, scope column;
+DECISIONS A51). Diagnostic counters (`votes_unmatched_member`, `*_dropped`, `*_matched_*`)
+are never counted as loaded records. Before a load commits, the runtime refuses it (status
+`failed`, transaction rolled back, nothing changed) when any of these holds:
 
-* **Sweep too large.** The stale-row counters (`stale_*_deleted`) exceed
-  `INGEST_MAX_DELETE_FRACTION` (default **0.1**, 10%) of the rows the source owns (every
-  table with a `source_id`, counted before the load).
-* **Record floor.** The records loaded (sum of the receipt counters except the stale
-  ones) fall below `INGEST_MIN_RECORD_RATIO` (default **0.5**) of the last successful
-  run of the same source and scope, when that run loaded at least
-  `INGEST_MIN_RECORD_BASELINE` (default 20).
+* **Dataset sweep too large.** A table's sweep counter (e.g. `stale_totals_deleted`)
+  exceeds `INGEST_MAX_DELETE_FRACTION` (default **0.1**, 10%) of that table's rows **in
+  this scope** (e.g. `cycle = 2026`), counted before the load. Judged when the table has at
+  least `INGEST_MIN_RECORD_BASELINE` rows, and always when the sweep would empty it.
+* **Dataset floor.** A table's loaded rows fall below `INGEST_MIN_RECORD_RATIO` (default
+  **0.5**) of the same counter in the last successful run of the same source and scope,
+  when that run loaded at least `INGEST_MIN_RECORD_BASELINE` (default 20).
+* **Source totals** (outer bound, A42): all declared sweep counters against every row the
+  source owns, and the sum of the declared loaded counters against the last run's sum.
 
-The error names the numbers, for example `shrink guard: the stale-row sweep would delete
-56 of 99 existing rows (56.6%, limit 10%). Rolled back; no rows were changed.`
+The error names every violated check, for example `shrink guard: the stale-row sweep
+would delete 19 of 19 existing rows in candidate_cycle_totals for cycle:2026 (100%, limit
+10%). Rolled back; no rows were changed.`
 
-`--allow-shrink` commits the load anyway and logs the violation at `warn` (a source that
-legitimately shrank, such as a repealed program or a corrected double count). The first
+`--allow-shrink` commits the load anyway, logs the violation at `warn` and records it in
+the receipt's `note` (`shrink guard overridden (--allow-shrink): …`), for a source that
+legitimately shrank, such as a repealed program or a corrected double count. The first
 load of a source and the `curated` source (git-reviewed, where removing a file is an
 intended change) are not guarded. Thresholds are the agent's defaults pending owner input
 (readiness audit, owner item 8); tune them with the environment variables above.
@@ -115,8 +132,14 @@ intended change) are not guarded. Thresholds are the agent's defaults pending ow
 ## How to rerun
 
 - Same files again → deduplicated, no writes (by design).
-- Reload a saved snapshot (e.g. after restoring a database):
-  `pnpm ingest <source> --snapshot data/raw/<source>/<date>`.
+- **Replaying an older snapshot is not a restore.** If snapshot A succeeded, then B, then
+  A is offered again, the run is refused (`snapshot_superseded`) and B's data stays. To
+  load A again as a new run (receipt `replayOf` = A's run), pass `--force-replay`:
+  `pnpm ingest <source> --snapshot data/raw/<source>/<date> --force-replay`. It is a new
+  load under the shrink guard, not a rewind of other sources or of curated data.
+- Reload a saved snapshot after restoring a database: `--snapshot` as above (add
+  `--force-replay` if the restored ledger already lists it as superseded). Snapshot
+  manifests carry `schema_version: 1` (DECISIONS A55).
 - Re-parse unchanged files after a parser/loader fix: bump `version` in the adapter's
   `index.ts` (it is part of the idempotency key), then run the source and every source
   after it in the order above.

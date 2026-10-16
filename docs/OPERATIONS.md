@@ -22,7 +22,10 @@ Related: [API.md](API.md) (contract), [ARCHITECTURE.md](ARCHITECTURE.md) section
 | `DB_IDLE_IN_TX_TIMEOUT_MS` | 60000 web, 600000 ingest | Server ends sessions idle inside a transaction this long (`0` disables) |
 | `INGEST_MAX_DELETE_FRACTION` | 0.1 | Shrink guard: most of a source's rows a run may delete |
 | `INGEST_MIN_RECORD_RATIO` | 0.5 | Shrink guard: fewest records, as a share of the last successful run, a run may load |
-| `INGEST_MIN_RECORD_BASELINE` | 20 | Shrink guard: the record floor applies only when the last run loaded at least this many |
+| `INGEST_MIN_RECORD_BASELINE` | 20 | Shrink guard: the record floors apply only when the last run loaded at least this many; per-table sweep fractions are judged from this many rows (and always when a sweep would empty a table) |
+| `INGEST_RUN_DEADLINE_MS` | unset (no deadline) | Whole-run deadline; past it the run is rolled back and recorded `cancelled` (`--deadline-minutes` overrides) |
+| `INGEST_MAX_DOWNLOAD_BYTES` | 1073741824 (1 GiB) | Largest downloaded file; larger fails the run |
+| `INGEST_MAX_DECOMPRESSED_BYTES` | 2147483648 (2 GiB) | Largest inflated zip entry; larger fails the run |
 | `PAGE_RATE_LIMIT_PER_MINUTE` | 300 | Bucket for HTML pages (burst = this) |
 | `RATE_LIMIT_SINGLE_BUCKET` | unset | `1` acknowledges that, without `TRUSTED_PROXY_HEADER`, all callers share one bucket (required in production) |
 | `LOG_LEVEL` | `info` (`silent` under tests) | pino level |
@@ -90,7 +93,9 @@ Sessions idle inside a transaction are ended by the server and a statement waiti
 lock fails after 30 s. An idle pool connection that fails (database restart) is logged
 as `{"msg":"database pool error"}` on stderr and replaced; it does not stop the process.
 If the connection that holds an ingest source lock fails, the run stops and is recorded
-as `failed`.
+as `failed`. Each run's load, read-model refresh and success receipt are one transaction
+(DECISIONS A50), so it holds the matview lock (EXCLUSIVE; reads continue) until commit:
+a concurrent run of another source waits at its own refresh, up to the lock timeout.
 
 ## Health
 
@@ -213,8 +218,8 @@ the ingest CLI is a separate process from the web server and nothing calls
   Errors, `frameworks.evaluate` and `/api/health` are `no-store`.
 * Server-rendered pages are dynamic (they call `connection()`), set no cache lifetime
   and read the database on every view.
-* The Explore read model (`person_card`) is refreshed by the ingest runtime after each
-  successful load, so a page or uncached API call sees new data as soon as a run commits.
+* The Explore read model (`person_card`) is refreshed by the ingest runtime inside each
+  load transaction, so facts and read model become visible together when a run commits.
 * Data only changes when an ingest run finishes, so after an ingest a CDN may serve the
   previous answer for up to `s-maxage` plus the stale window. If that matters, purge the
   CDN (host-specific, pending D1) after `pnpm ingest`.
@@ -317,9 +322,11 @@ if the migration itself is the problem and it states "no data loss". Anything el
 restore from backup. Upgrading is tested: `test-pg/migrations.pgtest.ts` applies the
 latest migration over a populated database at the previous version on Postgres.
 
-**Data.** A bad ingest: a failed or refused run changes nothing, because each load is
-one transaction (DECISIONS A41), and the read model only refreshes after a successful
-run. A run that succeeded with bad data: fix the adapter and rerun (loads are upserts on
+**Data.** A bad ingest: a failed, refused or cancelled run changes no facts, read models
+or counts, because load, refresh and success receipt are one transaction (DECISIONS A50;
+A41's original claim did not hold and was superseded). Only the source metadata row and
+the run's own receipt are written outside it. Replaying an older raw snapshot is not a
+restore unless you pass `--force-replay` (A54). A run that succeeded with bad data: fix the adapter and rerun (loads are upserts on
 natural keys, so it converges). A bad curated change: `git revert` the merge
 and reload. If wrong data was shown publicly, treat as SEV2 and say so on the Sources
 page.

@@ -42,7 +42,10 @@ describe('process loss during publication (PGlite data directory)', () => {
         after.db,
         sql`select status::text as status, error from ingest_run where id <> ${next.runId}`,
       );
-      expect(abandoned).toMatchObject({ status: 'failed', error: expect.stringMatching(/^abandoned/) });
+      expect(abandoned).toMatchObject({
+        status: 'failed',
+        error: expect.stringMatching(/^abandoned/),
+      });
     } finally {
       await after.close();
     }

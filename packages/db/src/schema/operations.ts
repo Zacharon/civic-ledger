@@ -1,6 +1,11 @@
 import { index, integer, jsonb, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
-export const INGEST_STATUSES = ['running', 'succeeded', 'failed', 'partial'] as const;
+/**
+ * `cancelled`: stopped by the operator or the run deadline before commit (nothing changed).
+ * `partial` is never written (a load is one transaction); kept because enum values cannot
+ * be dropped in place.
+ */
+export const INGEST_STATUSES = ['running', 'succeeded', 'failed', 'partial', 'cancelled'] as const;
 export const ingestStatus = pgEnum('ingest_status', INGEST_STATUSES);
 
 /** A public data source (or the dev seed / curated repo data). */
@@ -32,6 +37,10 @@ export const ingestRun = pgTable(
     error: text('error'),
     readModelRefreshedBefore: timestamp('read_model_refreshed_before', { withTimezone: true }),
     readModelRefreshedAfter: timestamp('read_model_refreshed_after', { withTimezone: true }),
+    /** Operator-visible note on a run that succeeded, e.g. an overridden shrink guard. */
+    note: text('note'),
+    /** `--force-replay`: the earlier successful run whose snapshot this run reloaded. */
+    replayOf: integer('replay_of'),
   },
   (t) => [
     index('ingest_run_source_started_idx').on(t.sourceId, t.startedAt),

@@ -26,6 +26,11 @@ export const voteviewAdapter: SourceAdapter<VoteviewRecord> = {
   version: 'voteview@1',
   dependsOn: ['congress-legislators'],
   scopes: ['congress'],
+  shrinkDatasets: [
+    { table: 'rollcall', loaded: 'rollcalls', scopeColumn: 'congress' },
+    { table: 'vote_position', loaded: 'vote_positions' },
+    { table: 'ideology_score', loaded: 'ideology_scores', scopeColumn: 'congress' },
+  ],
   async plan(scope) {
     const files = voteviewFiles(congressOf(scope));
     return {

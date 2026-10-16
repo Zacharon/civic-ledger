@@ -18,6 +18,11 @@ export const congressLegislatorsAdapter: SourceAdapter<LegislatorRecord> = {
   version: 'congress-legislators@1',
   dependsOn: [],
   scopes: ['all'],
+  shrinkDatasets: [
+    { table: 'person', loaded: 'people' },
+    { table: 'term', loaded: 'terms', swept: 'stale_terms_deleted' },
+    { table: 'person_identifier', loaded: 'identifiers', swept: 'stale_identifiers_deleted' },
+  ],
   async plan(scope) {
     return {
       source: 'congress-legislators',

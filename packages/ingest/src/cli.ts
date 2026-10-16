@@ -11,6 +11,7 @@ import { createDb, type DbConfig, dbConfigFromEnv } from '@civic-ledger/db';
 import { runMigrations } from '@civic-ledger/db/migrate';
 import { Command, InvalidArgumentError, Option } from 'commander';
 import { ADAPTERS, PIPELINE_ORDER } from './adapters/registry';
+import { deadlineFromEnv, limitsFromEnv } from './runtime/limits';
 import { createLogger } from './runtime/logger';
 import { runIngest } from './runtime/run';
 import { shrinkGuardFromEnv } from './runtime/shrink-guard';
@@ -77,6 +78,17 @@ const program = new Command('ingest')
       'commit a load the shrink guard refused (sweep deletes >10% of rows, or far fewer records than last run)',
     ).default(false),
   )
+  .addOption(
+    new Option(
+      '--force-replay',
+      'load the snapshot even if it already succeeded (e.g. to return to an older snapshot); recorded as a new run',
+    ).default(false),
+  )
+  .option(
+    '--deadline-minutes <n>',
+    'cancel the run (rolled back, status cancelled) if it is still running after n minutes',
+    positiveInt('--deadline-minutes'),
+  )
   .addHelpText(
     'after',
     `
@@ -91,8 +103,15 @@ Shrink guard: a run is failed and rolled back when its stale-row sweep would del
 $INGEST_MAX_DELETE_FRACTION (default 0.1) of the source's rows, or it loads fewer than
 $INGEST_MIN_RECORD_RATIO (default 0.5) of the last successful run's records. --allow-shrink overrides.
 
-Exit codes: 0 succeeded (or already loaded), 1 failed or refused, 2 usage error.
-A rerun of an unchanged snapshot returns the original run with "deduplicated": true.`,
+Atomicity: facts, both read models and the success receipt commit in one transaction. Ctrl-C
+or the deadline (--deadline-minutes, or $INGEST_RUN_DEADLINE_MS) before that commit rolls
+everything back and records "cancelled". Byte caps: $INGEST_MAX_DOWNLOAD_BYTES (1 GiB per file),
+$INGEST_MAX_DECOMPRESSED_BYTES (2 GiB per zip entry).
+
+Exit codes: 0 succeeded (or already loaded), 1 failed, cancelled or refused, 2 usage error.
+A rerun of the current snapshot returns the original run with "deduplicated": true. A snapshot
+that an older run loaded but a later run superseded is refused (snapshot_superseded): replaying
+it is not a restore unless you pass --force-replay.`,
   )
   .action(async (source: string, opts) => {
     const sources: SourceId[] =
@@ -115,6 +134,11 @@ A rerun of an unchanged snapshot returns the original run with "deduplicated": t
 
     const logger = createLogger();
     const shrinkGuard = shrinkGuardFromEnv(process.env, opts.allowShrink);
+    const limits = limitsFromEnv(process.env);
+    const deadlineMs =
+      opts.deadlineMinutes !== undefined
+        ? opts.deadlineMinutes * 60_000
+        : deadlineFromEnv(process.env);
     const handle = createDb(dbConfig(opts.db));
     const abort = new AbortController();
     process.once('SIGINT', () => abort.abort(new Error('interrupted (SIGINT)')));
@@ -130,6 +154,7 @@ A rerun of an unchanged snapshot returns the original run with "deduplicated": t
             source: id,
             scope: scopeFor(id, opts),
             ...(opts.snapshot ? { snapshotPath: opts.snapshot } : {}),
+            ...(opts.forceReplay ? { forceReplay: true } : {}),
           },
           {
             handle,
@@ -139,6 +164,8 @@ A rerun of an unchanged snapshot returns the original run with "deduplicated": t
             repoRoot: REPO_ROOT,
             signal: abort.signal,
             shrinkGuard,
+            limits,
+            deadlineMs,
           },
         );
         receipts.push(receipt);

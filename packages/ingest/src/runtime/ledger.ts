@@ -1,6 +1,6 @@
 import { type IngestRunReceipt, type SourceId, SourceIdSchema } from '@civic-ledger/core';
 import { conflictUpdateSet, type Db, ingestRun, personCard, source } from '@civic-ledger/db';
-import { and, eq, inArray, max } from 'drizzle-orm';
+import { and, desc, eq, inArray, max } from 'drizzle-orm';
 import type { SourceInfo } from '../adapter';
 
 type RunRow = typeof ingestRun.$inferSelect;
@@ -23,7 +23,8 @@ export async function reapAbandonedRuns(db: Db, sourceId: SourceId): Promise<num
     .set({
       status: 'failed',
       finishedAt: new Date(),
-      error: 'abandoned: the process exited before the run finished',
+      error:
+        'abandoned: the process exited before the run finished; its load transaction was rolled back, nothing was committed',
     })
     .where(and(eq(ingestRun.sourceId, sourceId), eq(ingestRun.status, 'running')))
     .returning({ id: ingestRun.id });
@@ -61,6 +62,51 @@ export async function findSucceededRun(
     .orderBy(ingestRun.id)
     .limit(1);
   return row ?? null;
+}
+
+/**
+ * The latest successful run of a source and scope: the current generation. A snapshot key
+ * that succeeded earlier but is not this run was superseded (DECISIONS A54).
+ */
+export async function latestSucceededRun(
+  db: Db,
+  sourceId: SourceId,
+  scope: string,
+): Promise<RunRow | null> {
+  const [row] = await db
+    .select()
+    .from(ingestRun)
+    .where(
+      and(
+        eq(ingestRun.sourceId, sourceId),
+        eq(ingestRun.scope, scope),
+        eq(ingestRun.status, 'succeeded'),
+      ),
+    )
+    .orderBy(desc(ingestRun.id))
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * Records a terminal outcome only while the row is still `running`. If the commit of a
+ * successful run reached the database but its acknowledgement was lost, the row already
+ * says `succeeded`, and that committed receipt is returned instead of being overwritten.
+ */
+export async function finishRun(
+  db: Db,
+  id: number,
+  values: Partial<Omit<RunRow, 'id' | 'sourceId' | 'status'>> & { status: RunRow['status'] },
+): Promise<RunRow> {
+  const [row] = await db
+    .update(ingestRun)
+    .set(values)
+    .where(and(eq(ingestRun.id, id), eq(ingestRun.status, 'running')))
+    .returning();
+  if (row) return row;
+  const [current] = await db.select().from(ingestRun).where(eq(ingestRun.id, id));
+  if (!current) throw new Error(`ingest_run ${id} disappeared`);
+  return current;
 }
 
 export async function updateRun(
@@ -115,5 +161,7 @@ export function toReceipt(row: RunRow, deduplicated: boolean): IngestRunReceipt 
     readModelRefreshedBefore: row.readModelRefreshedBefore?.toISOString() ?? null,
     readModelRefreshedAfter: row.readModelRefreshedAfter?.toISOString() ?? null,
     error: row.error,
+    note: row.note,
+    replayOf: row.replayOf,
   };
 }

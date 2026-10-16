@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { join } from 'node:path';
-import type { RawSnapshot } from '../../adapter';
+import type { ParseContext, RawSnapshot } from '../../adapter';
 import { fecPipeRows, headerCsvRows, named } from '../../parse/csv';
 import {
   dateFromDdMonYy,
@@ -12,9 +12,7 @@ import {
 } from '../../parse/values';
 import { zipEntry } from '../../parse/zip';
 import {
-  dedupeIndependentExpenditures,
-  dedupePas2,
-  type IeDedupeStats,
+  CONTRIBUTION_TYPES,
   type IeRow,
   ieTransactionKey,
   type Pas2DedupeStats,
@@ -239,10 +237,23 @@ export interface IeRecord {
   purpose: string | null;
 }
 
+/** One pas2 row that passed the row-local rules (type, memo); staged for the SQL dedupe. */
+export interface Pas2RowRecord extends Pas2Row {
+  kind: 'pas2_row';
+}
+
+/** One IE file row, unfiltered: supersession needs every row's prev_file_num. */
+export interface IeRowRecord extends IeRow {
+  kind: 'ie_row';
+  spenderName: string;
+  purpose: string | null;
+}
+
+/** Row-local parse counters; the cross-row ones come from the loader's SQL dedupe. */
 export interface StatsRecord {
   kind: 'stats';
-  pas2?: Pas2DedupeStats;
-  ie?: IeDedupeStats & { normalizedCandidateIds: number };
+  pas2?: Pick<Pas2DedupeStats, 'rows' | 'excludedType' | 'memoDropped'>;
+  ie?: { rows: number; normalizedCandidateIds: number };
 }
 
 export type FecRecord =
@@ -251,9 +262,38 @@ export type FecRecord =
   | LinkRecord
   | TotalsRecord
   | SummaryRecord
-  | ContributionRecord
-  | IeRecord
+  | Pas2RowRecord
+  | IeRowRecord
   | StatsRecord;
+
+export function contributionFromPas2(row: Pas2Row): ContributionRecord {
+  return {
+    kind: 'contribution',
+    subId: row.subId,
+    committeeId: row.cmteId,
+    candidateId: row.candId || null,
+    otherId: row.otherId || null,
+    amountCents: cents(row.amount),
+    date: dateFromMmddyyyy(row.transactionDt),
+    transactionType: row.transactionTp,
+  };
+}
+
+export function expenditureFromRow(
+  row: IeRow & { spenderName: string; purpose: string | null },
+): IeRecord {
+  return {
+    kind: 'ie',
+    spenderId: row.spenderId,
+    spenderName: row.spenderName || row.spenderId,
+    transactionKey: ieTransactionKey(row),
+    candidateId: row.candidateId || null,
+    supportOppose: row.supportOppose === 'S' ? 'support' : 'oppose',
+    amountCents: row.amountCents,
+    date: row.date,
+    purpose: row.purpose,
+  };
+}
 
 /** FEC ids are upper-case; the IE file has some lower-case ones (e.g. "h2az02360"). */
 const fecId = (value: string | undefined): string => (value ?? '').trim().toUpperCase();
@@ -263,15 +303,20 @@ const office = (v: string): CandidateRecord['office'] =>
 const cents = (v: string) => dollarsToCents(v) ?? 0;
 
 /**
- * Committees, candidates, links and totals stream straight through. pas2 and the IE file
- * are collected as compact rows first because their dedupe rules compare rows across the
- * whole file (amendments refer to earlier filings).
+ * Every file streams straight through, row by row. pas2 and IE rows whose dedupe rules
+ * compare rows across the whole file (amendments refer to earlier filings) are handed to
+ * the loader, which stages and dedupes them in SQL (stage.ts); nothing here holds a file.
  */
-export async function* parseFec(snapshot: RawSnapshot, cycle: number): AsyncGenerator<FecRecord> {
+export async function* parseFec(
+  snapshot: RawSnapshot,
+  cycle: number,
+  ctx: ParseContext = {},
+): AsyncGenerator<FecRecord> {
   const files = fecFiles(cycle);
   const path = (name: string) => join(snapshot.directory, name);
+  const zipLimits = { maxBytes: ctx.limits?.maxDecompressedBytes };
 
-  for await (const stream of zipEntry(path(files.cm.zip), files.cm.entry)) {
+  for await (const stream of zipEntry(path(files.cm.zip), files.cm.entry, zipLimits)) {
     for await (const raw of fecPipeRows(stream, CM.length)) {
       const r = named(CM, raw);
       yield {
@@ -287,7 +332,7 @@ export async function* parseFec(snapshot: RawSnapshot, cycle: number): AsyncGene
       };
     }
   }
-  for await (const stream of zipEntry(path(files.cn.zip), files.cn.entry)) {
+  for await (const stream of zipEntry(path(files.cn.zip), files.cn.entry, zipLimits)) {
     for await (const raw of fecPipeRows(stream, CN.length)) {
       const r = named(CN, raw);
       yield {
@@ -302,7 +347,7 @@ export async function* parseFec(snapshot: RawSnapshot, cycle: number): AsyncGene
       };
     }
   }
-  for await (const stream of zipEntry(path(files.ccl.zip), files.ccl.entry)) {
+  for await (const stream of zipEntry(path(files.ccl.zip), files.ccl.entry, zipLimits)) {
     for await (const raw of fecPipeRows(stream, CCL.length)) {
       const r = named(CCL, raw);
       const year = parseIntOrNull(r.FEC_ELECTION_YR);
@@ -316,7 +361,7 @@ export async function* parseFec(snapshot: RawSnapshot, cycle: number): AsyncGene
       };
     }
   }
-  for await (const stream of zipEntry(path(files.weball.zip), files.weball.entry)) {
+  for await (const stream of zipEntry(path(files.weball.zip), files.weball.entry, zipLimits)) {
     for await (const raw of fecPipeRows(stream, WEBALL.length)) {
       const r = named(WEBALL, raw);
       yield {
@@ -349,12 +394,23 @@ export async function* parseFec(snapshot: RawSnapshot, cycle: number): AsyncGene
     };
   }
 
-  const pas2: Pas2Row[] = [];
-  for await (const stream of zipEntry(path(files.pas2.zip), files.pas2.entry)) {
+  const pas2Stats = { rows: 0, excludedType: 0, memoDropped: 0 };
+  for await (const stream of zipEntry(path(files.pas2.zip), files.pas2.entry, zipLimits)) {
     for await (const raw of fecPipeRows(stream, PAS2.length)) {
       // NAME/CITY/EMPLOYER/OCCUPATION are never read: no contributor identity is kept.
       const r = named(PAS2, raw);
-      pas2.push({
+      pas2Stats.rows++;
+      // Rules 1 and 2 of dedupePas2 are row-local; 3 and 4 run in SQL (stage.ts).
+      if (!CONTRIBUTION_TYPES.has(r.TRANSACTION_TP)) {
+        pas2Stats.excludedType++;
+        continue;
+      }
+      if (r.MEMO_CD.trim() === 'X') {
+        pas2Stats.memoDropped++;
+        continue;
+      }
+      yield {
+        kind: 'pas2_row',
         cmteId: r.CMTE_ID,
         amndtInd: r.AMNDT_IND,
         rptTp: r.RPT_TP,
@@ -367,31 +423,18 @@ export async function* parseFec(snapshot: RawSnapshot, cycle: number): AsyncGene
         fileNum: parseIntOrNull(r.FILE_NUM) ?? 0,
         memoCd: r.MEMO_CD.trim(),
         subId: r.SUB_ID.trim(),
-      });
+      };
     }
   }
-  const contributions = dedupePas2(pas2);
-  pas2.length = 0;
-  for (const row of contributions.kept) {
-    yield {
-      kind: 'contribution',
-      subId: row.subId,
-      committeeId: row.cmteId,
-      candidateId: row.candId || null,
-      otherId: row.otherId || null,
-      amountCents: cents(row.amount),
-      date: dateFromMmddyyyy(row.transactionDt),
-      transactionType: row.transactionTp,
-    };
-  }
-  yield { kind: 'stats', pas2: contributions.stats };
+  yield { kind: 'stats', pas2: pas2Stats };
 
-  type IeParsed = IeRow & { spenderName: string; purpose: string | null };
-  const ies: IeParsed[] = [];
+  let ieRows = 0;
   let normalizedCandidateIds = 0;
   for await (const row of headerCsvRows(createReadStream(path(files.ie)), IE)) {
+    ieRows++;
     if (row.cand_id && row.cand_id.trim() !== fecId(row.cand_id)) normalizedCandidateIds++;
-    ies.push({
+    yield {
+      kind: 'ie_row',
       spenderId: fecId(row.spe_id),
       spenderName: (row.spe_nam ?? '').trim(),
       tranId: (row.tran_id ?? '').trim(),
@@ -403,21 +446,7 @@ export async function* parseFec(snapshot: RawSnapshot, cycle: number): AsyncGene
       date: dateFromDdMonYy(row.exp_date) ?? dateFromDdMonYy(row.dissem_dt),
       imageNum: (row.image_num ?? '').trim(),
       purpose: trimOrNull(row.pur),
-    });
-  }
-  const expenditures = dedupeIndependentExpenditures(ies);
-  for (const row of expenditures.kept) {
-    yield {
-      kind: 'ie',
-      spenderId: row.spenderId,
-      spenderName: row.spenderName || row.spenderId,
-      transactionKey: ieTransactionKey(row),
-      candidateId: row.candidateId || null,
-      supportOppose: row.supportOppose === 'S' ? 'support' : 'oppose',
-      amountCents: row.amountCents,
-      date: row.date,
-      purpose: row.purpose,
     };
   }
-  yield { kind: 'stats', ie: { ...expenditures.stats, normalizedCandidateIds } };
+  yield { kind: 'stats', ie: { rows: ieRows, normalizedCandidateIds } };
 }

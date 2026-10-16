@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import type { Readable } from 'node:stream';
 import { XMLParser } from 'fast-xml-parser';
 import { z } from 'zod';
-import type { RawSnapshot } from '../../adapter';
+import type { ParseContext, RawSnapshot } from '../../adapter';
 import { isoDateOrNull } from '../../parse/values';
 import { zipEntries } from '../../parse/zip';
 import type { Chamber } from '../lookups';
@@ -194,10 +194,16 @@ async function readText(stream: Readable): Promise<string> {
 export async function* parseBillstatus(
   snapshot: RawSnapshot,
   congress: number,
+  ctx: ParseContext = {},
 ): AsyncGenerator<BillRecord> {
+  const limits = { maxBytes: ctx.limits?.maxDecompressedBytes };
   for (const type of BILL_TYPES) {
     const zip = join(snapshot.directory, billstatusZip(congress, type));
-    for await (const entry of zipEntries(zip, (name) => name.toLowerCase().endsWith('.xml'))) {
+    for await (const entry of zipEntries(
+      zip,
+      (name) => name.toLowerCase().endsWith('.xml'),
+      limits,
+    )) {
       try {
         yield parseBillXml(await readText(entry.stream));
       } catch (error) {

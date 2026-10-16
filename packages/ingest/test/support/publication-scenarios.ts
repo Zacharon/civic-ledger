@@ -130,7 +130,11 @@ export function publicationScenarios(getHandle: () => DbHandle): void {
   it('the final ledger write fails: the facts and read models roll back with it', async () => {
     const { handle, before } = await baseline();
     await failSucceededReceipt(handle);
-    const receipt = await ingestFixture(await bumped(handle), 'congress-legislators', await markedSnapshot());
+    const receipt = await ingestFixture(
+      await bumped(handle),
+      'congress-legislators',
+      await markedSnapshot(),
+    );
     expect(receipt.status).toBe('failed');
     await expectUnpublished(handle, before, receipt.runId);
     expect(receipt.error).toMatch(/injected final ledger write failure/);

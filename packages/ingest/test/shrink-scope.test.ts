@@ -132,7 +132,9 @@ describe('shrink guard per dataset and scope (H3-02)', () => {
 
     expect(receipt.status).toBe('succeeded');
     expect(receipt).toMatchObject({
-      note: expect.stringMatching(/^shrink guard overridden \(--allow-shrink\): .*independent_expenditure/s),
+      note: expect.stringMatching(
+        /^shrink guard overridden \(--allow-shrink\): .*independent_expenditure/s,
+      ),
     });
     expect(await count('independent_expenditure')).toBe(0);
   });

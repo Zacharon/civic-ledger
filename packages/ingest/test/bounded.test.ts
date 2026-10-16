@@ -41,7 +41,10 @@ const snapshotOf = (directory: string): RawSnapshot => ({
 async function kindsBeforeError(directory: string): Promise<{ kinds: string[]; error: unknown }> {
   const kinds: string[] = [];
   try {
-    for await (const record of ADAPTERS['fec-bulk'].parse(snapshotOf(directory), SCOPES['fec-bulk'])) {
+    for await (const record of ADAPTERS['fec-bulk'].parse(
+      snapshotOf(directory),
+      SCOPES['fec-bulk'],
+    )) {
       const r = record as { kind: string; pas2?: unknown };
       kinds.push(r.kind === 'stats' && r.pas2 ? 'stats:pas2' : r.kind);
     }
@@ -64,7 +67,11 @@ async function firstPas2Line(): Promise<string> {
 describe('streaming FEC parse (H3-05)', () => {
   it('hands on pas2 rows before reading the whole pas2 file', async () => {
     const dir = await fecCopy();
-    await writeZip(join(dir, 'pas226.zip'), 'itpas2.txt', `${await firstPas2Line()}\nnot|enough|columns\n`);
+    await writeZip(
+      join(dir, 'pas226.zip'),
+      'itpas2.txt',
+      `${await firstPas2Line()}\nnot|enough|columns\n`,
+    );
     const { kinds, error } = await kindsBeforeError(dir);
     expect(error).toBeInstanceOf(Error);
     expect(String(error)).toMatch(/expected 22 columns/);

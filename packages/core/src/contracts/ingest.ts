@@ -45,12 +45,20 @@ export const IngestRunInputSchema = z.strictObject({
     .min(1)
     .optional()
     .describe('Load a previously fetched raw snapshot instead of fetching'),
+  forceReplay: z
+    .boolean()
+    .optional()
+    .describe(
+      'Load the snapshot even when this key already succeeded (e.g. to return to an older snapshot); recorded as a new run with replayOf',
+    ),
 });
 export type IngestRunInput = z.infer<typeof IngestRunInputSchema>;
 
 /**
  * Receipt = the `ingest_run` row. Idempotency key is (source, adapterVersion,
- * snapshotChecksum): a repeat returns the original run with `deduplicated: true`.
+ * snapshotChecksum): a repeat of the current snapshot returns the original run with
+ * `deduplicated: true`; a key whose run was superseded by a later successful run of the
+ * same scope is refused (`snapshot_superseded`) unless `forceReplay` is set.
  */
 export const IngestRunReceiptSchema = z.object({
   runId: z.int(),
@@ -68,11 +76,18 @@ export const IngestRunReceiptSchema = z.object({
   readModelRefreshedBefore: IsoDateTimeSchema.nullable(),
   readModelRefreshedAfter: IsoDateTimeSchema.nullable(),
   error: z.string().nullable(),
+  /** Set on a run that succeeded with a caveat, e.g. a shrink guard overridden by --allow-shrink. */
+  note: z.string().nullable(),
+  /** `forceReplay`: the earlier successful run whose snapshot this run reloaded. */
+  replayOf: z.int().nullable(),
 });
 export type IngestRunReceipt = z.infer<typeof IngestRunReceiptSchema>;
 
 /** Error code when the per-source advisory lock is held (CapabilityError `conflict`). */
 export const RUN_IN_PROGRESS = 'run_in_progress';
+
+/** Error prefix of a refused replay of a snapshot a later run superseded (DECISIONS A54). */
+export const SNAPSHOT_SUPERSEDED = 'snapshot_superseded';
 
 export const ingestRunContract = {
   name: 'ingest.run',

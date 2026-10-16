@@ -1,11 +1,13 @@
 import { formatIngestScope, type IngestScope, type SourceId } from '@civic-ledger/core';
 import { type Db, ingestRun } from '@civic-ledger/db';
 import { and, desc, eq, sql } from 'drizzle-orm';
+import type { ShrinkDataset } from '../adapter';
 
 /**
- * Sanity floor for upstream shrinkage (DECISIONS A41). A truncated or empty upstream file
- * is a valid-looking input whose stale-row sweep would delete a source's rows, so a load
- * is refused when it would delete too much or load far fewer records than last time.
+ * Sanity floor for upstream shrinkage (DECISIONS A42, A51). A truncated or empty upstream
+ * file is a valid-looking input whose stale-row sweep would delete a source's rows, so a
+ * load is refused when it would delete too much or load far fewer records than last time,
+ * judged per dataset (table and scope) and for the source as a whole.
  */
 export interface ShrinkGuardConfig {
   /** Operator override (`--allow-shrink`): log the violation and commit anyway. */
@@ -93,6 +95,38 @@ export async function countSourceRows(db: Db, sourceId: SourceId): Promise<numbe
   return result.rows[0]?.n ?? 0;
 }
 
+/** Rows each swept dataset holds for this source and scope, before the load. */
+export async function countDatasetRows(
+  db: Db,
+  sourceId: SourceId,
+  scope: IngestScope,
+  datasets: readonly ShrinkDataset[],
+): Promise<DatasetInput[]> {
+  const scopeValue =
+    scope.kind === 'cycle' ? scope.cycle : scope.kind === 'congress' ? scope.congress : null;
+  const out: DatasetInput[] = [];
+  for (const dataset of datasets) {
+    if (!dataset.swept) {
+      out.push({ dataset, existing: null });
+      continue;
+    }
+    const via = dataset.scopeVia;
+    const inScope =
+      scopeValue === null
+        ? sql``
+        : dataset.scopeColumn
+          ? sql` and ${sql.identifier(dataset.scopeColumn)} = ${scopeValue}`
+          : via
+            ? sql` and ${sql.identifier(via.column)} in (select id from ${sql.identifier(via.table)} where ${sql.identifier(via.scopeColumn)} = ${scopeValue})`
+            : sql``;
+    const result = (await db.execute(
+      sql`select count(*)::int as n from ${sql.identifier(dataset.table)} where source_id = ${sourceId}${inScope}`,
+    )) as unknown as { rows: { n: number }[] };
+    out.push({ dataset, existing: result.rows[0]?.n ?? 0 });
+  }
+  return out;
+}
+
 /** Counts of the last successful run of the same source and scope, or null on a first load. */
 export async function previousRunCounts(
   db: Db,
@@ -116,41 +150,101 @@ export async function previousRunCounts(
 
 const isSweepCount = (key: string) => /^stale_.*_deleted$/.test(key);
 
-/** Records a run loaded: the sum of its counters except the sweep counters. */
-export function recordTotal(counts: Record<string, number>): number {
+/**
+ * Records a run loaded: the sum of `loadedKeys` (an adapter's explicit loaded-row counters)
+ * or, for an adapter that declares none, of every counter except the sweep counters.
+ */
+export function recordTotal(
+  counts: Record<string, number>,
+  loadedKeys?: readonly string[],
+): number {
+  if (loadedKeys) return loadedKeys.reduce((sum, key) => sum + (counts[key] ?? 0), 0);
   return Object.entries(counts).reduce((sum, [key, n]) => (isSweepCount(key) ? sum : sum + n), 0);
 }
 
-export function deletedTotal(counts: Record<string, number>): number {
+export function deletedTotal(
+  counts: Record<string, number>,
+  sweptKeys?: readonly string[],
+): number {
+  if (sweptKeys) return sweptKeys.reduce((sum, key) => sum + (counts[key] ?? 0), 0);
   return Object.entries(counts).reduce((sum, [key, n]) => (isSweepCount(key) ? sum + n : sum), 0);
+}
+
+/** One dataset to judge on its own: its declaration and its rows before the load. */
+export interface DatasetInput {
+  dataset: ShrinkDataset;
+  /** Rows of `dataset.table` in this source and scope before the load (swept tables). */
+  existing: number | null;
 }
 
 export interface ShrinkInput {
   existingRows: number;
   counts: Record<string, number>;
   previous: Record<string, number> | null;
+  /** Per-dataset checks (DECISIONS A51); without them only the source totals are checked. */
+  datasets?: readonly DatasetInput[];
+  /** Scope label for messages, e.g. `cycle:2026`. */
+  scope?: string;
 }
 
 const pct = (n: number) => `${Math.round(n * 1000) / 10}%`;
 
-/** A human-readable violation, or null when the run is within bounds. */
-export function evaluateShrink(input: ShrinkInput, config: ShrinkGuardConfig): string | null {
-  const deleted = deletedTotal(input.counts);
-  if (input.existingRows > 0 && deleted / input.existingRows > config.maxDeleteFraction) {
-    return (
-      `the stale-row sweep would delete ${deleted} of ${input.existingRows} existing rows ` +
-      `(${pct(deleted / input.existingRows)}, limit ${pct(config.maxDeleteFraction)})`
-    );
-  }
-  if (input.previous) {
-    const before = recordTotal(input.previous);
-    const now = recordTotal(input.counts);
-    if (before >= config.minBaseline && now < before * config.minRecordRatio) {
-      return (
-        `loaded ${now} records against ${before} in the last successful run ` +
-        `(${pct(now / before)}, floor ${pct(config.minRecordRatio)})`
+function datasetViolations(input: ShrinkInput, config: ShrinkGuardConfig): string[] {
+  const out: string[] = [];
+  const where = input.scope ? ` for ${input.scope}` : '';
+  for (const { dataset, existing } of input.datasets ?? []) {
+    const deleted = dataset.swept ? (input.counts[dataset.swept] ?? 0) : 0;
+    // A small table may lose a few rows; deleting every row of any dataset is always suspect.
+    const judged =
+      existing !== null && existing > 0 && (existing >= config.minBaseline || deleted === existing);
+    if (judged && deleted / existing > config.maxDeleteFraction) {
+      out.push(
+        `the stale-row sweep would delete ${deleted} of ${existing} existing rows in ${dataset.table}${where} ` +
+          `(${pct(deleted / existing)}, limit ${pct(config.maxDeleteFraction)})`,
+      );
+    }
+    const before = input.previous?.[dataset.loaded];
+    const now = input.counts[dataset.loaded] ?? 0;
+    if (
+      before !== undefined &&
+      before >= config.minBaseline &&
+      now < before * config.minRecordRatio
+    ) {
+      out.push(
+        `loaded ${now} ${dataset.loaded} into ${dataset.table} against ${before} in the last successful run${where} ` +
+          `(${pct(now / before)}, floor ${pct(config.minRecordRatio)})`,
       );
     }
   }
-  return null;
+  return out;
+}
+
+/**
+ * Human-readable violations joined by "; ", or null when the run is within bounds. The
+ * source totals (A42) are kept as an outer bound; the per-dataset checks (A51) stop one
+ * table or scope from collapsing behind the others or behind diagnostic counters.
+ */
+export function evaluateShrink(input: ShrinkInput, config: ShrinkGuardConfig): string | null {
+  const loadedKeys = input.datasets?.map((d) => d.dataset.loaded);
+  const sweptKeys = input.datasets?.flatMap((d) => (d.dataset.swept ? [d.dataset.swept] : []));
+  const out: string[] = [];
+  const deleted = deletedTotal(input.counts, sweptKeys);
+  if (input.existingRows > 0 && deleted / input.existingRows > config.maxDeleteFraction) {
+    out.push(
+      `the stale-row sweep would delete ${deleted} of ${input.existingRows} existing rows ` +
+        `(${pct(deleted / input.existingRows)}, limit ${pct(config.maxDeleteFraction)})`,
+    );
+  }
+  if (input.previous) {
+    const before = recordTotal(input.previous, loadedKeys);
+    const now = recordTotal(input.counts, loadedKeys);
+    if (before >= config.minBaseline && now < before * config.minRecordRatio) {
+      out.push(
+        `loaded ${now} records against ${before} in the last successful run ` +
+          `(${pct(now / before)}, floor ${pct(config.minRecordRatio)})`,
+      );
+    }
+  }
+  out.push(...datasetViolations(input, config));
+  return out.length > 0 ? out.join('; ') : null;
 }

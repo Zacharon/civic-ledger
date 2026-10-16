@@ -9,8 +9,10 @@ import type { Logger } from 'pino';
  * - plan: the files for a scope. Downloads use a timeout, transient-only retries with
  *   backoff + full jitter, conditional GET, and land under data/raw/<source>/<date>/.
  * - parse: streaming; never buffer a whole large CSV/XML/ZIP in memory. No database access.
- * - load: batched, idempotent upserts on natural keys, one transaction per batch, every
- *   row stamped with provenance (source_id, source_key, ingest_run_id, retrieved_at).
+ *   Cross-row rules over a whole file (FEC amendments) are done by the loader in SQL.
+ * - load: batched, idempotent upserts on natural keys, each batch a savepoint inside the
+ *   run's one load transaction, every row stamped with provenance (source_id, source_key,
+ *   ingest_run_id, retrieved_at).
  */
 export interface SourceAdapter<TRecord> {
   source: SourceInfo;
@@ -28,9 +30,41 @@ export interface SourceAdapter<TRecord> {
    * large drop is not an upstream-truncation signal. Default true (runtime/shrink-guard.ts).
    */
   guardShrink?: boolean;
+  /**
+   * What the shrink guard checks for a guarded adapter: one entry per loaded table, with
+   * its explicit loaded-row counter and, when swept, its sweep counter (DECISIONS A51).
+   * Counters not listed here are diagnostics and never count as loaded records.
+   */
+  shrinkDatasets?: readonly ShrinkDataset[];
   plan(scope: IngestScope, ctx: PlanContext): Promise<FetchPlan>;
-  parse(snapshot: RawSnapshot, scope: IngestScope): AsyncIterable<TRecord>;
+  parse(snapshot: RawSnapshot, scope: IngestScope, ctx?: ParseContext): AsyncIterable<TRecord>;
   load(records: AsyncIterable<TRecord>, ctx: LoadContext): Promise<LoadCounts>;
+}
+
+export interface ShrinkDataset {
+  /** SQL table the counter loads; it must have `source_id` (and `scopeColumn`, if set). */
+  table: string;
+  /** Receipt counter: rows this run inserted or updated in `table`. */
+  loaded: string;
+  /** Receipt counter: rows the stale-row sweep deleted from `table` (swept tables only). */
+  swept?: string;
+  /** Column holding the run's scope value; unset = the source's rows in every scope. */
+  scopeColumn?: 'cycle' | 'congress';
+  /** For a child table without a scope column: `column` references `table`, which has one. */
+  scopeVia?: { column: string; table: string; scopeColumn: 'cycle' | 'congress' };
+}
+
+/** Byte caps for raw input (DECISIONS A53); a breach fails the run. */
+export interface IngestLimits {
+  /** Per downloaded file. */
+  maxDownloadBytes: number;
+  /** Per inflated zip entry. */
+  maxDecompressedBytes: number;
+}
+
+export interface ParseContext {
+  signal?: AbortSignal;
+  limits?: IngestLimits;
 }
 
 export interface SourceInfo {
@@ -47,6 +81,7 @@ export interface PlanContext {
   repoRoot: string;
   /** When set, the snapshot is read from this directory instead of fetched. */
   snapshotPath?: string;
+  signal?: AbortSignal;
 }
 
 export interface FetchPlan {
@@ -75,6 +110,7 @@ export interface FetchContext {
   rawDir: string;
   logger: Logger;
   signal: AbortSignal;
+  maxDownloadBytes?: number;
 }
 
 export interface SnapshotFile {
@@ -101,6 +137,8 @@ export interface LoadContext {
   retrievedAt: Date;
   scope: IngestScope;
   logger: Logger;
+  /** The run's cancellation signal; loaders may check it between batches. */
+  signal?: AbortSignal;
 }
 
 /** Rows upserted (and anomaly counters) per table, recorded on the ingest_run receipt. */

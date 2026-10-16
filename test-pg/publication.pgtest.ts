@@ -29,6 +29,9 @@ describe('publication boundary (Postgres)', () => {
       db.handle,
       sql`select status::text as status, error from ingest_run where id <> ${next.runId}`,
     );
-    expect(abandoned).toMatchObject({ status: 'failed', error: expect.stringMatching(/^abandoned/) });
+    expect(abandoned).toMatchObject({
+      status: 'failed',
+      error: expect.stringMatching(/^abandoned/),
+    });
   });
 });

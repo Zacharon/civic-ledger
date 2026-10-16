@@ -47,10 +47,19 @@ describe('snapshot replay A -> B -> A (H3-07, probe P2)', () => {
     await ingestFixture(rt, 'congress-legislators', await markedSnapshot());
 
     const replay = await runIngest(
-      { source: 'congress-legislators', scope: SCOPES['congress-legislators'], snapshotPath: A, forceReplay: true },
+      {
+        source: 'congress-legislators',
+        scope: SCOPES['congress-legislators'],
+        snapshotPath: A,
+        forceReplay: true,
+      },
       rt,
     );
-    expect(replay).toMatchObject({ status: 'succeeded', deduplicated: false, replayOf: first.runId });
+    expect(replay).toMatchObject({
+      status: 'succeeded',
+      deduplicated: false,
+      replayOf: first.runId,
+    });
     expect(replay.runId).not.toBe(first.runId);
     expect(await markerRows()).toBe(0);
   });
@@ -75,9 +84,12 @@ describe('raw snapshot manifest schema version (H3-08)', () => {
   it('writes schema_version 1 into every fetched manifest', async () => {
     const deps: HttpDeps = {
       fetch: async (input) =>
-        new Response(await readFile(join(FIXTURES, 'voteview', String(input).split('/').at(-1) ?? '')), {
-          status: 200,
-        }),
+        new Response(
+          await readFile(join(FIXTURES, 'voteview', String(input).split('/').at(-1) ?? '')),
+          {
+            status: 200,
+          },
+        ),
       sleep: async () => {},
       random: () => 0,
     };
@@ -86,7 +98,9 @@ describe('raw snapshot manifest schema version (H3-08)', () => {
     const receipt = await runIngest({ source: 'voteview', scope: SCOPES.voteview }, rt);
     expect(receipt.status).toBe('succeeded');
     const day = new Date().toISOString().slice(0, 10);
-    const manifest = JSON.parse(await readFile(join(rt.rawRoot, 'voteview', day, MANIFEST_FILE), 'utf8'));
+    const manifest = JSON.parse(
+      await readFile(join(rt.rawRoot, 'voteview', day, MANIFEST_FILE), 'utf8'),
+    );
     expect(manifest.schema_version).toBe(1);
   });
 

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { copyFile, mkdir, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import type { SourceId } from '@civic-ledger/core';
 import pLimit from 'p-limit';
@@ -9,6 +9,37 @@ import type { HttpDeps } from './http';
 
 const DOWNLOAD_CONCURRENCY = 3;
 export const MANIFEST_FILE = 'manifest.json';
+/**
+ * Version of the app-owned manifest format (H3-08). v1 = { schema_version, source,
+ * checksum, retrievedAt, upstream, files[] }. Manifests written before versioning have no
+ * field and the same v1 shape; any other version is refused rather than misread.
+ */
+export const MANIFEST_SCHEMA_VERSION = 1;
+const SUPPORTED_MANIFEST_VERSIONS: readonly number[] = [MANIFEST_SCHEMA_VERSION];
+
+export interface SnapshotManifest {
+  schema_version: number;
+  source: string;
+}
+
+/** Reads `manifest.json` from a snapshot directory, or null when there is none. */
+export async function readManifest(directory: string): Promise<SnapshotManifest | null> {
+  let text: string;
+  try {
+    text = await readFile(join(directory, MANIFEST_FILE), 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw error;
+  }
+  const raw = JSON.parse(text) as { schema_version?: unknown; source?: unknown };
+  const version = raw.schema_version ?? MANIFEST_SCHEMA_VERSION;
+  if (typeof version !== 'number' || !SUPPORTED_MANIFEST_VERSIONS.includes(version)) {
+    throw new Error(
+      `${join(directory, MANIFEST_FILE)}: manifest schema_version ${String(version)} is not supported (this build reads ${SUPPORTED_MANIFEST_VERSIONS.join(', ')})`,
+    );
+  }
+  return { schema_version: version, source: String(raw.source ?? '') };
+}
 
 /** `data/raw/<source>/<YYYY-MM-DD>/`: one snapshot directory per source and UTC day. */
 export function snapshotDirectory(rawRoot: string, source: SourceId, at: Date): string {
@@ -51,7 +82,7 @@ export async function fetchSnapshot(
           if (resolve(request.localPath) !== resolve(targetPath)) {
             await copyFile(request.localPath, targetPath);
           }
-          return { fileName: request.fileName, ...(await hashFile(targetPath)) };
+          return { fileName: request.fileName, ...(await hashFile(targetPath, ctx.signal)) };
         }
         if (!request.url) throw new Error(`Fetch request ${request.fileName} has no url`);
         const file = await downloadToFile(
@@ -64,6 +95,7 @@ export async function fetchSnapshot(
             headers: request.headers,
             signal: ctx.signal,
             logger: ctx.logger,
+            maxBytes: ctx.maxDownloadBytes,
           },
           http,
         );
@@ -88,7 +120,12 @@ export async function snapshotFromDirectory(
   plan: FetchPlan,
   directory: string,
   upstream: Record<string, number | null>,
+  signal?: AbortSignal,
 ): Promise<RawSnapshot> {
+  const manifest = await readManifest(directory);
+  if (manifest?.source && manifest.source !== plan.source) {
+    throw new Error(`Snapshot ${directory} belongs to ${manifest.source}, not ${plan.source}`);
+  }
   const files: SnapshotFile[] = [];
   let newest = 0;
   for (const request of plan.requests) {
@@ -98,7 +135,7 @@ export async function snapshotFromDirectory(
       throw new Error(`Snapshot ${directory} is missing ${request.fileName}`);
     }
     newest = Math.max(newest, info.mtimeMs);
-    files.push({ fileName: request.fileName, ...(await hashFile(path)) });
+    files.push({ fileName: request.fileName, ...(await hashFile(path, signal)) });
   }
   return {
     source: plan.source,
@@ -113,6 +150,7 @@ export async function snapshotFromDirectory(
 async function writeManifest(snapshot: RawSnapshot, plan: FetchPlan): Promise<void> {
   const urls = new Map(plan.requests.map((r) => [r.fileName, r.url ?? r.localPath ?? null]));
   const manifest = {
+    schema_version: MANIFEST_SCHEMA_VERSION,
     source: snapshot.source,
     checksum: snapshot.checksum,
     retrievedAt: snapshot.retrievedAt.toISOString(),

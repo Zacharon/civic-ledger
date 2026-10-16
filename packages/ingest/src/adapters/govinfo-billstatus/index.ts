@@ -1,5 +1,5 @@
 import type { SourceAdapter } from '../../adapter';
-import { loadBillstatus } from './load';
+import { BILL_CHILD_TABLES, loadBillstatus } from './load';
 import { BILL_TYPES, type BillRecord, billstatusZip, parseBillstatus } from './parse';
 
 const BASE_URL = 'https://www.govinfo.gov/bulkdata/BILLSTATUS';
@@ -25,6 +25,15 @@ export const govinfoBillstatusAdapter: SourceAdapter<BillRecord> = {
   version: 'govinfo-billstatus@1',
   dependsOn: ['congress-legislators', 'voteview'],
   scopes: ['congress'],
+  shrinkDatasets: [
+    { table: 'bill', loaded: 'bills', scopeColumn: 'congress' },
+    ...BILL_CHILD_TABLES.map(({ table, loaded, swept }) => ({
+      table,
+      loaded,
+      swept,
+      scopeVia: { column: 'bill_id', table: 'bill', scopeColumn: 'congress' as const },
+    })),
+  ],
   async plan(scope) {
     const congress = congressOf(scope);
     return {
@@ -37,6 +46,6 @@ export const govinfoBillstatusAdapter: SourceAdapter<BillRecord> = {
       })),
     };
   },
-  parse: (snapshot, scope) => parseBillstatus(snapshot, congressOf(scope)),
+  parse: (snapshot, scope, ctx) => parseBillstatus(snapshot, congressOf(scope), ctx),
   load: loadBillstatus,
 };

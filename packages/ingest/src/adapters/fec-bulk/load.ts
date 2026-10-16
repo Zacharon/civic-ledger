@@ -16,17 +16,48 @@ import type { LoadContext, LoadCounts } from '../../adapter';
 import { kindBatches, lastPerKey, ofKind, provenance } from '../../runtime/batch';
 import { Counts } from '../../runtime/counts';
 import { identifierMap, type OfficeKey, OfficeResolver } from '../lookups';
-import type {
-  CandidateRecord,
-  CommitteeRecord,
-  ContributionRecord,
-  FecRecord,
-  IeRecord,
-  LinkRecord,
-  StatsRecord,
-  SummaryRecord,
-  TotalsRecord,
+import {
+  type CandidateRecord,
+  type CommitteeRecord,
+  type ContributionRecord,
+  contributionFromPas2,
+  expenditureFromRow,
+  type FecRecord,
+  type IeRecord,
+  type LinkRecord,
+  type StatsRecord,
+  type SummaryRecord,
+  type TotalsRecord,
 } from './parse';
+import {
+  createIeStage,
+  createPas2Stage,
+  dedupeStagedIe,
+  dedupeStagedPas2,
+  dropIeStage,
+  dropPas2Stage,
+  keptIePages,
+  keptPas2Pages,
+  stageIe,
+  stagePas2,
+} from './stage';
+
+/** Tables the cycle sweep deletes from, with their loaded and per-table sweep counters. */
+export const SWEPT_CYCLE_TABLES = [
+  {
+    table: 'committee_contribution',
+    loaded: 'contributions',
+    swept: 'stale_contributions_deleted',
+  },
+  {
+    table: 'independent_expenditure',
+    loaded: 'independent_expenditures',
+    swept: 'stale_independent_expenditures_deleted',
+  },
+  { table: 'candidate_cycle_totals', loaded: 'totals', swept: 'stale_totals_deleted' },
+  { table: 'committee_link', loaded: 'committee_links', swept: 'stale_committee_links_deleted' },
+  { table: 'candidate_cycle_summary', loaded: 'summaries', swept: 'stale_summaries_deleted' },
+] as const;
 
 const COUNT_KEYS = [
   'committees',
@@ -65,6 +96,11 @@ const COUNT_KEYS = [
   'ie_unattributed_dropped',
   'ie_candidate_ids_uppercased',
   'stale_rows_deleted',
+  'stale_contributions_deleted',
+  'stale_independent_expenditures_deleted',
+  'stale_totals_deleted',
+  'stale_committee_links_deleted',
+  'stale_summaries_deleted',
 ] as const;
 type FecCounts = Counts<(typeof COUNT_KEYS)[number]>;
 
@@ -84,6 +120,8 @@ interface State {
   attributedTotals: Map<string, { personId: number; coverageEndDate: string | null }>;
   electionYear: Map<string, number | null>;
   offices: OfficeResolver;
+  pas2Staged: boolean;
+  ieStaged: boolean;
 }
 
 /** Chamber of each person's latest term. */
@@ -116,6 +154,8 @@ export async function loadFec(
     attributedTotals: new Map(),
     electionYear: new Map(),
     offices: new OfficeResolver(),
+    pas2Staged: false,
+    ieStaged: false,
   };
 
   for await (const { kind, items } of kindBatches(records)) {
@@ -126,14 +166,55 @@ export async function loadFec(
     if (kind === 'totals') s.pendingTotals.push(...ofKind(items, 'totals'));
     if (kind !== 'summary' && s.pendingSummaries.length > 0) await flushSummaries(s);
     if (kind === 'summary') s.pendingSummaries.push(...ofKind(items, 'summary'));
-    if (kind === 'contribution') await loadContributions(s, ofKind(items, 'contribution'));
-    if (kind === 'ie') await loadExpenditures(s, ofKind(items, 'ie'));
+    if (kind !== 'pas2_row' && s.pas2Staged) await flushPas2(s);
+    if (kind === 'pas2_row') await stagePas2Rows(s, ofKind(items, 'pas2_row'));
+    if (kind !== 'ie_row' && s.ieStaged) await flushIe(s);
+    if (kind === 'ie_row') await stageIeRows(s, ofKind(items, 'ie_row'));
     if (kind === 'stats') for (const stats of ofKind(items, 'stats')) recordStats(s, stats);
   }
   if (s.pendingTotals.length > 0) await flushTotals(s);
   if (s.pendingSummaries.length > 0) await flushSummaries(s);
+  if (s.pas2Staged) await flushPas2(s);
+  if (s.ieStaged) await flushIe(s);
   await deleteStaleCycleRows(s);
   return s.counts.toJSON();
+}
+
+async function stagePas2Rows(s: State, rows: Parameters<typeof stagePas2>[1]) {
+  if (!s.pas2Staged) await createPas2Stage(s.ctx.db);
+  s.pas2Staged = true;
+  await stagePas2(s.ctx.db, rows);
+}
+
+/** Dedupes the staged pas2 rows in SQL and loads the kept ones one page at a time. */
+async function flushPas2(s: State) {
+  s.pas2Staged = false;
+  const stats = await dedupeStagedPas2(s.ctx.db);
+  s.counts.add('pas2_amendment_superseded', stats.amendmentSuperseded);
+  s.counts.add('pas2_duplicate_reports', stats.duplicateReports);
+  for await (const page of keptPas2Pages(s.ctx.db)) {
+    await loadContributions(s, page.map(contributionFromPas2));
+  }
+  await dropPas2Stage(s.ctx.db);
+}
+
+async function stageIeRows(s: State, rows: Parameters<typeof stageIe>[1]) {
+  if (!s.ieStaged) await createIeStage(s.ctx.db);
+  s.ieStaged = true;
+  await stageIe(s.ctx.db, rows);
+}
+
+async function flushIe(s: State) {
+  s.ieStaged = false;
+  const stats = await dedupeStagedIe(s.ctx.db);
+  s.counts.add('ie_superseded_filings', stats.superseded);
+  s.counts.add('ie_duplicate_reports', stats.duplicateReports);
+  s.counts.add('ie_invalid_support_oppose', stats.invalidSupportOppose);
+  s.counts.add('ie_implausible_amount_dropped', stats.implausibleAmount);
+  for await (const page of keptIePages(s.ctx.db)) {
+    await loadExpenditures(s, page.map(expenditureFromRow));
+  }
+  await dropIeStage(s.ctx.db);
 }
 
 async function loadCommittees(s: State, rows: CommitteeRecord[]) {
@@ -538,15 +619,9 @@ function recordStats(s: State, stats: StatsRecord) {
     s.counts.add('pas2_rows', stats.pas2.rows);
     s.counts.add('pas2_excluded_type', stats.pas2.excludedType);
     s.counts.add('pas2_memo_dropped', stats.pas2.memoDropped);
-    s.counts.add('pas2_amendment_superseded', stats.pas2.amendmentSuperseded);
-    s.counts.add('pas2_duplicate_reports', stats.pas2.duplicateReports);
   }
   if (stats.ie) {
     s.counts.add('ie_rows', stats.ie.rows);
-    s.counts.add('ie_superseded_filings', stats.ie.superseded);
-    s.counts.add('ie_duplicate_reports', stats.ie.duplicateReports);
-    s.counts.add('ie_invalid_support_oppose', stats.ie.invalidSupportOppose);
-    s.counts.add('ie_implausible_amount_dropped', stats.ie.implausibleAmount);
     s.counts.add('ie_candidate_ids_uppercased', stats.ie.normalizedCandidateIds);
   }
 }
@@ -567,7 +642,8 @@ async function deleteStaleCycleRows(s: State) {
       | typeof committeeLink,
   ) =>
     and(eq(table.sourceId, sourceId), eq(table.cycle, s.cycle), ne(table.ingestRunId, ingestRunId));
-  const deleted = await db.transaction(async (tx: Db) => {
+  // Per-table counters let the shrink guard judge each table on its own (DECISIONS A51).
+  await db.transaction(async (tx: Db) => {
     const a = await tx
       .delete(committeeContribution)
       .where(stale(committeeContribution))
@@ -588,7 +664,11 @@ async function deleteStaleCycleRows(s: State) {
       .delete(candidateCycleSummary)
       .where(stale(candidateCycleSummary))
       .returning({ id: candidateCycleSummary.id });
-    return a.length + b.length + c.length + d.length + e.length;
+    s.counts.set('stale_contributions_deleted', a.length);
+    s.counts.set('stale_independent_expenditures_deleted', b.length);
+    s.counts.set('stale_totals_deleted', c.length);
+    s.counts.set('stale_committee_links_deleted', d.length);
+    s.counts.set('stale_summaries_deleted', e.length);
+    s.counts.set('stale_rows_deleted', a.length + b.length + c.length + d.length + e.length);
   });
-  s.counts.set('stale_rows_deleted', deleted);
 }

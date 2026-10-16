@@ -1,7 +1,7 @@
 import {
   committeeContribution,
   committeeIndustry,
-  INGEST_STATUSES,
+  type INGEST_STATUSES,
   ingestRun,
   personCard,
   source,
@@ -11,9 +11,21 @@ import { z } from 'zod';
 import { defineCapability } from '../capability';
 import { CentsSchema, EmptyInputSchema, IsoDateTimeSchema, ShareSchema } from '../schemas/common';
 
+/**
+ * `sources.status@1` keeps its original status values: a client of v1 never sees a new
+ * enum member. A `cancelled` run (DECISIONS A52) is reported as `failed`; its error text
+ * starts with `cancelled:`.
+ */
+const PUBLIC_RUN_STATUSES = [
+  'running',
+  'succeeded',
+  'failed',
+  'partial',
+] as const satisfies readonly (typeof INGEST_STATUSES)[number][];
+
 const RunSchema = z.object({
   id: z.int(),
-  status: z.enum(INGEST_STATUSES),
+  status: z.enum(PUBLIC_RUN_STATUSES),
   adapterVersion: z.string(),
   scope: z.string(),
   startedAt: IsoDateTimeSchema,
@@ -109,7 +121,7 @@ function toRun(run: RunRow | undefined): z.input<typeof RunSchema> | null {
   if (!run) return null;
   return {
     id: run.id,
-    status: run.status,
+    status: run.status === 'cancelled' ? 'failed' : run.status,
     adapterVersion: run.adapterVersion,
     scope: run.scope,
     startedAt: run.startedAt.toISOString(),

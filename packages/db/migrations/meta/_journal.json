@@ -36,6 +36,13 @@
       "when": 1792133011279,
       "tag": "0004_person_card_scope_and_shares",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792141212036,
+      "tag": "0005_ingest_receipts_and_coverage",
+      "breakpoints": true
     }
   ]
 }

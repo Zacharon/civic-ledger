@@ -1,5 +1,5 @@
 import type { SourceAdapter } from '../../adapter';
-import { loadFec } from './load';
+import { loadFec, SWEPT_CYCLE_TABLES } from './load';
 import { type FecRecord, fecFiles, parseFec } from './parse';
 
 const BASE_URL = 'https://www.fec.gov/files/bulk-downloads';
@@ -31,6 +31,16 @@ export const fecBulkAdapter: SourceAdapter<FecRecord> = {
   version: 'fec-bulk@2',
   dependsOn: ['congress-legislators'],
   scopes: ['cycle'],
+  shrinkDatasets: [
+    { table: 'committee', loaded: 'committees' },
+    { table: 'candidacy', loaded: 'candidacies' },
+    ...SWEPT_CYCLE_TABLES.map(({ table, loaded, swept }) => ({
+      table,
+      loaded,
+      swept,
+      scopeColumn: 'cycle' as const,
+    })),
+  ],
   async plan(scope) {
     const cycle = cycleOf(scope);
     const f = fecFiles(cycle);
@@ -49,6 +59,6 @@ export const fecBulkAdapter: SourceAdapter<FecRecord> = {
       ],
     };
   },
-  parse: (snapshot, scope) => parseFec(snapshot, cycleOf(scope)),
+  parse: (snapshot, scope, ctx) => parseFec(snapshot, cycleOf(scope), ctx),
   load: loadFec,
 };

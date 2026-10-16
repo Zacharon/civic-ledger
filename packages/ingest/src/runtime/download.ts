@@ -28,6 +28,8 @@ export interface DownloadOptions {
   signal?: AbortSignal;
   logger?: Logger;
   policy?: RetryPolicy;
+  /** Largest body accepted (DECISIONS A53); a larger one fails and leaves no file. */
+  maxBytes?: number;
 }
 
 interface CacheEntry {
@@ -80,13 +82,24 @@ export async function downloadToFile(
     return { fileName, sha256: reusable.sha256, bytes: reusable.bytes, notModified: true };
   }
   if (!response.body) throw new Error(`GET ${options.url}: empty response body`);
+  const declared = Number(response.headers.get('content-length') ?? Number.NaN);
+  if (options.maxBytes !== undefined && declared > options.maxBytes) {
+    await response.body.cancel();
+    throw new Error(`GET ${options.url}: body exceeds the ${options.maxBytes}-byte download cap`);
+  }
 
   const hash = createHash('sha256');
   let bytes = 0;
   const tap = new Transform({
     transform(chunk: Buffer, _encoding, callback) {
-      hash.update(chunk);
       bytes += chunk.length;
+      if (options.maxBytes !== undefined && bytes > options.maxBytes) {
+        callback(
+          new Error(`GET ${options.url}: body exceeds the ${options.maxBytes}-byte download cap`),
+        );
+        return;
+      }
+      hash.update(chunk);
       callback(null, chunk);
     },
   });
@@ -113,11 +126,15 @@ export async function downloadToFile(
   return { fileName, sha256, bytes, notModified: false };
 }
 
-/** sha256 + size of a file on disk, streamed. */
-export async function hashFile(path: string): Promise<{ sha256: string; bytes: number }> {
+/** sha256 + size of a file on disk, streamed; stops between chunks when `signal` aborts. */
+export async function hashFile(
+  path: string,
+  signal?: AbortSignal,
+): Promise<{ sha256: string; bytes: number }> {
   const hash = createHash('sha256');
   let bytes = 0;
   for await (const chunk of createReadStream(path) as AsyncIterable<Buffer>) {
+    signal?.throwIfAborted();
     hash.update(chunk);
     bytes += chunk.length;
   }

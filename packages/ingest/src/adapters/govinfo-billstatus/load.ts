@@ -17,6 +17,17 @@ import { identifierMap } from '../lookups';
 import { isFinalPassageQuestion } from './final-passage';
 import type { BillRecord } from './parse';
 
+/** Child tables the congress sweep deletes from, with their per-table counters. */
+export const BILL_CHILD_TABLES = [
+  { table: 'bill_subject', loaded: 'bill_subjects', swept: 'stale_bill_subjects_deleted' },
+  {
+    table: 'bill_policy_area',
+    loaded: 'bill_policy_areas',
+    swept: 'stale_bill_policy_areas_deleted',
+  },
+  { table: 'rollcall_bill', loaded: 'rollcall_links', swept: 'stale_rollcall_links_deleted' },
+] as const;
+
 const COUNT_KEYS = [
   'bills',
   'bills_sponsor_matched',
@@ -30,6 +41,9 @@ const COUNT_KEYS = [
   'rollcall_links_final_passage',
   'recorded_votes_without_rollcall',
   'stale_rows_deleted',
+  'stale_bill_subjects_deleted',
+  'stale_bill_policy_areas_deleted',
+  'stale_rollcall_links_deleted',
 ] as const;
 
 const billKey = (b: { congress: number; billType: string; number: number }) =>
@@ -215,7 +229,7 @@ export async function loadBillstatus(
 
   // BILLSTATUS is the full record of the congress: drop child rows it no longer asserts.
   const congressBills = db.select({ id: bill.id }).from(bill).where(eq(bill.congress, congress));
-  const deleted = await db.transaction(async (tx) => {
+  await db.transaction(async (tx) => {
     const stale = <T extends typeof billSubject | typeof billPolicyArea | typeof rollcallBill>(
       t: T,
     ) =>
@@ -236,8 +250,10 @@ export async function loadBillstatus(
       .delete(rollcallBill)
       .where(stale(rollcallBill))
       .returning({ id: rollcallBill.id });
-    return a.length + b.length + c.length;
+    counts.set('stale_bill_subjects_deleted', a.length);
+    counts.set('stale_bill_policy_areas_deleted', b.length);
+    counts.set('stale_rollcall_links_deleted', c.length);
+    counts.set('stale_rows_deleted', a.length + b.length + c.length);
   });
-  counts.set('stale_rows_deleted', deleted);
   return counts.toJSON();
 }

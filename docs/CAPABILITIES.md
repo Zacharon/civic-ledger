@@ -43,14 +43,26 @@ for public reads; it does not need to.
 
 ## Write semantics (`ingest.run@1`)
 
-- Input: `{ source, scope (cycle|congress), snapshotPath? }`; idempotency =
-  `(source, adapterVersion, snapshotChecksum)`.
-- Same key → returns the original `ingest_run` (no second load). Same source
-  running → refused with `conflict: run_in_progress` (advisory lock).
+- Input: `{ source, scope (cycle|congress|all), snapshotPath?, forceReplay? }`;
+  idempotency = `(source, adapterVersion, snapshotChecksum)`.
+- Same key, still the latest successful run of that scope → returns the original
+  `ingest_run` (`deduplicated: true`, no second load). Same key but superseded by a later
+  run → refused (`failed`, `snapshot_superseded: ...`) unless `forceReplay`, which loads it
+  as a new run with `replayOf` (DECISIONS A54). Same source running → refused with
+  `conflict: run_in_progress` (advisory lock).
 - Receipt = the `ingest_run` row: actor (`operator`), operation, target source and
-  scope, counts, checksum, before/after read-model refresh time, outcome, error.
-- Partial failure: run marked `failed`, batches already committed are valid
-  upserts; rerun converges. Read model refreshes only after success.
+  scope, counts, checksum, before/after read-model refresh time, outcome
+  (`succeeded` / `failed` / `cancelled`), error, `note` (e.g. an overridden shrink guard),
+  `replayOf`.
+- Atomicity (DECISIONS A50): load, shrink guard, refresh of both read models and the
+  `succeeded` receipt are one transaction. Any failure, cancellation (SIGINT or the run
+  deadline, A52) or process loss before its commit rolls back every fact, both read models
+  and the counts; the receipt says `failed` or `cancelled` (a dead process leaves `running`,
+  later marked failed as abandoned). There are no partially committed batches; a rerun
+  starts from the previous state. Written before the transaction: the source metadata row
+  and the `running` receipt with its checksum.
+- `sources.status@1` keeps its v1 status values: a `cancelled` run is reported as `failed`
+  with an error starting `cancelled:`.
 
 ## Seven-gate evidence plan
 
