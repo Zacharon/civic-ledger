@@ -1,0 +1,81 @@
+name: Agent parity
+
+# Additive to ci.yml. Proves the HTTP API and the MCP server return the same payloads and
+# errors as direct dispatch, then smoke-tests the built Next server (health, headers, 404s).
+# No network beyond installing packages; the database is an in-process PGlite seeded with
+# the fictional dev dataset.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-parity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      TRUSTED_PROXY_HEADER: x-forwarded-for
+      PORT: 3411
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Parity suite (dispatch = HTTP = MCP)
+        run: pnpm vitest run apps/web/test/parity.test.ts apps/web/test/openapi.test.ts packages/mcp
+
+      - name: Build and start the web app on a seeded PGlite database
+        working-directory: apps/web
+        run: |
+          pnpm exec tsx ../../packages/db/src/cli/migrate.ts
+          pnpm exec tsx ../../packages/db/src/cli/seed.ts
+          pnpm build
+          nohup pnpm exec next start -p "$PORT" > "$RUNNER_TEMP/next.log" 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS "http://localhost:$PORT/api/health" > /dev/null && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/next.log"; exit 1
+
+      - name: Smoke test the running server
+        run: |
+          B="http://localhost:$PORT"
+          H='x-forwarded-for: 198.51.100.7'
+          curl -fsS "$B/api/health?strict=1" | grep -q '"status":"ok"'
+          curl -fsS -D headers.txt "$B/api/v1/people.search?limit=2&chamber=senate" -H "$H" | grep -q '"items"'
+          grep -qi '^etag:' headers.txt
+          grep -qi '^cache-control: public, max-age=0, s-maxage=300' headers.txt
+          grep -qi '^x-request-id:' headers.txt
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$B/api/v1/curated.validate" -H "$H")" = 404
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$B/api/v1/people.search?limit=0" -H "$H")" = 400
+          curl -fsS "$B/api/v1/openapi.json" | grep -q '"openapi":"3.1.0"'
+          if curl -fsS "$B/api/v1/openapi.json" | grep -q 'ingest.run'; then exit 1; fi
+
+      - name: Rate limit returns 429 with Retry-After
+        run: |
+          B="http://localhost:$PORT"
+          codes=""
+          for i in $(seq 1 12); do
+            codes="$codes $(curl -s -o /dev/null -w '%{http_code}' -X POST "$B/api/v1/frameworks.evaluate" \
+              -H 'x-forwarded-for: 198.51.100.99' -H 'content-type: application/json' -d '{}')"
+          done
+          echo "$codes"
+          echo "$codes" | grep -q 429
+          curl -si -X POST "$B/api/v1/frameworks.evaluate" -H 'x-forwarded-for: 198.51.100.99' \
+            -H 'content-type: application/json' -d '{}' | grep -qi '^retry-after:'
+
+      - name: Server log on failure
+        if: failure()
+        run: cat "$RUNNER_TEMP/next.log" || true

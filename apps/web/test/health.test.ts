@@ -1,10 +1,8 @@
-import { createDb } from '@civic-ledger/core';
-import { runMigrations } from '@civic-ledger/db/migrate';
 import { describe, expect, it } from 'vitest';
 import { loadApiConfig } from '../src/server/api/config';
 import { assessSources, createHealthHandler, type HealthReport } from '../src/server/api/health';
 import { createLogger } from '../src/server/api/logger';
-import { ORIGIN, seededStack } from './stack';
+import { closedDb, ORIGIN, seededStack } from './stack';
 
 const stack = seededStack();
 const config = loadApiConfig({}).health;
@@ -46,9 +44,7 @@ describe('GET /api/health', () => {
   });
 
   it('is 503 and reveals no driver detail when the database is unavailable', async () => {
-    const broken = createDb({ kind: 'pglite' });
-    await runMigrations(broken);
-    await broken.close();
+    const broken = await closedDb();
     const handler = createHealthHandler({ context: () => ({ db: broken.db }), config, logger });
     const res = await call(handler);
     expect(res.status).toBe(503);

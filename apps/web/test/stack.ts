@@ -126,3 +126,11 @@ export function toolErrorBody(result: Awaited<ReturnType<Stack['mcp']>>): ErrorB
 export function plain<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
+
+/** A database whose connection is already closed: every query fails (simulates an outage). */
+export async function closedDb(): Promise<DbHandle> {
+  const handle = createDb({ kind: 'pglite' });
+  if (handle.kind === 'pglite') await handle.client.waitReady;
+  await handle.close();
+  return handle;
+}

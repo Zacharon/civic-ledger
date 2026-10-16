@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { createDb, type DbConfig, dbConfigFromEnv } from '@civic-ledger/core';
+import { createDb, type DbConfig, dbConfigFromEnv, dispatchByName } from '@civic-ledger/core';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createMcpServer, SERVER_NAME } from './server';
 
@@ -18,13 +18,21 @@ function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** `pnpm --filter` runs scripts inside the package, so relative paths follow where the user typed. */
+const invokedFrom = process.env.INIT_CWD ?? process.cwd();
+
 function parseConfig(argv: string[]): DbConfig | undefined {
   if (argv.includes('--help') || argv.includes('-h')) return undefined;
   const flag = argv.indexOf('--pglite');
-  if (flag === -1) return dbConfigFromEnv();
-  const dir = argv[flag + 1];
-  if (!dir) throw new Error('--pglite needs a directory');
-  return { kind: 'pglite', dataDir: resolve(dir) };
+  if (flag !== -1) {
+    const dir = argv[flag + 1];
+    if (!dir) throw new Error('--pglite needs a directory');
+    return { kind: 'pglite', dataDir: resolve(invokedFrom, dir) };
+  }
+  const config = dbConfigFromEnv();
+  return config.kind === 'pglite'
+    ? { kind: 'pglite', dataDir: resolve(invokedFrom, '.pglite/dev') }
+    : config;
 }
 
 async function main(): Promise<void> {
@@ -34,6 +42,13 @@ async function main(): Promise<void> {
     return;
   }
   const handle = createDb(config);
+  // Fail at startup, not on the first tool call, when the database is empty or unreachable.
+  try {
+    await dispatchByName('sources.status', {}, { db: handle.db });
+  } catch (error) {
+    const cause = error instanceof Error && error.cause ? error.cause : error;
+    throw new Error(`database is not ready (run pnpm db:migrate and db:seed): ${describe(cause)}`);
+  }
   const server = createMcpServer({
     ctx: { db: handle.db },
     onError: (cause, tool) => log('error', 'tool failed', { tool, cause: describe(cause) }),
@@ -45,6 +60,8 @@ async function main(): Promise<void> {
   };
   process.once('SIGINT', () => void shutdown());
   process.once('SIGTERM', () => void shutdown());
+  // The client closing our stdin is the normal way a stdio session ends.
+  process.stdin.once('end', () => void shutdown());
   await server.connect(new StdioServerTransport());
   log('info', 'mcp server ready', { database: config.kind });
 }

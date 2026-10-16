@@ -1,5 +1,4 @@
-import { createDb, publicCapabilities } from '@civic-ledger/core';
-import { runMigrations } from '@civic-ledger/db/migrate';
+import { publicCapabilities } from '@civic-ledger/core';
 import { describe, expect, it } from 'vitest';
 import { CACHE_CLASS, cacheControlFor } from '../src/server/api/cache';
 import {
@@ -8,7 +7,7 @@ import {
   MAX_BODY_BYTES,
 } from '../src/server/api/handler';
 import { createLogger } from '../src/server/api/logger';
-import { ORIGIN, seededStack } from './stack';
+import { closedDb, ORIGIN, seededStack } from './stack';
 
 const stack = seededStack();
 
@@ -195,9 +194,7 @@ describe('cache policy', () => {
 
 describe('failures and logging', () => {
   it('hides internals from the body and logs the cause, never headers', async () => {
-    const broken = createDb({ kind: 'pglite' });
-    await runMigrations(broken);
-    await broken.close();
+    const broken = await closedDb();
     const lines: string[] = [];
     const handler = handlerWith(lines, { ctx: (() => ({ db: broken.db })) as () => never });
 
