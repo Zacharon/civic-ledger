@@ -1,0 +1,58 @@
+[
+ {
+  "id": {
+   "bioguide": "B000546",
+   "govtrack": 401521,
+   "icpsr": 786,
+   "house_history": 9479,
+   "wikipedia": "Theodorick Bland (congressman)",
+   "wikidata": "Q1749152",
+   "google_entity_id": "kg:/m/033mf4"
+  },
+  "name": {
+   "first": "Theodorick",
+   "last": "Bland"
+  },
+  "bio": {
+   "birthday": "1742-03-21",
+   "gender": "M"
+  },
+  "terms": [
+   {
+    "type": "rep",
+    "start": "1789-03-04",
+    "end": "1790-06-01",
+    "state": "VA",
+    "district": 9
+   }
+  ]
+ },
+ {
+  "id": {
+   "bioguide": "C000538",
+   "govtrack": 402671,
+   "icpsr": 1859,
+   "wikipedia": "George Clymer",
+   "house_history": 11120,
+   "wikidata": "Q708913",
+   "google_entity_id": "kg:/m/01mpsj"
+  },
+  "name": {
+   "first": "George",
+   "last": "Clymer"
+  },
+  "bio": {
+   "birthday": "1739-03-16",
+   "gender": "M"
+  },
+  "terms": [
+   {
+    "type": "rep",
+    "start": "1789-03-04",
+    "end": "1791-03-03",
+    "state": "PA",
+    "district": -1
+   }
+  ]
+ }
+]

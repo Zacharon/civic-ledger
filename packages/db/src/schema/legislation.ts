@@ -68,7 +68,12 @@ export const billSubject = pgTable(
   ],
 );
 
-/** Voteview rollcall; `number` is the per-congress, per-chamber roll number. */
+/**
+ * Voteview rollcall. `number` is Voteview's own `rollnumber`: unique per congress and
+ * chamber, continuous across sessions and skipping quorum calls, so it is NOT the clerk's
+ * official number. The official number is `clerkNumber` within `session` (restarts each
+ * session); BILLSTATUS recorded votes join on (congress, chamber, session, clerkNumber).
+ */
 export const rollcall = pgTable(
   'rollcall',
   {
@@ -76,6 +81,8 @@ export const rollcall = pgTable(
     congress: integer('congress').notNull(),
     chamber: chamber('chamber').notNull(),
     number: integer('number').notNull(),
+    session: integer('session'),
+    clerkNumber: integer('clerk_number'),
     voteDate: date('vote_date').notNull(),
     question: text('question').notNull(),
     description: text('description'),
@@ -86,6 +93,7 @@ export const rollcall = pgTable(
   },
   (t) => [
     unique('rollcall_natural_key').on(t.congress, t.chamber, t.number),
+    index('rollcall_clerk_idx').on(t.congress, t.chamber, t.session, t.clerkNumber),
     index('rollcall_vote_date_idx').on(t.voteDate),
     ...provenanceIndexes('rollcall', t),
   ],

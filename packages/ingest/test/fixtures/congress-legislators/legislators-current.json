@@ -1,0 +1,763 @@
+[
+ {
+  "id": {
+   "bioguide": "C000127",
+   "thomas": "00172",
+   "lis": "S275",
+   "govtrack": 300018,
+   "opensecrets": "N00007836",
+   "votesmart": 27122,
+   "fec": [
+    "S8WA00194",
+    "H2WA01054"
+   ],
+   "cspan": 26137,
+   "wikipedia": "Maria Cantwell",
+   "house_history": 10608,
+   "ballotpedia": "Maria Cantwell",
+   "maplight": 544,
+   "icpsr": 39310,
+   "wikidata": "Q22250",
+   "google_entity_id": "kg:/m/01x68t",
+   "pictorial": 13398
+  },
+  "name": {
+   "first": "Maria",
+   "last": "Cantwell",
+   "official_full": "Maria Cantwell"
+  },
+  "bio": {
+   "birthday": "1958-10-13",
+   "gender": "F"
+  },
+  "terms": [
+   {
+    "type": "rep",
+    "start": "1993-01-05",
+    "end": "1995-01-03",
+    "state": "WA",
+    "district": 1,
+    "party": "Democrat"
+   },
+   {
+    "type": "sen",
+    "start": "2001-01-03",
+    "end": "2007-01-03",
+    "state": "WA",
+    "class": 1,
+    "party": "Democrat",
+    "url": "http://cantwell.senate.gov"
+   },
+   {
+    "type": "sen",
+    "start": "2007-01-04",
+    "end": "2013-01-03",
+    "state": "WA",
+    "class": 1,
+    "party": "Democrat",
+    "url": "http://cantwell.senate.gov",
+    "address": "311 HART SENATE OFFICE BUILDING WASHINGTON DC 20510",
+    "phone": "202-224-3441",
+    "fax": "202-228-0514",
+    "contact_form": "http://www.cantwell.senate.gov/contact/",
+    "office": "311 Hart Senate Office Building"
+   },
+   {
+    "type": "sen",
+    "start": "2013-01-03",
+    "end": "2019-01-03",
+    "state": "WA",
+    "party": "Democrat",
+    "class": 1,
+    "url": "https://www.cantwell.senate.gov",
+    "address": "511 Hart Senate Office Building Washington DC 20510",
+    "phone": "202-224-3441",
+    "fax": "202-228-0514",
+    "contact_form": "http://www.cantwell.senate.gov/public/index.cfm/email-maria",
+    "office": "511 Hart Senate Office Building",
+    "state_rank": "junior",
+    "rss_url": "http://www.cantwell.senate.gov/public/index.cfm/rss/feed"
+   },
+   {
+    "type": "sen",
+    "start": "2019-01-03",
+    "end": "2025-01-03",
+    "state": "WA",
+    "class": 1,
+    "party": "Democrat",
+    "state_rank": "junior",
+    "url": "https://www.cantwell.senate.gov",
+    "rss_url": "http://www.cantwell.senate.gov/public/index.cfm/rss/feed",
+    "contact_form": "https://www.cantwell.senate.gov/public/index.cfm/email-maria",
+    "address": "511 Hart Senate Office Building Washington DC 20510",
+    "office": "511 Hart Senate Office Building",
+    "phone": "202-224-3441"
+   },
+   {
+    "type": "sen",
+    "start": "2025-01-03",
+    "end": "2031-01-03",
+    "state": "WA",
+    "class": 1,
+    "state_rank": "junior",
+    "party": "Democrat",
+    "url": "https://www.cantwell.senate.gov",
+    "rss_url": "http://www.cantwell.senate.gov/public/index.cfm/rss/feed",
+    "contact_form": "https://www.cantwell.senate.gov/public/index.cfm/email-maria",
+    "address": "511 Hart Senate Office Building Washington DC 20510",
+    "office": "511 Hart Senate Office Building",
+    "phone": "202-224-3441"
+   }
+  ]
+ },
+ {
+  "id": {
+   "bioguide": "N000147",
+   "thomas": "00868",
+   "govtrack": 400295,
+   "opensecrets": "N00001692",
+   "votesmart": 775,
+   "fec": [
+    "H0DC00058"
+   ],
+   "cspan": 882,
+   "wikipedia": "Eleanor Holmes Norton",
+   "house_history": 19016,
+   "maplight": 390,
+   "wikidata": "Q461649",
+   "google_entity_id": "kg:/m/01s_vp",
+   "pictorial": 12980,
+   "ballotpedia": "Eleanor Holmes Norton"
+  },
+  "name": {
+   "first": "Eleanor",
+   "middle": "Holmes",
+   "last": "Norton",
+   "official_full": "Eleanor Holmes Norton"
+  },
+  "bio": {
+   "birthday": "1937-06-13",
+   "gender": "F"
+  },
+  "terms": [
+   {
+    "type": "rep",
+    "start": "1991-01-03",
+    "end": "1993-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat"
+   },
+   {
+    "type": "rep",
+    "start": "1993-01-05",
+    "end": "1995-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat"
+   },
+   {
+    "type": "rep",
+    "start": "1995-01-04",
+    "end": "1997-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat"
+   },
+   {
+    "type": "rep",
+    "start": "1997-01-07",
+    "end": "1999-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat"
+   },
+   {
+    "type": "rep",
+    "start": "1999-01-06",
+    "end": "2001-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat"
+   },
+   {
+    "type": "rep",
+    "start": "2001-01-03",
+    "end": "2003-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat"
+   },
+   {
+    "type": "rep",
+    "start": "2003-01-07",
+    "end": "2005-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat",
+    "url": "http://www.house.gov/norton"
+   },
+   {
+    "type": "rep",
+    "start": "2005-01-04",
+    "end": "2007-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat",
+    "url": "http://www.house.gov/norton"
+   },
+   {
+    "type": "rep",
+    "start": "2007-01-04",
+    "end": "2009-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat",
+    "url": "http://www.house.gov/norton"
+   },
+   {
+    "type": "rep",
+    "start": "2009-01-06",
+    "end": "2011-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat",
+    "url": "http://www.house.gov/norton"
+   },
+   {
+    "type": "rep",
+    "start": "2011-01-05",
+    "end": "2013-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat",
+    "url": "http://www.house.gov/norton",
+    "address": "2136 Rayburn HOB; Washington DC 20515-5100",
+    "phone": "202-225-8050",
+    "fax": "202-225-3002",
+    "contact_form": "http://www.norton.house.gov/forms/contact.html",
+    "office": "2136 Rayburn House Office Building"
+   },
+   {
+    "type": "rep",
+    "start": "2013-01-03",
+    "end": "2015-01-03",
+    "state": "DC",
+    "party": "Democrat",
+    "district": 0,
+    "url": "http://norton.house.gov",
+    "address": "2136 Rayburn HOB; Washington DC 20515-5101",
+    "phone": "202-225-8050",
+    "fax": "202-225-3002",
+    "contact_form": "https://norton.house.gov/contact/email-me",
+    "office": "2136 Rayburn House Office Building",
+    "rss_url": "http://norton.house.gov/index.php?format=feed&amp;type=rss"
+   },
+   {
+    "type": "rep",
+    "start": "2015-01-06",
+    "end": "2017-01-03",
+    "state": "DC",
+    "party": "Democrat",
+    "district": 0,
+    "url": "http://norton.house.gov",
+    "address": "2136 Rayburn HOB; Washington DC 20515-5101",
+    "phone": "202-225-8050",
+    "fax": "202-225-3002",
+    "contact_form": "https://norton.house.gov/contact/email-me",
+    "office": "2136 Rayburn House Office Building",
+    "rss_url": "http://norton.house.gov/index.php?format=feed&amp;type=rss"
+   },
+   {
+    "type": "rep",
+    "start": "2017-01-03",
+    "end": "2019-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat",
+    "phone": "202-225-8050",
+    "url": "https://norton.house.gov",
+    "rss_url": "http://norton.house.gov/index.php?format=feed&amp;type=rss",
+    "address": "2136 Rayburn House Office Building; Washington DC 20515-5101",
+    "office": "2136 Rayburn House Office Building",
+    "fax": "202-225-3002"
+   },
+   {
+    "type": "rep",
+    "start": "2019-01-03",
+    "end": "2021-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat",
+    "phone": "202-225-8050",
+    "address": "2136 Rayburn House Office Building Washington DC 20515-5101",
+    "office": "2136 Rayburn House Office Building",
+    "url": "https://norton.house.gov",
+    "rss_url": "http://norton.house.gov/index.php?format=feed&amp;type=rss"
+   },
+   {
+    "type": "rep",
+    "start": "2021-01-03",
+    "end": "2023-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat",
+    "url": "https://norton.house.gov",
+    "rss_url": "http://norton.house.gov/index.php?format=feed&amp;type=rss",
+    "address": "2136 Rayburn House Office Building Washington DC 20515-5101",
+    "office": "2136 Rayburn House Office Building",
+    "phone": "202-225-8050"
+   },
+   {
+    "type": "rep",
+    "start": "2023-01-03",
+    "end": "2025-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat",
+    "url": "https://norton.house.gov",
+    "rss_url": "http://norton.house.gov/index.php?format=feed&amp;type=rss",
+    "address": "2136 Rayburn House Office Building Washington DC 20515-5101",
+    "office": "2136 Rayburn House Office Building",
+    "phone": "202-225-8050"
+   },
+   {
+    "type": "rep",
+    "start": "2025-01-03",
+    "end": "2027-01-03",
+    "state": "DC",
+    "district": 0,
+    "party": "Democrat",
+    "url": "https://norton.house.gov",
+    "rss_url": "http://norton.house.gov/index.php?format=feed&amp;type=rss",
+    "address": "2136 Rayburn House Office Building Washington DC 20515-5101",
+    "office": "2136 Rayburn House Office Building",
+    "phone": "202-225-8050"
+   }
+  ]
+ },
+ {
+  "id": {
+   "govtrack": 412541,
+   "bioguide": "B001282",
+   "thomas": "02131",
+   "cspan": 61848,
+   "votesmart": 117290,
+   "wikipedia": "Andy Barr",
+   "fec": [
+    "H0KY06104",
+    "S6KY00286"
+   ],
+   "opensecrets": "N00031233",
+   "ballotpedia": "Andy Barr",
+   "maplight": 1765,
+   "icpsr": 21333,
+   "wikidata": "Q3828645",
+   "google_entity_id": "kg:/m/0ddc6r6",
+   "pictorial": 13068
+  },
+  "name": {
+   "first": "Garland",
+   "last": "Barr",
+   "nickname": "Andy",
+   "official_full": "Andy Barr"
+  },
+  "bio": {
+   "gender": "M",
+   "birthday": "1973-07-24"
+  },
+  "terms": [
+   {
+    "type": "rep",
+    "start": "2013-01-03",
+    "end": "2015-01-03",
+    "state": "KY",
+    "party": "Republican",
+    "district": 6,
+    "office": "1432 Longworth House Office Building",
+    "address": "1432 Longworth HOB; Washington DC 20515-1706",
+    "phone": "202-225-4706",
+    "url": "http://barr.house.gov",
+    "rss_url": "http://barr.house.gov/rss.xml",
+    "contact_form": "https://barr.house.gov/contact/email-me"
+   },
+   {
+    "type": "rep",
+    "start": "2015-01-06",
+    "end": "2017-01-03",
+    "state": "KY",
+    "party": "Republican",
+    "district": 6,
+    "office": "1432 Longworth House Office Building",
+    "address": "1432 Longworth HOB; Washington DC 20515-1706",
+    "phone": "202-225-4706",
+    "url": "https://barr.house.gov",
+    "rss_url": "http://barr.house.gov/rss.xml",
+    "contact_form": "https://barr.house.gov/contact/email-me"
+   },
+   {
+    "type": "rep",
+    "start": "2017-01-03",
+    "end": "2019-01-03",
+    "state": "KY",
+    "district": 6,
+    "party": "Republican",
+    "phone": "202-225-4706",
+    "url": "https://barr.house.gov",
+    "rss_url": "http://barr.house.gov/rss.xml",
+    "address": "1427 Longworth House Office Building; Washington DC 20515-1706",
+    "office": "1427 Longworth House Office Building"
+   },
+   {
+    "type": "rep",
+    "start": "2019-01-03",
+    "end": "2021-01-03",
+    "state": "KY",
+    "district": 6,
+    "party": "Republican",
+    "phone": "202-225-4706",
+    "address": "2430 Rayburn House Office Building Washington DC 20515-1706",
+    "office": "2430 Rayburn House Office Building",
+    "url": "https://barr.house.gov",
+    "rss_url": "http://barr.house.gov/rss.xml"
+   },
+   {
+    "type": "rep",
+    "start": "2021-01-03",
+    "end": "2023-01-03",
+    "state": "KY",
+    "district": 6,
+    "party": "Republican",
+    "url": "https://barr.house.gov",
+    "rss_url": "http://barr.house.gov/rss.xml",
+    "address": "2430 Rayburn House Office Building Washington DC 20515-1706",
+    "office": "2430 Rayburn House Office Building",
+    "phone": "202-225-4706"
+   },
+   {
+    "type": "rep",
+    "start": "2023-01-03",
+    "end": "2025-01-03",
+    "state": "KY",
+    "district": 6,
+    "party": "Republican",
+    "url": "https://barr.house.gov",
+    "rss_url": "http://barr.house.gov/rss.xml",
+    "address": "2430 Rayburn House Office Building Washington DC 20515-1706",
+    "office": "2430 Rayburn House Office Building",
+    "phone": "202-225-4706"
+   },
+   {
+    "type": "rep",
+    "start": "2025-01-03",
+    "end": "2027-01-03",
+    "state": "KY",
+    "district": 6,
+    "party": "Republican",
+    "url": "https://barr.house.gov",
+    "rss_url": "http://barr.house.gov/rss.xml",
+    "address": "2430 Rayburn House Office Building Washington DC 20515-1706",
+    "office": "2430 Rayburn House Office Building",
+    "phone": "202-225-4706"
+   }
+  ]
+ },
+ {
+  "id": {
+   "bioguide": "A000375",
+   "govtrack": 412726,
+   "wikipedia": "Jodey Arrington",
+   "wikidata": "Q6207815",
+   "votesmart": 155685,
+   "fec": [
+    "H6TX19099"
+   ],
+   "opensecrets": "N00038285",
+   "maplight": 2238,
+   "google_entity_id": "kg:/m/0g9_f_1",
+   "cspan": 1016482,
+   "icpsr": 21700,
+   "ballotpedia": "Jodey Arrington",
+   "pictorial": 13276
+  },
+  "name": {
+   "first": "Jodey",
+   "middle": "C.",
+   "last": "Arrington",
+   "official_full": "Jodey C. Arrington"
+  },
+  "bio": {
+   "gender": "M",
+   "birthday": "1972-03-09"
+  },
+  "terms": [
+   {
+    "type": "rep",
+    "start": "2017-01-03",
+    "end": "2019-01-03",
+    "state": "TX",
+    "district": 19,
+    "party": "Republican",
+    "phone": "202-225-4005",
+    "address": "1029 Longworth House Office Building; Washington DC 20515-4319",
+    "office": "1029 Longworth House Office Building",
+    "url": "https://arrington.house.gov"
+   },
+   {
+    "type": "rep",
+    "start": "2019-01-03",
+    "end": "2021-01-03",
+    "state": "TX",
+    "district": 19,
+    "party": "Republican",
+    "phone": "202-225-4005",
+    "address": "1029 Longworth House Office Building Washington DC 20515-4319",
+    "office": "1029 Longworth House Office Building",
+    "url": "https://arrington.house.gov"
+   },
+   {
+    "type": "rep",
+    "start": "2021-01-03",
+    "end": "2023-01-03",
+    "state": "TX",
+    "district": 19,
+    "party": "Republican",
+    "url": "https://arrington.house.gov",
+    "address": "1107 Longworth House Office Building Washington DC 20515-4319",
+    "office": "1107 Longworth House Office Building",
+    "phone": "202-225-4005"
+   },
+   {
+    "type": "rep",
+    "start": "2023-01-03",
+    "end": "2025-01-03",
+    "state": "TX",
+    "district": 19,
+    "party": "Republican",
+    "url": "https://arrington.house.gov",
+    "address": "1107 Longworth House Office Building Washington DC 20515-4319",
+    "office": "1107 Longworth House Office Building",
+    "phone": "202-225-4005"
+   },
+   {
+    "type": "rep",
+    "start": "2025-01-03",
+    "end": "2027-01-03",
+    "state": "TX",
+    "district": 19,
+    "party": "Republican",
+    "url": "https://arrington.house.gov",
+    "address": "1111 Longworth House Office Building Washington DC 20515-4319",
+    "office": "1111 Longworth House Office Building",
+    "phone": "202-225-4005"
+   }
+  ]
+ },
+ {
+  "id": {
+   "bioguide": "V000133",
+   "fec": [
+    "H8NJ02166"
+   ],
+   "govtrack": 412796,
+   "wikipedia": "Jeff Van Drew",
+   "wikidata": "Q6175202",
+   "opensecrets": "N00042164",
+   "google_entity_id": "kg:/m/08h3sl",
+   "votesmart": 24685,
+   "icpsr": 21980,
+   "ballotpedia": "Jeff Van Drew",
+   "pictorial": 13151
+  },
+  "name": {
+   "first": "Jefferson",
+   "last": "Van Drew",
+   "official_full": "Jefferson Van Drew"
+  },
+  "bio": {
+   "gender": "M",
+   "birthday": "1953-02-23"
+  },
+  "terms": [
+   {
+    "type": "rep",
+    "start": "2019-01-03",
+    "end": "2021-01-03",
+    "state": "NJ",
+    "district": 2,
+    "party": "Republican",
+    "party_affiliations": [
+     {
+      "start": "2019-01-03",
+      "end": "2019-12-18",
+      "party": "Democrat"
+     },
+     {
+      "start": "2019-12-19",
+      "end": "2021-01-03",
+      "party": "Republican"
+     }
+    ],
+    "phone": "202-225-6572",
+    "address": "331 Cannon House Office Building Washington DC 20515-3002",
+    "office": "331 Cannon House Office Building",
+    "url": "https://vandrew.house.gov"
+   },
+   {
+    "type": "rep",
+    "start": "2021-01-03",
+    "end": "2023-01-03",
+    "state": "NJ",
+    "district": 2,
+    "party": "Republican",
+    "url": "https://vandrew.house.gov",
+    "address": "2447 Rayburn House Office Building Washington DC 20515-3002",
+    "office": "2447 Rayburn House Office Building",
+    "phone": "202-225-6572"
+   },
+   {
+    "type": "rep",
+    "start": "2023-01-03",
+    "end": "2025-01-03",
+    "state": "NJ",
+    "district": 2,
+    "party": "Republican",
+    "url": "https://vandrew.house.gov",
+    "address": "2447 Rayburn House Office Building Washington DC 20515-3002",
+    "office": "2447 Rayburn House Office Building",
+    "phone": "202-225-6572"
+   },
+   {
+    "type": "rep",
+    "start": "2025-01-03",
+    "end": "2027-01-03",
+    "state": "NJ",
+    "district": 2,
+    "party": "Republican",
+    "url": "https://vandrew.house.gov",
+    "address": "2447 Rayburn House Office Building Washington DC 20515-3002",
+    "office": "2447 Rayburn House Office Building",
+    "phone": "202-225-6572"
+   }
+  ]
+ },
+ {
+  "id": {
+   "bioguide": "K000401",
+   "fec": [
+    "H2CA03157"
+   ],
+   "govtrack": 456881,
+   "opensecrets": "N00050259",
+   "wikidata": "Q27987136",
+   "wikipedia": "Kevin Kiley (politician)",
+   "google_entity_id": "kg:/g/11c5qpst__",
+   "votesmart": 169303,
+   "ballotpedia": "Kevin Kiley",
+   "pictorial": 12917
+  },
+  "name": {
+   "first": "Kevin",
+   "middle": "Patrick",
+   "last": "Kiley",
+   "official_full": "Kevin Kiley"
+  },
+  "bio": {
+   "gender": "M",
+   "birthday": "1985-01-30"
+  },
+  "terms": [
+   {
+    "type": "rep",
+    "start": "2023-01-03",
+    "end": "2025-01-03",
+    "state": "CA",
+    "district": 3,
+    "party": "Republican",
+    "url": "https://kiley.house.gov",
+    "address": "1032 Longworth House Office Building Washington DC 20515-0503",
+    "office": "1032 Longworth House Office Building",
+    "phone": "202-225-2523"
+   },
+   {
+    "type": "rep",
+    "start": "2025-01-03",
+    "end": "2027-01-03",
+    "state": "CA",
+    "district": 3,
+    "party": "Independent",
+    "caucus": "Republican",
+    "party_affiliations": [
+     {
+      "start": "2025-01-03",
+      "end": "2026-03-08",
+      "party": "Republican"
+     },
+     {
+      "start": "2026-03-09",
+      "end": "2027-01-03",
+      "party": "Independent",
+      "caucus": "Republican"
+     }
+    ],
+    "url": "https://kiley.house.gov",
+    "address": "2445 Rayburn House Office Building Washington DC 20515-0503",
+    "office": "2445 Rayburn House Office Building",
+    "phone": "202-225-2523"
+   }
+  ]
+ },
+ {
+  "id": {
+   "bioguide": "H001096",
+   "fec": [
+    "H2WY00166",
+    "S6WY00209"
+   ],
+   "govtrack": 456951,
+   "opensecrets": "N00049197",
+   "wikidata": "Q110815967",
+   "wikipedia": "Harriet Hageman",
+   "google_entity_id": "kg:/g/11f77yffzm",
+   "ballotpedia": "Harriet Hageman",
+   "votesmart": 182961,
+   "pictorial": 13332
+  },
+  "name": {
+   "first": "Harriet",
+   "middle": "Maxine",
+   "last": "Hageman",
+   "official_full": "Harriet M. Hageman"
+  },
+  "bio": {
+   "gender": "F",
+   "birthday": "1962-10-18"
+  },
+  "terms": [
+   {
+    "type": "rep",
+    "start": "2023-01-03",
+    "end": "2025-01-03",
+    "state": "WY",
+    "district": 0,
+    "party": "Republican",
+    "url": "https://hageman.house.gov",
+    "address": "1531 Longworth House Office Building Washington DC 20515-5000",
+    "office": "1531 Longworth House Office Building",
+    "phone": "202-225-2311"
+   },
+   {
+    "type": "rep",
+    "start": "2025-01-03",
+    "end": "2027-01-03",
+    "state": "WY",
+    "district": 0,
+    "party": "Republican",
+    "url": "https://hageman.house.gov",
+    "address": "1227 Longworth House Office Building Washington DC 20515-5000",
+    "office": "1227 Longworth House Office Building",
+    "phone": "202-225-2311"
+   }
+  ]
+ }
+]

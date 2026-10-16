@@ -1,0 +1,34 @@
+# Rules on FEC codes from the committee master file (cm). They run first: an FEC code is
+# a filed fact, so it outranks any name keyword. Codes: DATA_SOURCES.md section 3.
+schema_version: 1
+rules:
+  - id: leadership-pac-designation
+    industry: leadership-pacs
+    field: designation
+    any_of: [D]
+    confidence: 1
+    note: CMTE_DSGN D = leadership PAC.
+  - id: candidate-committee-types
+    industry: candidate-committees
+    field: committee_type
+    any_of: [H, S, P]
+    confidence: 1
+    note: CMTE_TP H/S/P = House, Senate or presidential campaign committee.
+  - id: party-committee-types
+    industry: party-committees
+    field: committee_type
+    any_of: [X, Y, Z]
+    confidence: 1
+    note: CMTE_TP X/Y = party (non-qualified / qualified), Z = national party nonfederal account.
+  - id: joint-fundraiser-designation
+    industry: joint-fundraising
+    field: designation
+    any_of: [J]
+    confidence: 1
+    note: CMTE_DSGN J = joint fundraiser; money it gives was raised for its participants.
+  - id: labor-org-type
+    industry: labor-unions
+    field: org_type
+    any_of: [L]
+    confidence: 1
+    note: ORG_TP L = connected organization is a labor organization.

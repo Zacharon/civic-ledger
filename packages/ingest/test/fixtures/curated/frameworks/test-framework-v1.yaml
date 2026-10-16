@@ -1,0 +1,24 @@
+# FICTIONAL test framework; the targets are real rollcalls/bills from the fixtures.
+schema_version: 1
+slug: test-framework
+version: 1
+title: Test Framework
+author: Test Author
+stated_orientation: test orientation
+description: Exercises curated framework loading against fixture rollcalls and bills.
+methodology_url: https://example.org/placeholder/method
+rules:
+  - target:
+      kind: rollcall
+      congress: 119
+      chamber: house
+      number: 293
+    aligned_position: yea
+    rationale: Placeholder rationale.
+  - target:
+      kind: bill
+      congress: 119
+      bill_type: hjres
+      number: 142
+    aligned_position: nay
+    rationale: Placeholder rationale.

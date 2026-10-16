@@ -14,7 +14,13 @@ import {
  * human editing. Bump `schema_version` (and add a migration note) on breaking changes.
  */
 export const CURATED_SCHEMA_VERSION = 1;
-export const CURATED_KINDS = ['promises', 'platforms', 'frameworks', 'industry_map'] as const;
+export const CURATED_KINDS = [
+  'promises',
+  'platforms',
+  'frameworks',
+  'industry_map',
+  'policy_areas',
+] as const;
 export type CuratedKind = (typeof CURATED_KINDS)[number];
 
 const SchemaVersion = z.literal(CURATED_SCHEMA_VERSION);
@@ -123,6 +129,20 @@ export const CuratedFrameworkFileSchema = z.strictObject({
     .superRefine(uniqueBy((r) => JSON.stringify(r.target), 'rule target')),
 });
 
+/**
+ * Industry rule fields: `connected_org`, `committee_name` and `any_name` (either of the
+ * two) match whole words of the FEC name, case-insensitively; `org_type` (FEC ORG_TP),
+ * `designation` (CMTE_DSGN) and `committee_type` (CMTE_TP) match the one-letter code.
+ */
+export const INDUSTRY_RULE_FIELDS = [
+  'connected_org',
+  'committee_name',
+  'any_name',
+  'org_type',
+  'designation',
+  'committee_type',
+] as const;
+
 export const CuratedIndustryMapFileSchema = z.strictObject({
   schema_version: SchemaVersion,
   industries: z
@@ -149,6 +169,32 @@ export const CuratedIndustryMapFileSchema = z.strictObject({
     )
     .default([])
     .superRefine(uniqueBy((c) => c.fec_committee_id, 'fec_committee_id')),
+  rules: z
+    .array(
+      z.strictObject({
+        id: SlugSchema,
+        industry: SlugSchema,
+        field: z
+          .enum(INDUSTRY_RULE_FIELDS)
+          .describe('Name fields match whole words; code fields match the FEC code exactly'),
+        any_of: z.array(z.string().trim().min(1).max(120)).min(1).max(200),
+        confidence: z.number().min(0).max(1),
+        note: z.string().max(2000).optional(),
+      }),
+    )
+    .default([])
+    .superRefine(uniqueBy((r) => r.id, 'rule id')),
+});
+
+/** The Congress.gov policy-area vocabulary (the neutral topic base). */
+export const CuratedPolicyAreasFileSchema = z.strictObject({
+  schema_version: SchemaVersion,
+  source_url: HttpsUrl,
+  areas: z
+    .array(z.strictObject({ id: SlugSchema, name: z.string().min(1).max(200) }))
+    .min(1)
+    .superRefine(uniqueBy((a) => a.id, 'policy area id'))
+    .superRefine(uniqueBy((a) => a.name, 'policy area name')),
 });
 
 export const CURATED_FILE_SCHEMAS = {
@@ -156,9 +202,11 @@ export const CURATED_FILE_SCHEMAS = {
   platforms: CuratedPlatformsFileSchema,
   frameworks: CuratedFrameworkFileSchema,
   industry_map: CuratedIndustryMapFileSchema,
+  policy_areas: CuratedPolicyAreasFileSchema,
 } as const satisfies Record<CuratedKind, z.ZodType>;
 
 export type CuratedPromisesFile = z.output<typeof CuratedPromisesFileSchema>;
 export type CuratedPlatformsFile = z.output<typeof CuratedPlatformsFileSchema>;
 export type CuratedFrameworkFile = z.output<typeof CuratedFrameworkFileSchema>;
 export type CuratedIndustryMapFile = z.output<typeof CuratedIndustryMapFileSchema>;
+export type CuratedPolicyAreasFile = z.output<typeof CuratedPolicyAreasFileSchema>;

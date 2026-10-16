@@ -8,6 +8,11 @@ exact vote and the position the author considers aligned. Results always show
 - `slug` + `version` are unique. Change rules by adding a new version file.
 - `rules[].target`: a rollcall (`congress`, `chamber`, `number`) or a bill
   (`congress`, `bill_type`, `number`; scored on its final-passage rollcalls).
+  A rollcall `number` is **Voteview's `rollnumber`** (one sequence per congress and
+  chamber), not the clerk's roll number, which restarts each session. Find it in
+  Voteview's `HS{congress}_rollcalls.csv` from `session` + `clerk_rollnumber`
+  (e.g. House 2026 roll 56 = Voteview 416). A target that is not loaded fails the
+  `curated` ingest run with the file and rule index.
 - `aligned_position`: `yea | nay`. `weight` defaults to 1. `rationale` is required.
 
 ```yaml
