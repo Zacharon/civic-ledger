@@ -54,6 +54,11 @@ jobs:
           B="http://localhost:$PORT"
           H='x-forwarded-for: 198.51.100.7'
           curl -fsS "$B/api/health?strict=1" | grep -q '"status":"ok"'
+          curl -fsS "$B/api/live" | grep -q '"status":"live"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$B/explore" -H "$H")" = 200
+          curl -fsS -D page.txt -o /dev/null "$B/explore" -H "$H"
+          grep -qi '^x-request-id:' page.txt
+          grep -qi '^ratelimit-limit: 300' page.txt
           curl -fsS -D headers.txt "$B/api/v1/people.search?limit=2&chamber=senate" -H "$H" | grep -q '"items"'
           grep -qi '^etag:' headers.txt
           grep -qi '^cache-control: public, max-age=0, s-maxage=300' headers.txt

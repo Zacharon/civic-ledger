@@ -116,8 +116,9 @@ interface SourceAdapter {
   (`succeeded | failed | partial`) with counts and the raw snapshot checksum.
 - Same snapshot checksum + same adapter version = no-op (dedupe).
 - A per-source advisory lock prevents overlapping runs (VC-021, VC-039).
-- Loads run in one transaction per batch; the read model refreshes only after the
-  whole run succeeds.
+- Loads run in one transaction (one savepoint per batch, DECISIONS A41); the read model
+  refreshes only after the commit. A shrink guard rolls back a load that would delete
+  more than 10% of a source's rows or load under half the last run's records (A42).
 - Schedules (production, later): legislators daily, FEC bulk weekly, Voteview
   weekly, BILLSTATUS daily. Runner: GitHub Actions cron (D1 decides the target DB).
 - Tests use committed small fixtures; no network in CI.
@@ -168,20 +169,20 @@ tabular figures; every chart states its source and as-of date.
 
 | Concern | Rule | VC |
 |---|---|---|
-| Timeouts | Every outbound fetch and DB statement has an explicit timeout (`AbortSignal.timeout`, `statement_timeout`). | 011 |
+| Timeouts | Every outbound fetch and DB statement has an explicit timeout (`AbortSignal.timeout`, `statement_timeout`: 15 s web/MCP, 10 min ingest; plus `lock_timeout` and `idle_in_transaction_session_timeout`). All env-configurable. | 011 |
 | Retries | Transient-only (429/5xx/network), max 3, exponential backoff + full jitter. Never on non-idempotent writes. | 012, 013 |
 | Idempotency | Natural-key upserts; snapshot checksum dedupe; capability writes take an idempotency key. | 014 |
 | Backpressure | Streaming parse with bounded batches; API rate limit returns 429 with `Retry-After`. | 044, 001 |
-| Indexes | Every filter/sort column of `person_card` and every FK used in profile queries is indexed; EXPLAIN checked on full-cycle data. | 025–027 |
-| Pooling | `pg` pool with max size from env; PGlite single connection in dev/test. | 028 |
+| Indexes | Every filter/sort column of `person_card` and every FK used in profile queries is indexed (tested). EXPLAIN on full-cycle data on Postgres is **not yet recorded**; do it after the first live load. | 025–027 |
+| Pooling | `pg` pool with limits from env and an `error` listener; separate read-only and ingest credentials (`scripts/db/roles.sql`); PGlite single connection in dev/test. Connection budget in OPERATIONS. | 028, 068, 095 |
 | Migrations | Drizzle SQL migrations, committed, applied by `pnpm db:migrate`; forward-only with a documented rollback note per migration. | 081, 055 |
 | Schema versioning | Curated YAML and exported JSON carry `schema_version`. API is versioned at `/api/v1`. | 082, 102 |
-| Caching | Read API responses `s-maxage` + `stale-while-revalidate`; invalidated by `revalidateTag('person_card')` after ingest. No private data exists to leak at the edge. | 002, 049, 050 |
+| Caching | Time-based only: read API responses carry `s-maxage` + `stale-while-revalidate` and a strong `ETag` (304 on revalidation); pages are dynamic and uncached. There is **no** push invalidation (no `revalidateTag`: ingest is a separate process); a CDN purge after ingest is an operator step. No private data exists to leak at the edge. | 002, 049, 050 |
 | Security | Parameterized queries only (Drizzle); untrusted text (curated, source) rendered as text, never HTML; CSP; no server fetch of user-supplied URLs. | 078, 079, 080 |
 | Secrets | API keys (Congress.gov, FEC, OpenStates) only via env; `.env*` gitignored; secret scan in CI. | 067 |
-| Health | `/api/health` checks DB round-trip and latest ingest run age per source. | 056 |
+| Health | `/api/health` (readiness) checks DB round-trip, latest ingest run age per source and the rate-limit identity; `/api/live` (liveness) touches nothing. | 056, 057 |
 | Logging | Structured JSON logs (pino) with request id / run id; no PII beyond public-official data. | 059, 066 |
-| CI | Lint, typecheck, unit + integration tests (PGlite), build on every push. | 006, 108 |
+| CI | Lint, typecheck, unit + integration tests (PGlite), build, dependency audit and the Postgres 17 suite (`pnpm test:pg`) on every push. | 006, 108, 028, 081 |
 
 Write access in v1 is limited to operators (ingest CLI) and git-reviewed curated
 data, so OAuth/JWT/CSRF items are N/A until an account feature exists (recorded with

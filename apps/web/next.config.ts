@@ -3,10 +3,10 @@ import type { NextConfig } from 'next';
 const isDev = process.env.NODE_ENV === 'development';
 
 /**
- * Strict CSP without nonces (no proxy.ts in this app's UI slice). Scripts are limited to
- * same-origin files; Next's inline RSC bootstrap needs 'unsafe-inline' until a nonce
- * proxy exists (see docs/DECISIONS.md A13). No third-party origin is allowed anywhere:
- * no CDN fonts, no analytics, no remote images.
+ * Strict CSP without nonces. Scripts are limited to same-origin files; Next's inline RSC
+ * bootstrap needs 'unsafe-inline' until a per-request nonce is generated in proxy.ts
+ * (which now runs for pages too, but does not set one yet; see docs/DECISIONS.md A25).
+ * No third-party origin is allowed anywhere: no CDN fonts, no analytics, no remote images.
  */
 const contentSecurityPolicy = [
   "default-src 'self'",

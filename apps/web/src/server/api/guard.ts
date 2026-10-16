@@ -74,7 +74,7 @@ export function createGuard({ limiter, config, logger }: GuardDeps): Guard {
           response: errorResponse(
             new CapabilityError(
               'internal',
-              'Service unavailable: rate limiting is not configured. The operator has been logged the fix.',
+              'Service unavailable: rate limiting is not configured. The cause is in the server log.',
             ),
             requestId,
             { 'retry-after': '60' },

@@ -28,6 +28,7 @@ pnpm install
 pnpm ingest --help
 pnpm ingest all --db .pglite/live --migrate          # local PGlite, applies migrations first
 DATABASE_URL=postgres://... pnpm db:migrate && pnpm ingest all   # Postgres
+pnpm ingest voteview --allow-shrink                  # commit a load the shrink guard refused
 pnpm ingest voteview --congress 119                  # one source
 pnpm ingest fec-bulk --snapshot data/raw/fec-bulk/2026-10-16   # reload files already on disk
 pnpm ingest:report --db .pglite/live                 # data-quality report (read-only)
@@ -51,10 +52,14 @@ with `runId`, `source` and `scope` on every line (`LOG_LEVEL=debug` for more). E
    `data/raw/<source>/http-cache.json`.
 4. If (source, adapter version, snapshot checksum) already succeeded, the provisional row
    is dropped and the original receipt is returned with `"deduplicated": true`.
-5. Streams, parses and upserts in batches (one transaction per batch), then deletes rows
-   the source no longer asserts (DECISIONS A18).
-6. Refreshes `person_card` / `person_card_scorecard` only after the whole load succeeded,
-   then records `succeeded`, counts and refresh times.
+5. Streams, parses and upserts in batches, then deletes rows the source no longer
+   asserts (DECISIONS A18). The whole load is **one transaction** (each batch is a
+   savepoint inside it, DECISIONS A41), so nothing is visible, and nothing changes, unless
+   the run succeeds.
+6. Before committing, the shrink guard compares the load with what the source already
+   has (see below). A violation rolls the transaction back and records `failed`.
+7. Refreshes `person_card` / `person_card_scorecard` only after the commit, then records
+   `succeeded`, counts and refresh times.
 
 ## Proposed schedules (UTC, GitHub Actions cron once D1 picks the database)
 
@@ -74,13 +79,38 @@ re-codes new committees and re-resolves framework targets even when the YAML is 
 |---|---|---|
 | `conflict: run_in_progress` | Another run of that source holds the lock. | Wait; check the `running` row in `sources.status`. |
 | receipt `status: failed`, `error: GET … HTTP 404` | File moved or not published yet (new cycle/congress). | Check the URL in DATA_SOURCES.md; nothing was loaded. |
-| `failed` after retries on 5xx / timeout | Source down or slow. | Rerun later; committed batches are valid upserts and a rerun converges. |
+| `failed` after retries on 5xx / timeout | Source down or slow. | Rerun later; nothing was loaded. |
+| `failed`, `error: shrink guard: …` | The upstream file looks truncated or empty (see below). Nothing was changed. | Check the upstream file (size, row count). If the source really shrank, rerun with `--allow-shrink`. |
 | `failed` with a parse error (`line N`, `Unexpected BILLSTATUS shape`, `Unknown Voteview cast_code`) | Source format changed. | Fix the parser with a fixture cut from the new file, bump the adapter `version`, rerun. |
 | `Curated data is invalid: file:line …` | A merged YAML file fails the schema. | Fix the file; nothing from the curated run was loaded. |
 | Voteview TLS error | Their certificate chain; never disable verification. | Retry later; report upstream if it persists. |
 
-The read model is never refreshed by a failed run, so the site keeps serving the last
-good state.
+A failed or refused run leaves the database exactly as it was, and the read model is not
+refreshed, so the site keeps serving the last good state.
+
+## Shrink guard (data-loss protection)
+
+Sources are complete snapshots, so a stale-row sweep deletes whatever the new file no
+longer contains. An empty or truncated file that still downloads with HTTP 200 would
+therefore wipe a source's rows. Before a load commits, the runtime refuses it (status
+`failed`, transaction rolled back, nothing changed) when either holds:
+
+* **Sweep too large.** The stale-row counters (`stale_*_deleted`) exceed
+  `INGEST_MAX_DELETE_FRACTION` (default **0.1**, 10%) of the rows the source owns (every
+  table with a `source_id`, counted before the load).
+* **Record floor.** The records loaded (sum of the receipt counters except the stale
+  ones) fall below `INGEST_MIN_RECORD_RATIO` (default **0.5**) of the last successful
+  run of the same source and scope, when that run loaded at least
+  `INGEST_MIN_RECORD_BASELINE` (default 20).
+
+The error names the numbers, for example `shrink guard: the stale-row sweep would delete
+56 of 99 existing rows (56.6%, limit 10%). Rolled back; no rows were changed.`
+
+`--allow-shrink` commits the load anyway and logs the violation at `warn` (a source that
+legitimately shrank, such as a repealed program or a corrected double count). The first
+load of a source and the `curated` source (git-reviewed, where removing a file is an
+intended change) are not guarded. Thresholds are the agent's defaults pending owner input
+(readiness audit, owner item 8); tune them with the environment variables above.
 
 ## How to rerun
 

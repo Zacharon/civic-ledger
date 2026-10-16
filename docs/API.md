@@ -78,7 +78,9 @@ Errors are `Cache-Control: no-store`.
 ### Rate limits
 
 Per client address, token bucket: 60 requests burst and 60 per minute sustained;
-`frameworks.evaluate` 10 per minute; `/api/health` 30 per minute. Responses carry
+`frameworks.evaluate` 10 per minute; `/api/health` 30 per minute. HTML pages have their
+own, more generous bucket (300 per minute). In production the service refuses traffic
+(`503`) until the operator has told it how to identify clients, see OPERATIONS. Responses carry
 `RateLimit-Limit` / `RateLimit-Remaining`; a refused call is `429` with `Retry-After`.
 Operators: [OPERATIONS.md](OPERATIONS.md#rate-limits).
 
@@ -91,7 +93,8 @@ repeated keys, and every GET also accepts `input`.
 
 ### Health
 
-`GET /api/health` (never cached): see [OPERATIONS.md](OPERATIONS.md#health).
+`GET /api/health` (readiness, never cached, touches the database) and `GET /api/live`
+(liveness, no dependencies): see [OPERATIONS.md](OPERATIONS.md#health).
 
 ## MCP server
 
@@ -99,7 +102,7 @@ repeated keys, and every GET also accepts `input`.
 per public capability. Tool names replace the dot with an underscore: `people_search`,
 `people_get`, `people_compare`, `explore_table`, `money_summary`, `votes_list`,
 `scores_list`, `promises_list`, `policy_areas`, `frameworks_list`, `frameworks_evaluate`,
-`sources_status`.
+`sources_status`, `explore_facets` (13 tools, one per public capability).
 
 * `inputSchema` and `outputSchema` are JSON Schema generated from the capability's own
   zod schemas. Results are `structuredContent` plus the same JSON as a text block.
@@ -110,7 +113,8 @@ per public capability. Tool names replace the dot with an underscore: `people_se
   `not_found` tool error.
 * Per-session rate limit: 120-call burst, 2 calls per second sustained; beyond it
   the tool error is `rate_limited` with `retryAfterSeconds`.
-* Database: `DATABASE_URL` (Postgres) if set, otherwise PGlite at `--pglite <dir>`
+* Database: `DATABASE_URL_READONLY`, else `DATABASE_URL` (Postgres) if set, otherwise
+  PGlite at `--pglite <dir>`
   (default `.pglite/dev` in the directory you ran the command from). It checks the
   database at startup and exits with a clear message if it is empty or unreachable
   (`pnpm db:migrate && pnpm db:seed` for a local dev database).
@@ -161,8 +165,9 @@ instead, drop the `--pglite` arguments and set the environment:
 }
 ```
 
-Use a read-only database role for `DATABASE_URL`; the server never writes, but the
-role is the real boundary. A PGlite directory can be opened by one process at a time:
+Use a read-only database role (`scripts/db/roles.sql`, set as `DATABASE_URL_READONLY`
+or, as here, `DATABASE_URL`); the server never writes, but the role is the real
+boundary. A PGlite directory can be opened by one process at a time:
 stop `next dev` / `next start` (or point them at a different directory) before
 starting the MCP server on the same directory.
 

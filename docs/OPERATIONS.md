@@ -11,10 +11,22 @@ Related: [API.md](API.md) (contract), [ARCHITECTURE.md](ARCHITECTURE.md) section
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `DATABASE_URL` | empty = PGlite `.pglite/dev` | Postgres for the app and the MCP server. Use a read-only role for the MCP server. |
+| `DATABASE_URL` | empty = PGlite `.pglite/dev` | Postgres for ingest, migrations and (when `DATABASE_URL_READONLY` is unset) the app and MCP server |
+| `DATABASE_URL_READONLY` | unset | Select-only role used by the web app, the MCP server and `pnpm ingest:report`; see [Database roles](#database-roles-and-connections) |
 | `DB_POOL_MAX` | 10 | pg pool size per process |
+| `DB_STATEMENT_TIMEOUT_MS` | 15000 | Web / MCP statement timeout (`0` disables) |
+| `INGEST_DB_STATEMENT_TIMEOUT_MS` | 600000 | Ingest, `db:migrate`, `db:seed` statement timeout (`0` disables) |
+| `DB_CONNECT_TIMEOUT_MS` | 10000 | Wait for a pool connection |
+| `DB_IDLE_TIMEOUT_MS` | 30000 | Close pool connections idle this long |
+| `DB_LOCK_TIMEOUT_MS` | 30000 | Fail a statement that waits this long for a lock (`0` disables) |
+| `DB_IDLE_IN_TX_TIMEOUT_MS` | 60000 web, 600000 ingest | Server ends sessions idle inside a transaction this long (`0` disables) |
+| `INGEST_MAX_DELETE_FRACTION` | 0.1 | Shrink guard: most of a source's rows a run may delete |
+| `INGEST_MIN_RECORD_RATIO` | 0.5 | Shrink guard: fewest records, as a share of the last successful run, a run may load |
+| `INGEST_MIN_RECORD_BASELINE` | 20 | Shrink guard: the record floor applies only when the last run loaded at least this many |
+| `PAGE_RATE_LIMIT_PER_MINUTE` | 300 | Bucket for HTML pages (burst = this) |
+| `RATE_LIMIT_SINGLE_BUCKET` | unset | `1` acknowledges that, without `TRUSTED_PROXY_HEADER`, all callers share one bucket (required in production) |
 | `LOG_LEVEL` | `info` (`silent` under tests) | pino level |
-| `TRUSTED_PROXY_HEADER` | unset | Header your proxy sets to the client address (see [Rate limits](#rate-limits)) |
+| `TRUSTED_PROXY_HEADER` | unset | Header your proxy sets to the client address. **Required in production** unless `RATE_LIMIT_SINGLE_BUCKET=1` (see [Rate limits](#rate-limits)) |
 | `TRUSTED_PROXY_HOPS` | 1 | For `x-forwarded-for`: which entry from the right is the client |
 | `API_RATE_LIMIT_PER_MINUTE` | 60 | Default bucket (burst = this, refill = this per minute) |
 | `API_RATE_LIMIT_EVALUATE_PER_MINUTE` | 10 | `POST /api/v1/frameworks.evaluate` |
@@ -23,6 +35,62 @@ Related: [API.md](API.md) (contract), [ARCHITECTURE.md](ARCHITECTURE.md) section
 | `HEALTH_MAX_INGEST_AGE_HOURS` | 336 | Staleness limit for sources without a built-in limit |
 
 Secrets are environment-only; `.env*` is gitignored and CI runs a secret scan.
+Invalid numeric values for the `DB_*` / `INGEST_*` variables stop the process at start
+with a message naming the variable; empty means "use the default".
+
+## Database roles and connections
+
+Three kinds of process touch the database; give each its own credentials (VC-068,
+DECISIONS A44).
+
+| Process | Connection string | Needs |
+|---|---|---|
+| Web app, MCP server, `pnpm ingest:report` | `DATABASE_URL_READONLY` (falls back to `DATABASE_URL` when unset) | `SELECT` only |
+| `pnpm ingest` | `DATABASE_URL` | read and write rows; refresh the two materialized views |
+| `pnpm db:migrate`, `db:seed` | `DATABASE_URL` as the schema owner | DDL |
+
+`scripts/db/roles.sql` creates two `NOLOGIN` group roles, `civic_readonly` (select on
+every table, view and materialized view, current and future) and `civic_ingest`
+(select/insert/update/delete, sequences, and `MAINTAIN` for `REFRESH MATERIALIZED VIEW`
+on PostgreSQL 17+; on 16 or older run ingest as the owner). It sets no passwords. Create
+the login roles with passwords from your secret store:
+
+```sh
+pnpm db:migrate                                   # as the owner role
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/db/roles.sql
+```
+
+```sql
+create role civic_web login password '<from the secret store>' in role civic_readonly;
+alter role civic_web set default_transaction_read_only = on;
+create role civic_loader login password '<from the secret store>' in role civic_ingest;
+```
+
+Re-running the script after a migration re-applies grants; default privileges already
+cover objects the owner creates later. `test-pg/roles.pgtest.ts` proves on Postgres 17
+that the read-only role cannot insert, update, delete, truncate, refresh or run DDL
+(42501) and still serves every public read capability, and that the ingest role can
+load and refresh but cannot change the schema.
+
+**Connection budget.** Every process has its own pool (`DB_POOL_MAX`, default 10), and
+ingest holds one extra connection for the source lock plus one for the load
+transaction. Peak connections = web instances x `DB_POOL_MAX` + MCP clients x
+`DB_POOL_MAX` + ingest (about 3). Keep that under the host's `max_connections` minus a
+reserve; on serverless or small plans lower `DB_POOL_MAX` or use the provider's pooler
+in transaction mode (the advisory-lock connection must bypass a transaction pooler:
+point ingest's `DATABASE_URL` at the direct endpoint).
+
+**TLS to the database.** `pg` reads `sslmode` from the connection string. For a managed
+or remote Postgres use `?sslmode=verify-full` (the host's CA must be trusted by Node);
+`require` encrypts without verifying the server. There is no separate app switch.
+
+**Timeouts.** Web and MCP statements are cancelled after 15 s (`57014`); ingest
+statements after 10 minutes, so a hung statement cannot hold the source lock forever.
+Sessions idle inside a transaction are ended by the server and a statement waiting on a
+lock fails after 30 s. An idle pool connection that fails (database restart) is logged
+as `{"msg":"database pool error"}` on stderr and replaced; it does not stop the process.
+If the connection that holds an ingest source lock fails, the run stops and is recorded
+as `failed`.
 
 ## Health
 
@@ -49,8 +117,21 @@ Secrets are environment-only; `.env*` is gitignored and CI runs a secret scan.
   failed upstream does not pull a working site out of rotation.
 * `GET /api/health?strict=1` answers `503` when degraded. Point the ingest-freshness
   alert at the strict URL and the load balancer / uptime probe at the plain one.
-* Readiness vs liveness (VC-057): `/api/health` is readiness (needs the database). For
-  a liveness probe use `GET /` (no dependencies).
+* `checks.rateLimit` appears when the limiter state is known: `{ "status": "ok",
+  "mode": "per_client" | "single_bucket" }`, or `{ "status": "misconfigured", "reason":
+  "trusted_proxy_header_unset" }` (overall `degraded`) in production without a client
+  identity, see [Rate limits](#rate-limits).
+
+### Liveness and readiness (VC-057)
+
+| Probe | Path | Touches the database | Use for |
+|---|---|---|---|
+| Liveness | `GET /api/live` (also `HEAD`) | No: `200 {"status":"live"}`, `no-store`, not rate limited | Restart-on-failure. A database outage must not make it fail. |
+| Readiness | `GET /api/health` | Yes (round trip, timeout) | Load balancer / uptime probe. 503 only when the database is down. |
+| Freshness | `GET /api/health?strict=1` | Yes | The ingest-freshness alert. 503 when any source is stale. |
+
+Do **not** use `GET /` for liveness: the home page reads four capabilities from the
+database.
 
 ## Logs
 
@@ -74,24 +155,35 @@ Structured JSON, one object per line, on stdout (web) and stderr (MCP), via pino
 ## Rate limits
 
 Token bucket per client address and rule, enforced in `apps/web/proxy.ts` (Next 16
-`proxy`) for every `/api/*` path; `OPTIONS` preflights are free.
+`proxy`) for every page and every `/api/*` path except Next's static assets;
+`OPTIONS` preflights and `/api/live` are free.
 
 | Rule | Paths | Burst / sustained |
 |---|---|---|
 | `evaluate` | `/api/v1/frameworks.evaluate` | 10 / 10 per minute |
 | `health` | `/api/health` | 30 / 30 per minute |
 | `default` | everything else under `/api` | 60 / 60 per minute |
+| `page` | HTML pages (everything outside `/api`) | 300 / 300 per minute |
 
-A refused request gets `429`, `Retry-After`, `RateLimit-Limit`, `RateLimit-Remaining: 0`
-and the standard error body. The MCP server has its own per-session bucket (120 burst,
+A refused API request gets `429`, `Retry-After`, `RateLimit-Limit`, `RateLimit-Remaining: 0`
+and the standard error body; a refused page gets the same headers with a short
+`text/plain` body. The MCP server has its own per-session bucket (120 burst,
 2 per second) and is not affected by the HTTP limits.
 
 **Trusted proxy handling.** A route handler cannot see the socket address, so the
 client address is read only from the header named by `TRUSTED_PROXY_HEADER`, and only
 if it parses as an IP address. With the variable unset nothing is trusted and **all
-callers share one bucket** (safe against forged headers, harsh in production; the app
-logs a warning once). Set it to whatever your edge overwrites, never to a header the
-client can supply end to end:
+callers share one bucket**, so one client can lock everyone out.
+
+* Development: that is allowed; the app logs a warning once.
+* Production (`NODE_ENV=production`): **fail closed** (DECISIONS A43). Without
+  `TRUSTED_PROXY_HEADER`, and without `RATE_LIMIT_SINGLE_BUCKET=1` as an explicit
+  acknowledgement, the guard logs an error at first use, answers every page and API
+  request with `503` (`Retry-After: 60`), and lets only `/api/health` (reporting
+  `degraded` with `reason: trusted_proxy_header_unset`) and `/api/live` through.
+
+Set the header to whatever your edge overwrites, never to a header the client can
+supply end to end:
 
 | Edge | `TRUSTED_PROXY_HEADER` | Notes |
 |---|---|---|
@@ -111,10 +203,21 @@ in front for volumetric abuse.
 
 ## Caching
 
-Reads are `public, s-maxage=...` with `stale-while-revalidate` (300 s data, 3600 s
-reference, 60 s status; see API.md). Data only changes when an ingest run finishes, so
-after an ingest a CDN may serve the previous answer for up to the `s-maxage`. If that
-matters, purge the CDN (host-specific, pending D1) after `pnpm ingest`.
+Cache freshness is **time-based only** (DECISIONS A46). There is no push invalidation:
+the ingest CLI is a separate process from the web server and nothing calls
+`revalidateTag` or `revalidatePath`.
+
+* `/api/v1` reads are `public, max-age=0, s-maxage=N, stale-while-revalidate=M`
+  (data 300/3600 s, reference 3600/86400 s, status 60/300 s; see API.md), with a strong
+  `ETag` so a stale shared cache revalidates with `If-None-Match` and gets a `304`.
+  Errors, `frameworks.evaluate` and `/api/health` are `no-store`.
+* Server-rendered pages are dynamic (they call `connection()`), set no cache lifetime
+  and read the database on every view.
+* The Explore read model (`person_card`) is refreshed by the ingest runtime after each
+  successful load, so a page or uncached API call sees new data as soon as a run commits.
+* Data only changes when an ingest run finishes, so after an ingest a CDN may serve the
+  previous answer for up to `s-maxage` plus the stale window. If that matters, purge the
+  CDN (host-specific, pending D1) after `pnpm ingest`.
 
 ## Incident severity (VC-109)
 
@@ -209,12 +312,15 @@ saw before the bad release; a breaking change ships as `/api/v2` beside v1.
 
 **Database migration.** Migrations are forward-only. Each has a hand rollback note in
 `packages/db/migrations/README.md`. Roll the app back first (an older app works with a
-newer additive schema), then apply the note only if the migration itself is the
-problem and it states "no data loss". Anything else: restore from backup.
+newer additive schema; this is a design claim, not yet tested), then apply the note only
+if the migration itself is the problem and it states "no data loss". Anything else:
+restore from backup. Upgrading is tested: `test-pg/migrations.pgtest.ts` applies the
+latest migration over a populated database at the previous version on Postgres.
 
-**Data.** A bad ingest: loads are upserts on natural keys, so fix the adapter and
-rerun (it converges); the read model only refreshes after a successful run, so a failed
-run leaves the previous cards in place. A bad curated change: `git revert` the merge
+**Data.** A bad ingest: a failed or refused run changes nothing, because each load is
+one transaction (DECISIONS A41), and the read model only refreshes after a successful
+run. A run that succeeded with bad data: fix the adapter and rerun (loads are upserts on
+natural keys, so it converges). A bad curated change: `git revert` the merge
 and reload. If wrong data was shown publicly, treat as SEV2 and say so on the Sources
 page.
 
@@ -222,7 +328,9 @@ page.
 
 ## Verification before a release
 
-`pnpm check` (lint, typecheck, tests, build). The parity suite
+`pnpm check` (lint, typecheck, tests, build) and `pnpm test:pg` (the same behaviour on
+real Postgres 17: `embedded-postgres` locally, a `postgres:17` service in CI; set
+`PG_TEST_URL` to a superuser connection string to use your own server). The parity suite
 (`apps/web/test/parity.test.ts`) is part of `pnpm test` and is also run on its own as
 the `agent-parity` CI job; evidence is in
 [AGENT_NATIVE_EVIDENCE.md](AGENT_NATIVE_EVIDENCE.md). Live checks after any deploy
