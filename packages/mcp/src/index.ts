@@ -1,9 +1,15 @@
 /**
- * MCP stdio server entry (phase 2). It must register exactly `publicCapabilities()`
- * from @civic-ledger/core as tools, reuse their zod schemas, and call `dispatchByName`;
- * it must never expose operator capabilities (ingest.run, curated.validate).
- * Tool names follow CAPABILITIES.md: `people.search` → `people_search`.
+ * MCP stdio adapter. Registers exactly `publicCapabilities()` from @civic-ledger/core as
+ * read-only tools, reuses their zod schemas and calls `dispatchByName`; operator
+ * capabilities (ingest.run, curated.validate) are never exposed.
  */
-export function toolNameFor(capabilityName: string): string {
-  return capabilityName.replaceAll('.', '_');
-}
+export { toolNameFor } from './names';
+export { DEFAULT_SESSION_LIMIT, SessionLimiter, type SessionLimiterOptions } from './rate-limit';
+export {
+  createMcpServer,
+  errorBodyOf,
+  type McpServerOptions,
+  publicTools,
+  SERVER_NAME,
+  SERVER_VERSION,
+} from './server';

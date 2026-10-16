@@ -7,11 +7,16 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "start": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@civic-ledger/core": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@civic-ledger/db": "workspace:*",
+    "tsx": "^4.23.15"
   }
 }

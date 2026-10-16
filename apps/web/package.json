@@ -22,12 +22,16 @@
     "lucide-react": "^1.57.0",
     "next": "^16.4.1",
     "nuqs": "^2.10.2",
+    "pino": "^10.4.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@civic-ledger/db": "workspace:*",
+    "@civic-ledger/mcp": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "^19.3.0",
