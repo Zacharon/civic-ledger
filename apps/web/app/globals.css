@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Numbers in tables use tabular figures (ARCHITECTURE §6). */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
