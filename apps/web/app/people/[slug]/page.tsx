@@ -107,13 +107,13 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
               {title && seat ? `${title}, ${seat}` : (seat ?? 'Seat unknown')}
               <SourceMark notes={headerNotes} n={termMark} />
             </span>
-            {card.termStart ? (
-              <span className="text-base">
-                · Current term began {formatDate(card.termStart)}
-                {card.tenureYears !== null ? ` · ${formatYears(card.tenureYears)} in Congress` : ''}
-              </span>
-            ) : null}
           </p>
+          {card.termStart ? (
+            <p className="mt-1 text-ink-2">
+              Current term began {formatDate(card.termStart)}
+              {card.tenureYears !== null ? `; ${formatYears(card.tenureYears)} in Congress` : ''}.
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/compare?ids=${slug}`} className="btn btn-primary">

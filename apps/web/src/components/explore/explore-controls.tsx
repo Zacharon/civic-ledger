@@ -80,9 +80,9 @@ export function ExploreControls({
         <form
           action="/explore"
           onSubmit={onSubmit}
-          className="grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-[minmax(14rem,1.4fr)_auto_minmax(8rem,0.6fr)_minmax(10rem,0.8fr)]"
+          className="grid grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-[minmax(14rem,1.4fr)_auto_minmax(8rem,0.6fr)_minmax(10rem,0.8fr)] lg:gap-x-4"
         >
-          <div className="flex flex-col gap-1.5">
+          <div className="col-span-2 flex flex-col gap-1.5 lg:col-span-1">
             <label htmlFor={ids.q} className="text-sm font-semibold">
               Name
             </label>
@@ -106,9 +106,9 @@ export function ExploreControls({
             </div>
           </div>
 
-          <fieldset className="flex flex-col gap-1.5">
+          <fieldset className="col-span-2 flex flex-col gap-1.5 lg:col-span-1">
             <legend className="mb-1.5 text-sm font-semibold">Chamber</legend>
-            <div className="inline-flex h-11 rounded-control border border-control bg-surface p-0.5">
+            <div className="flex h-11 rounded-control border border-control bg-surface p-0.5 lg:inline-flex">
               {[
                 { value: null, label: 'Both' },
                 ...facets.chambers.map((c) => ({ value: c.value, label: CHAMBER_LABEL[c.value] })),
@@ -117,7 +117,7 @@ export function ExploreControls({
                 return (
                   <label
                     key={option.label}
-                    className={`relative inline-flex cursor-pointer items-center rounded-[3px] px-3.5 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
+                    className={`relative inline-flex flex-1 cursor-pointer items-center justify-center rounded-[3px] px-3.5 text-sm lg:flex-none has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
                       checked
                         ? 'bg-accent font-semibold text-accent-ink'
                         : 'text-ink-2 hover:text-ink'
@@ -138,7 +138,7 @@ export function ExploreControls({
             </div>
           </fieldset>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <label htmlFor={ids.state} className="text-sm font-semibold">
               State
             </label>
@@ -147,7 +147,7 @@ export function ExploreControls({
               name="state"
               value={state.state ?? ''}
               onChange={(e) => void setState({ state: e.target.value || null, page: null })}
-              className="field"
+              className="field w-full min-w-0"
             >
               <option value="">All states</option>
               {facets.states.map((s) => (
@@ -158,7 +158,7 @@ export function ExploreControls({
             </select>
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <label htmlFor={ids.party} className="text-sm font-semibold">
               Party
             </label>
@@ -167,7 +167,7 @@ export function ExploreControls({
               name="party"
               value={state.party ?? ''}
               onChange={(e) => void setState({ party: e.target.value || null, page: null })}
-              className="field"
+              className="field w-full min-w-0"
             >
               <option value="">All parties</option>
               {facets.parties.map((p) => (
@@ -220,8 +220,8 @@ export function ExploreControls({
           )}
         </ul>
 
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1.5">
+        <div className="grid w-full grid-cols-2 items-end gap-3 sm:flex sm:w-auto">
+          <div className="col-span-2 flex min-w-0 flex-col gap-1.5">
             <label htmlFor={ids.sort} className="text-sm font-semibold">
               Sort by
             </label>
@@ -238,7 +238,7 @@ export function ExploreControls({
                   page: null,
                 });
               }}
-              className="field max-w-[19rem]"
+              className="field w-full sm:max-w-[19rem]"
             >
               <option value="">State, then name (default)</option>
               <option value="name.asc">Name, A to Z</option>
@@ -263,7 +263,7 @@ export function ExploreControls({
                 const size = PAGE_SIZES.find((s) => s === Number(e.target.value));
                 if (size) void setState({ size, page: null });
               }}
-              className="field"
+              className="field w-full sm:w-auto"
             >
               {PAGE_SIZES.map((s) => (
                 <option key={s} value={s}>

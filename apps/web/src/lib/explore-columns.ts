@@ -184,7 +184,7 @@ export const FIXED_COLUMNS: readonly FixedColumn[] = [
     id: 'kept',
     group: 'promises',
     label: 'Promises kept',
-    header: 'Kept',
+    header: 'Promises kept',
     description: 'Kept promises as a share of rated promises (kept, compromise or broken).',
     kind: 'share',
     sortKey: 'promiseKeptRate',

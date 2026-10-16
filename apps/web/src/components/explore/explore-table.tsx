@@ -32,7 +32,7 @@ export function ExploreTable({ rows, columns, state, sort, caption }: Props) {
       aria-labelledby="explore-caption"
       // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be keyboard reachable (WCAG 2.1.1)
       tabIndex={0}
-      className="max-h-[calc(100dvh-8rem)] overflow-auto rounded-panel border border-rule bg-surface"
+      className="scroll-cue max-h-[calc(100dvh-8rem)] overflow-auto rounded-panel border border-rule"
     >
       <table className="w-max min-w-full border-separate border-spacing-0 text-sm">
         <caption id="explore-caption" className="sr-only">

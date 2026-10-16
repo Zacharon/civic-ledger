@@ -341,11 +341,11 @@ function Results({
               <tr key={r.ruleIndex} className="border-b border-rule align-top">
                 <td className="num py-2 pr-3 text-ink-3">{r.ruleIndex + 1}</td>
                 <td className="py-2 pr-3">
-                  {r.bill?.title ?? describeTarget(r.target)}
+                  {r.bill?.title ?? r.rollcalls[0]?.question ?? describeTarget(r.target)}
                   <span className="block text-xs text-ink-3">
                     {describeTarget(r.target)}
                     {r.rollcalls.length > 0
-                      ? ` · scored ${r.rollcalls.map((rc) => `${rc.chamber === 'house' ? 'House' : 'Senate'} #${rc.number} (${rc.result})`).join(', ')}`
+                      ? ` · ${r.rollcalls.map((rc) => `${formatDate(rc.voteDate)}, ${rc.result.toLowerCase()}`).join('; ')}`
                       : ''}
                   </span>
                   {rationales[r.ruleIndex] ? (

@@ -124,7 +124,9 @@ Dark: worst adjacent CVD ΔE 8.9, normal-vision 16.5, all ≥ 3:1 on dark `--sur
 - Containers: reading pages `max-w-5xl` (1024px); Explore and Compare go to `max-w-[1440px]`
   with 24px gutters (16px under 640px).
 - **Shape lock:** controls, chips and buttons `4px` radius; panels `6px`; tables and
-  charts square. No shadows on light surfaces; elevation is a hairline border.
+  charts square. Elevation is a hairline border; the only shadow is a soft ink-tinted
+  one on popovers (the column picker), plus edge shadows that appear on wide tables
+  only when more columns are scrolled out of view (`.scroll-cue`).
 - Breakpoints: Tailwind defaults. Every multi-column layout collapses below `md` (768px);
   Explore swaps its table for cards below `md`.
 - Z-index scale (only these): `sticky cells 1`, `sticky header 2`, `site header 10`,
@@ -132,21 +134,30 @@ Dark: worst adjacent CVD ΔE 8.9, normal-vision 16.5, all ≥ 3:1 on dark `--sur
 
 ## Motion
 
-Minimal-functional. Two motions exist: 120ms color/opacity transitions on interactive
-elements, and a 160ms opacity dim on the Explore table while a server update is
-pending. `prefers-reduced-motion: reduce` removes both. Nothing animates on load.
+Minimal-functional. Two motions exist: 120–150ms color/opacity transitions on
+interactive elements, and a 150ms opacity dim on the Explore results while a server
+update is pending (the previous table stays readable; no skeleton flash).
+`prefers-reduced-motion: reduce` removes both. Nothing animates on load.
+
+## Data-dense primitives
+
+Explore renders up to 100 rows × ~15 cells twice (table and mobile cards) plus the RSC
+payload, so repeated cells use short CSS classes (`.xt-cell`, `.chip`, `.share`, `.pos`,
+`.nodata` in `globals.css`) and meters are drawn with CSS from one custom property
+(`style="--v:27%"`) instead of inline SVG. This halved the page weight and keeps LCP
+under 2 s with 600 members.
 
 ## Components
 
 | Component | File | Notes |
 |---|---|---|
-| Site header / footer | `components/site-header.tsx`, `site-footer.tsx` | Wordmark on a double rule; one-line nav ≥ 1024px, wraps to a scroll row below. Footer carries data freshness. |
-| Skip link | `app/layout.tsx` | First focusable element; jumps to `#main`. |
+| Site header / footer | `src/components/site-header.tsx`, `site-footer.tsx` | Wordmark on a double rule; one-line nav ≥ 1024px, wraps to a scroll row below. Footer carries data freshness. |
+| Skip link | `apps/web/app/layout.tsx` | First focusable element; jumps to `#main`. |
 | Party chip | `components/party-chip.tsx` | Tint + text, title shows full party name. |
 | No data | `components/no-data.tsx` | Explicit "No data" / "Not coded" text in `--ink-3`. |
 | Source mark + Sources list | `components/sources.tsx` | Numbered marks and the per-section footnote list (source, record key, retrieved date, run id). |
-| Share bar | `components/charts/share-bar.tsx` | Inline 0–100% meter + tabular label. |
-| Position strip | `components/charts/position-strip.tsx` | Neutral ideology axis with labeled poles. |
+| Share bar | `components/charts/share-bar.tsx` | Inline 0–100% meter + tabular label (`.share`). |
+| Position strip | `components/charts/position-strip.tsx` | Neutral ideology axis (`.pos`); poles labeled by the caller. |
 | Receipts stack | `components/charts/receipts-stack.tsx` | Stacked part-to-whole bar + legend table. |
 | Bar list | `components/charts/bar-list.tsx` | Ranked horizontal bars (industries, outside spending). |
 | Member scatter | `components/charts/member-scatter.tsx` | DW-NOMINATE dim1 × dim2, neutral dots, focus ring. |
@@ -154,6 +165,11 @@ pending. `prefers-reduced-motion: reduce` removes both. Nothing animates on load
 | Explore table / cards | `components/explore/*` | Sticky header + first column, `aria-sort`, URL state. |
 | Filters, column picker, sort select | `components/explore/*` (client) | nuqs URL state, server re-render on change. |
 | Framework builder | `components/frameworks/*` (client) | Spec lives in the URL. |
+| Tally bar | `components/charts/tally-bar.tsx` | Yea / nay / present / not voting, counts printed. |
+| Scroll region | `components/scroll-region.tsx` | Named, focusable wrapper for wide tables. |
+| Pagination | `components/pagination.tsx` | Links, work without JavaScript. |
+
+Component paths are relative to `apps/web/src/`.
 
 States: every data component renders loading (route `loading.tsx`), empty (explains what
 is missing and offers the next action), error (`error.tsx`, says what failed, offers

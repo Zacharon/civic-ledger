@@ -28,7 +28,14 @@ export function ExploreCards({ rows, columns }: { rows: ExploreRow[]; columns: C
             <dl className="xc mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               {columns.map((c) => (
                 <div key={c.id}>
-                  <dt className="text-xs text-ink-3">{c.header}</dt>
+                  <dt className="text-xs text-ink-3">
+                    {c.header}
+                    {c.scorecard ? (
+                      <span className="block">
+                        Self-described: {c.scorecard.selfDescribedOrientation}
+                      </span>
+                    ) : null}
+                  </dt>
                   <dd>
                     <MetricCell column={c} row={row} />
                   </dd>

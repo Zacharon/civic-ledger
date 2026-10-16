@@ -15,7 +15,9 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',
-  timeout: 45_000,
+  timeout: 60_000,
+  // Four workers share one machine with two Next servers; allow for slow navigations.
+  expect: { timeout: 10_000 },
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: 'retain-on-failure',
@@ -23,7 +25,14 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop',
-      testIgnore: /screenshots\.spec\.ts/,
+      testIgnore: /(screenshots|performance)\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+    },
+    {
+      // Runs after the functional suite so timing is not skewed by parallel tests.
+      name: 'performance',
+      testMatch: /performance\.spec\.ts/,
+      dependencies: ['desktop'],
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
     {

@@ -323,6 +323,38 @@
     justify-content: flex-start;
   }
 
+  /*
+   * Scroll cues for wide tables: surface-colored covers scroll with the content
+   * (local) while soft shadows stay pinned (scroll), so an edge shows a shadow only
+   * when more columns hide behind it.
+   */
+  .scroll-cue {
+    background:
+      linear-gradient(to right, var(--surface) 30%, transparent) left center / 3rem 100% no-repeat
+      local,
+      linear-gradient(to left, var(--surface) 30%, transparent) right center / 3rem 100% no-repeat
+      local,
+      linear-gradient(to right, rgb(28 27 24 / 0.2), transparent) left center / 1.25rem 100%
+      no-repeat scroll,
+      linear-gradient(to left, rgb(28 27 24 / 0.2), transparent) right center / 1.25rem 100%
+      no-repeat scroll,
+      var(--surface);
+  }
+  @media (prefers-color-scheme: dark) {
+    .scroll-cue {
+      background:
+        linear-gradient(to right, var(--surface) 30%, transparent) left center / 3rem 100% no-repeat
+        local,
+        linear-gradient(to left, var(--surface) 30%, transparent) right center / 3rem 100% no-repeat
+        local,
+        linear-gradient(to right, rgb(0 0 0 / 0.6), transparent) left center / 1.25rem 100%
+        no-repeat scroll,
+        linear-gradient(to left, rgb(0 0 0 / 0.6), transparent) right center / 1.25rem 100%
+        no-repeat scroll,
+        var(--surface);
+    }
+  }
+
   /* Prose for methodology and long-form copy. */
   .prose-ledger {
     max-width: 68ch;

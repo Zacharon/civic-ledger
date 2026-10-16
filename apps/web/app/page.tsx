@@ -50,9 +50,9 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="mx-auto grid max-w-[1440px] gap-12 px-4 pt-12 pb-16 sm:px-6 md:pt-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-16">
-        <div className="max-w-2xl">
-          <h1 className="font-serif text-4xl font-medium tracking-tight sm:text-[3.5rem] sm:leading-[1.05]">
+      <section className="mx-auto grid max-w-[1440px] grid-cols-1 gap-12 px-4 pt-10 pb-16 sm:px-6 md:pt-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-16">
+        <div className="min-w-0 max-w-2xl">
+          <h1 className="font-serif text-[2.5rem] leading-[1.05] font-medium tracking-tight sm:text-[3.5rem]">
             The public record of Congress, in one table.
           </h1>
           <p className="mt-5 max-w-xl text-lg text-ink-2">
@@ -112,10 +112,10 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <figure className="self-start rounded-panel border border-rule bg-surface">
+        <figure className="min-w-0 self-start rounded-panel border border-rule bg-surface">
           <figcaption className="flex items-baseline justify-between gap-4 border-b border-rule px-4 py-3 text-sm">
             <span className="font-semibold">From the ledger</span>
-            <span className="text-ink-3">Default order: state, then name</span>
+            <span className="text-ink-3">Default order: state, name</span>
           </figcaption>
           <table className="w-full text-sm">
             <thead>
@@ -123,8 +123,12 @@ export default async function HomePage() {
                 <th scope="col" className="px-4 py-2 font-semibold">
                   Member
                 </th>
-                {preview.map((c) => (
-                  <th key={c.id} scope="col" className="px-4 py-2 text-right font-semibold">
+                {preview.map((c, i) => (
+                  <th
+                    key={c.id}
+                    scope="col"
+                    className={`px-4 py-2 text-right font-semibold ${i > 1 ? 'hidden sm:table-cell' : ''}`}
+                  >
                     {c.header}
                   </th>
                 ))}
@@ -142,8 +146,11 @@ export default async function HomePage() {
                       {seatLabel(row.chamber, row.state, row.district)}
                     </span>
                   </th>
-                  {preview.map((c) => (
-                    <td key={c.id} className="px-4 py-3 text-right whitespace-nowrap">
+                  {preview.map((c, i) => (
+                    <td
+                      key={c.id}
+                      className={`px-4 py-3 text-right whitespace-nowrap ${i > 1 ? 'hidden sm:table-cell' : ''}`}
+                    >
                       <MetricCell column={c} row={row} />
                     </td>
                   ))}
