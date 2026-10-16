@@ -7,7 +7,7 @@
 - Dependency direction: `apps/web`, `packages/mcp` -> `packages/core` -> `packages/db`; `packages/ingest` -> `packages/db` (+ core schemas). Adapters never query the database directly.
 - Business rules live in `packages/core` capabilities. The UI, `/api/v1` and MCP are thin adapters over the same registry.
 - Neutrality rules in ARCHITECTURE section 1 and 6 are acceptance criteria: no default ideological sort, every score attributed, every fact has provenance, coverage shown.
-- Tests never touch the network or a production database. Use PGlite and committed fixtures.
+- Default tests (`pnpm test`) never touch the network or a production database: PGlite and committed fixtures. `pnpm test:pg` is the opt-in real-Postgres suite (embedded-postgres binary fetched at install; required in CI). `pnpm smoke:real` runs against a local live-ingest DB only.
 - Never commit `.env*`, API keys or raw source dumps (`data/raw/` is gitignored).
 - Run `pnpm check` (lint, typecheck, test, build) before reporting work done.
 - Branch naming: `<owner>/<slug>-<YYYYMMDD>`; worktrees under `Workspace/_worktrees/Civic_Ledger/<category>/<slug>-<YYYYMMDD>`.
