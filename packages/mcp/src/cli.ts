@@ -6,7 +6,9 @@ import { createMcpServer, SERVER_NAME } from './server';
 const USAGE = `Usage: pnpm --filter @civic-ledger/mcp start [--pglite <dir>]
 
 Runs the Civic Ledger MCP server over stdio (read-only tools).
-Database: DATABASE_URL (Postgres), else --pglite <dir>, else .pglite/dev.
+Database: --pglite <dir>, else DATABASE_URL_READONLY (Postgres), else .pglite/dev.
+Development also falls back to DATABASE_URL. With NODE_ENV=production it refuses to start
+without DATABASE_URL_READONLY unless DB_ALLOW_OWNER_CREDENTIALS=1.
 Logs are JSON lines on stderr; stdout carries the protocol and nothing else.`;
 
 function log(level: 'info' | 'error', message: string, extra: Record<string, unknown> = {}): void {
@@ -23,13 +25,15 @@ const invokedFrom = process.env.INIT_CWD ?? process.cwd();
 
 function parseConfig(argv: string[]): DbConfig | undefined {
   if (argv.includes('--help') || argv.includes('-h')) return undefined;
+  // Always evaluated: in production it refuses to start without a read-only role (or the
+  // explicit DB_ALLOW_OWNER_CREDENTIALS=1), also when --pglite picks a local file instead.
+  const config = dbConfigFromEnv(process.env, { readOnly: true });
   const flag = argv.indexOf('--pglite');
   if (flag !== -1) {
     const dir = argv[flag + 1];
     if (!dir) throw new Error('--pglite needs a directory');
     return { kind: 'pglite', dataDir: resolve(invokedFrom, dir) };
   }
-  const config = dbConfigFromEnv(process.env, { readOnly: true });
   return config.kind === 'pglite'
     ? { kind: 'pglite', dataDir: resolve(invokedFrom, '.pglite/dev') }
     : config;

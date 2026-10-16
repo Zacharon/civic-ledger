@@ -88,15 +88,43 @@ function definedOnly(config: Partial<PgPoolSettings>): Partial<PgPoolSettings> {
   return out;
 }
 
+/** Environment variables as read here; `process.env` and plain test objects both fit. */
+export type EnvVars = Readonly<Record<string, string | undefined>>;
+
+/** `=1` lets a production read-only consumer run without `DATABASE_URL_READONLY`. */
+export const OWNER_CREDENTIALS_ACK = 'DB_ALLOW_OWNER_CREDENTIALS';
+
+/**
+ * A production web or MCP process must not silently fall back to the owner credentials in
+ * `DATABASE_URL` (VC-068): the select-only role is the real write boundary. Development
+ * (any other `NODE_ENV`) keeps the fallback. The message never contains a URL.
+ */
+function readOnlyUrlFrom(env: EnvVars): string | undefined {
+  const url = env.DATABASE_URL_READONLY?.trim();
+  if (url) return url;
+  if (env.NODE_ENV === 'production' && env[OWNER_CREDENTIALS_ACK]?.trim() !== '1') {
+    const fallback = env.DATABASE_URL?.trim() ? 'DATABASE_URL' : 'a local PGlite directory';
+    throw new Error(
+      'DATABASE_URL_READONLY is not set. In production the web app and MCP server must ' +
+        'connect as a select-only role (scripts/db/roles.sql, docs/OPERATIONS.md). To run on ' +
+        `${fallback} anyway, set ${OWNER_CREDENTIALS_ACK}=1.`,
+    );
+  }
+  return undefined;
+}
+
 export interface EnvConfigOptions {
-  /** Use `DATABASE_URL_READONLY` (falling back to `DATABASE_URL`). Web and MCP pass this. */
+  /**
+   * Use `DATABASE_URL_READONLY`. Web and MCP pass this. Outside production it falls back to
+   * `DATABASE_URL`; in production that fallback needs `DB_ALLOW_OWNER_CREDENTIALS=1`.
+   */
   readOnly?: boolean;
   /** Long-running loads: ingest limits and `INGEST_DB_STATEMENT_TIMEOUT_MS`. */
   batch?: boolean;
 }
 
 /** Empty or unset means "use the default"; anything else must be a non-negative integer. */
-function intFromEnv(env: NodeJS.ProcessEnv, name: string, fallback: number): number {
+function intFromEnv(env: EnvVars, name: string, fallback: number): number {
   const raw = env[name]?.trim();
   if (!raw) return fallback;
   const value = Number(raw);
@@ -111,10 +139,10 @@ function intFromEnv(env: NodeJS.ProcessEnv, name: string, fallback: number): num
  * directory. Limits come from `DB_*` variables (documented in docs/OPERATIONS.md).
  */
 export function dbConfigFromEnv(
-  env: NodeJS.ProcessEnv = process.env,
+  env: EnvVars = process.env,
   options: EnvConfigOptions = {},
 ): DbConfig {
-  const readOnlyUrl = options.readOnly ? env.DATABASE_URL_READONLY?.trim() : undefined;
+  const readOnlyUrl = options.readOnly ? readOnlyUrlFrom(env) : undefined;
   const url = readOnlyUrl || env.DATABASE_URL?.trim();
   if (!url) return { kind: 'pglite', dataDir: resolve(DEFAULT_PGLITE_DIR) };
   const base = options.batch ? BATCH_POOL_DEFAULTS : INTERACTIVE_POOL_DEFAULTS;
