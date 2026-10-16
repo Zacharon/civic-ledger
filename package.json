@@ -12,6 +12,7 @@
     "format": "biome check --write .",
     "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -r typecheck",
     "test": "vitest run",
+    "test:pg": "vitest run --config vitest.pg.config.ts",
     "build": "pnpm -r --if-present build",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "db:generate": "pnpm --filter @civic-ledger/db exec drizzle-kit generate",
@@ -23,7 +24,14 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
+    "@civic-ledger/core": "workspace:*",
+    "@civic-ledger/db": "workspace:*",
+    "@civic-ledger/ingest": "workspace:*",
     "@types/node": "^24.19.2",
+    "@types/pg": "8.23.1",
+    "drizzle-orm": "0.45.4",
+    "embedded-postgres": "17.10.0-beta.17",
+    "pg": "8.23.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.4"
