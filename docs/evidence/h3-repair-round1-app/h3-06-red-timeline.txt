@@ -1,0 +1,49 @@
+      0 ms  ACT  Launch browser
+    599 ms  ACT  Create context
+    640 ms  ACT  Create page
+    641 ms  BRW  newPage {}
+   1310 ms  ACT  Navigate
+   1311 ms  BRW  goto {"url":"/","waitUntil":"load"}
+   1855 ms  NET- 200 / (531 ms)
+   1927 ms  NET- 200 /_next/static/media/instrument_sans_latin_wght_normal-s.p.3h2wr6o8p949u.woff2 (17 ms)
+   1935 ms  NET- 200 /_next/static/chunks/35sxzytf-kljf.css (23 ms)
+   1936 ms  NET- 200 /_next/static/chunks/3tfht6q9nljrs.js (23 ms)
+   1940 ms  NET- 200 /_next/static/media/newsreader_latin_opsz_normal-s.p.0dc79pquxokce.woff2 (31 ms)
+   1941 ms  NET- 200 /_next/static/chunks/turbopack-2c3mg3r-05n1w.js (28 ms)
+   1941 ms  NET- 200 /_next/static/chunks/3b3dyas2k1lq1.js (29 ms)
+   1944 ms  NET- 200 /_next/static/chunks/31ak8r4jmtf0e.js (31 ms)
+   1944 ms  NET- 200 /_next/static/media/newsreader_latin_opsz_italic-s.p.11ae33ayisz--.woff2 (35 ms)
+   1945 ms  NET- 200 /_next/static/chunks/0rgg6u1hweq9-.js (32 ms)
+   1947 ms  NET- 200 /_next/static/chunks/39og6ci-nvbzu.js (34 ms)
+   1947 ms  NET- 200 /_next/static/chunks/2wouj-7eyg-mf.js (33 ms)
+   1952 ms  NET- 200 /_next/static/chunks/0lkhn1op1alud.js (40 ms)
+   2225 ms  ACT  Fill "Ashvale"
+   2226 ms  BRW  fill {"selector":"internal:label=\"Find a member of Congress\"i","strict":true,"value":"Ashvale"}
+   2344 ms  ACT  Click
+   2345 ms  BRW  click {"selector":"internal:role=button[name=\"Search\"i]","strict":true}
+   2630 ms  NET- 200 /explore?q=Ashvale (156 ms)
+   2651 ms  NET- 200 /_next/static/media/newsreader_latin_opsz_italic-s.p.11ae33ayisz--.woff2 (1 ms)
+   2651 ms  NET- 200 /_next/static/media/newsreader_latin_opsz_normal-s.p.0dc79pquxokce.woff2 (1 ms)
+   2651 ms  NET- 200 /_next/static/media/instrument_sans_latin_wght_normal-s.p.3h2wr6o8p949u.woff2 (1 ms)
+   2653 ms  NET- 200 /_next/static/chunks/3tfht6q9nljrs.js (1 ms)
+   2653 ms  NET- 200 /_next/static/chunks/35sxzytf-kljf.css (1 ms)
+   2654 ms  NET- 200 /_next/static/chunks/turbopack-2c3mg3r-05n1w.js (1 ms)
+   2654 ms  NET- 200 /_next/static/chunks/39og6ci-nvbzu.js (1 ms)
+   2654 ms  NET- 200 /_next/static/chunks/0lkhn1op1alud.js (1 ms)
+   2654 ms  NET- 200 /_next/static/chunks/3b3dyas2k1lq1.js (1 ms)
+   2655 ms  NET- 200 /_next/static/chunks/0rgg6u1hweq9-.js (1 ms)
+   2655 ms  NET- 200 /_next/static/chunks/2wouj-7eyg-mf.js (1 ms)
+   2659 ms  ACT  Expect "toHaveURL"
+   2664 ms  BRW  expect {"expression":"to.have.url","expectedText":[{"regexSource":"\\/explore\\?q=Ashvale","regexFlags":""}
+   2846 ms  ACT  Expect "toHaveCount"
+   2848 ms  BRW  expect {"selector":"internal:role=region[name=/members of Congress/i] >> tbody tr","expression":"to.have.co
+   2896 ms  ACT  Expect "toBeVisible"
+   2918 ms  BRW  expect {"selector":"internal:role=region[name=/members of Congress/i] >> internal:role=link[name=\"Avery As
+   2965 ms  ACT  Click
+   2976 ms  BRW  click {"selector":"internal:role=button[name=/Name contains/]","strict":true}
+   3085 ms  ACT  Expect "not toHaveURL"
+   3087 ms  BRW  expect {"expression":"to.have.url","expectedText":[{"regexSource":"q=","regexFlags":""}],"expectedValue":{"
+   3483 ms  NET- 200 /_next/static/chunks/0eyu-kahzhkld.js (831 ms)
+   3493 ms  NET- 200 /_next/static/chunks/0vmqxjnb68n_u.js (840 ms)
+  13457 ms  ACT  Close context
+  13474 ms  ACT  Attach "error-context"

@@ -11,6 +11,23 @@ rates are fractions in [0, 1], `null` means "no data" (never zero), inputs are s
 (unknown keys are rejected), every fact carries `provenance` (resolve `sourceId` with
 `sources.status`).
 
+## Inputs and fields worth knowing
+
+The OpenAPI document and the MCP `inputSchema` / `outputSchema` are the full contract;
+these are the parts added after this page was first written (read from the zod schemas
+in `packages/core/src/capabilities`):
+
+| Capability | Input or field | Meaning |
+|---|---|---|
+| `explore.table` | `filters.scope`: `current` (default) or `all` | `current` = the person's latest term covers today (start <= today < end, open end counts), evaluated at query time; `all` adds former members |
+| `explore.facets` | input `scope` (default `current`); output `scope`, `scopes` `{current, all}`, `total`, `withData` | Counts for the requested scope; `scopes` always gives both; `withData` = people in the scope with a value (not "no data") per Explore field |
+| `people.search` | `scope` (default `all`) | Search finds former members too; every item says `isCurrent` |
+| `explore.table` rows, `people.get` `card`, `people.compare` people | `isCurrent`, `termEnd`, `serviceStart`, `tenureYears`, `smallDollarShare`, `smallDollarAsOf`, `topIndustries`, `industryCodingCoverage`, `scorecards` | `tenureYears` = years actually served; `smallDollarAsOf` = coverage date of the FEC candidate summary behind `smallDollarShare`; `topIndustries` are net-positive industries; `scorecards` only for publishers with cleared terms |
+| `money.summary` | `totals.pacShare`, `totals.smallDollarShare` | Shares guarded to [0, 1], else `null`; `totals.unitemizedIndividualCents` is always `null` (weball has no split) |
+| `money.summary` | `smallDollar` `{fecCandidateId, unitemizedIndividualCents, itemizedIndividualCents, totalReceiptsCents, share, coverageEndDate, provenance}` or `null` | FEC candidate summary for its own filing period; `share` is `null` outside [0, 1] or when receipts <= 0; its date can trail `totals.coverageEndDate` |
+| `money.summary` | `outsideSpending` `{supportCents, opposeCents, spenders, itemCount, items}` | `spenders` sums every expenditure per spender and side (largest first); `itemCount` counts all expenditures; `items` lists only the 50 largest |
+| `sources.status` | runs: `scope`, `counts`, `error` | Ingest scope as stored (`all`, `cycle:2026`, `congress:119`) and the run's own counters |
+
 ## JSON API
 
 Base path `/api/v1/<capability name>`, for example `/api/v1/people.search`. The
@@ -113,10 +130,13 @@ per public capability. Tool names replace the dot with an underscore: `people_se
   `not_found` tool error.
 * Per-session rate limit: 120-call burst, 2 calls per second sustained; beyond it
   the tool error is `rate_limited` with `retryAfterSeconds`.
-* Database: `DATABASE_URL_READONLY`, else `DATABASE_URL` (Postgres) if set, otherwise
-  PGlite at `--pglite <dir>`
-  (default `.pglite/dev` in the directory you ran the command from). It checks the
-  database at startup and exits with a clear message if it is empty or unreachable
+* Database: `--pglite <dir>` if given, else `DATABASE_URL_READONLY` (Postgres); in
+  development it falls back to `DATABASE_URL`, then PGlite at `.pglite/dev` in the
+  directory you ran the command from. With `NODE_ENV=production` it refuses to start
+  (exit 1, one JSON log line, no URL printed) unless `DATABASE_URL_READONLY` is set or
+  `DB_ALLOW_OWNER_CREDENTIALS=1` acknowledges running on the owner URL or a PGlite
+  directory (VC-068; the web server applies the same rule at `next start`). It checks
+  the database at startup and exits with a clear message if it is empty or unreachable
   (`pnpm db:migrate && pnpm db:seed` for a local dev database).
 * Logs are JSON lines on stderr; stdout carries only the protocol.
 
@@ -159,15 +179,15 @@ instead, drop the `--pglite` arguments and set the environment:
     "civic-ledger": {
       "command": "pnpm",
       "args": ["--dir", "C:/Users/you/Workspace/Civic_Ledger", "--filter", "@civic-ledger/mcp", "start"],
-      "env": { "DATABASE_URL": "postgres://reader:...@host:5432/civic_ledger" }
+      "env": { "DATABASE_URL_READONLY": "postgres://reader:...@host:5432/civic_ledger" }
     }
   }
 }
 ```
 
-Use a read-only database role (`scripts/db/roles.sql`, set as `DATABASE_URL_READONLY`
-or, as here, `DATABASE_URL`); the server never writes, but the role is the real
-boundary. A PGlite directory can be opened by one process at a time:
+Use a read-only database role (`scripts/db/roles.sql`) as `DATABASE_URL_READONLY`; the
+server never writes, but the role is the real boundary. (Outside production a plain
+`DATABASE_URL` also works.) A PGlite directory can be opened by one process at a time:
 stop `next dev` / `next start` (or point them at a different directory) before
 starting the MCP server on the same directory.
 
