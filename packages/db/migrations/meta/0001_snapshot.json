@@ -1,0 +1,5497 @@
+{
+  "id": "c9ed9e63-65fa-4bb1-9852-f44089a119c8",
+  "prevId": "32b67601-b639-4c5a-af5b-8cd3200e2b5a",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.framework": {
+      "name": "framework",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "framework_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author": {
+          "name": "author",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stated_orientation": {
+          "name": "stated_orientation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "methodology_url": {
+          "name": "methodology_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "framework_source_idx": {
+          "name": "framework_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "framework_ingest_run_idx": {
+          "name": "framework_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "framework_source_id_source_id_fk": {
+          "name": "framework_source_id_source_id_fk",
+          "tableFrom": "framework",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "framework_ingest_run_id_ingest_run_id_fk": {
+          "name": "framework_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "framework",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "framework_natural_key": {
+          "name": "framework_natural_key",
+          "columns": [
+            "slug",
+            "version"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.framework_rule": {
+      "name": "framework_rule",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "framework_rule_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "framework_id": {
+          "name": "framework_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_kind": {
+          "name": "target_kind",
+          "type": "framework_target_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rollcall_id": {
+          "name": "rollcall_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bill_id": {
+          "name": "bill_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aligned_position": {
+          "name": "aligned_position",
+          "type": "aligned_position",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weight": {
+          "name": "weight",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "rationale": {
+          "name": "rationale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "framework_rule_rollcall_idx": {
+          "name": "framework_rule_rollcall_idx",
+          "columns": [
+            {
+              "expression": "rollcall_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "framework_rule_bill_idx": {
+          "name": "framework_rule_bill_idx",
+          "columns": [
+            {
+              "expression": "bill_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "framework_rule_source_idx": {
+          "name": "framework_rule_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "framework_rule_ingest_run_idx": {
+          "name": "framework_rule_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "framework_rule_framework_id_framework_id_fk": {
+          "name": "framework_rule_framework_id_framework_id_fk",
+          "tableFrom": "framework_rule",
+          "columnsFrom": [
+            "framework_id"
+          ],
+          "tableTo": "framework",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "framework_rule_rollcall_id_rollcall_id_fk": {
+          "name": "framework_rule_rollcall_id_rollcall_id_fk",
+          "tableFrom": "framework_rule",
+          "columnsFrom": [
+            "rollcall_id"
+          ],
+          "tableTo": "rollcall",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "framework_rule_bill_id_bill_id_fk": {
+          "name": "framework_rule_bill_id_bill_id_fk",
+          "tableFrom": "framework_rule",
+          "columnsFrom": [
+            "bill_id"
+          ],
+          "tableTo": "bill",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "framework_rule_source_id_source_id_fk": {
+          "name": "framework_rule_source_id_source_id_fk",
+          "tableFrom": "framework_rule",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "framework_rule_ingest_run_id_ingest_run_id_fk": {
+          "name": "framework_rule_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "framework_rule",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "framework_rule_natural_key": {
+          "name": "framework_rule_natural_key",
+          "columns": [
+            "framework_id",
+            "rollcall_id",
+            "bill_id"
+          ],
+          "nullsNotDistinct": true
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "framework_rule_one_target": {
+          "name": "framework_rule_one_target",
+          "value": "(\"framework_rule\".\"target_kind\" = 'rollcall' and \"framework_rule\".\"rollcall_id\" is not null and \"framework_rule\".\"bill_id\" is null) or (\"framework_rule\".\"target_kind\" = 'bill' and \"framework_rule\".\"bill_id\" is not null and \"framework_rule\".\"rollcall_id\" is null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.platform_position": {
+      "name": "platform_position",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "platform_position_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cycle": {
+          "name": "cycle",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_area_id": {
+          "name": "policy_area_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stance": {
+          "name": "stance",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "platform_position_policy_area_idx": {
+          "name": "platform_position_policy_area_idx",
+          "columns": [
+            {
+              "expression": "policy_area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "platform_position_source_idx": {
+          "name": "platform_position_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "platform_position_ingest_run_idx": {
+          "name": "platform_position_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "platform_position_person_id_person_id_fk": {
+          "name": "platform_position_person_id_person_id_fk",
+          "tableFrom": "platform_position",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "tableTo": "person",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "platform_position_policy_area_id_policy_area_id_fk": {
+          "name": "platform_position_policy_area_id_policy_area_id_fk",
+          "tableFrom": "platform_position",
+          "columnsFrom": [
+            "policy_area_id"
+          ],
+          "tableTo": "policy_area",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "platform_position_source_id_source_id_fk": {
+          "name": "platform_position_source_id_source_id_fk",
+          "tableFrom": "platform_position",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "platform_position_ingest_run_id_ingest_run_id_fk": {
+          "name": "platform_position_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "platform_position",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "platform_position_natural_key": {
+          "name": "platform_position_natural_key",
+          "columns": [
+            "person_id",
+            "cycle",
+            "policy_area_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.promise": {
+      "name": "promise",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "promise_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "promise_key": {
+          "name": "promise_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_area_id": {
+          "name": "policy_area_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statement": {
+          "name": "statement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "made_on": {
+          "name": "made_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "promise_person_idx": {
+          "name": "promise_person_idx",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "promise_policy_area_idx": {
+          "name": "promise_policy_area_idx",
+          "columns": [
+            {
+              "expression": "policy_area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "promise_source_idx": {
+          "name": "promise_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "promise_ingest_run_idx": {
+          "name": "promise_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "promise_person_id_person_id_fk": {
+          "name": "promise_person_id_person_id_fk",
+          "tableFrom": "promise",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "tableTo": "person",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "promise_policy_area_id_policy_area_id_fk": {
+          "name": "promise_policy_area_id_policy_area_id_fk",
+          "tableFrom": "promise",
+          "columnsFrom": [
+            "policy_area_id"
+          ],
+          "tableTo": "policy_area",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "promise_source_id_source_id_fk": {
+          "name": "promise_source_id_source_id_fk",
+          "tableFrom": "promise",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "promise_ingest_run_id_ingest_run_id_fk": {
+          "name": "promise_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "promise",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "promise_promise_key_unique": {
+          "name": "promise_promise_key_unique",
+          "columns": [
+            "promise_key"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.promise_rating": {
+      "name": "promise_rating",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "promise_rating_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "promise_id": {
+          "name": "promise_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rater": {
+          "name": "rater",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "promise_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rated_on": {
+          "name": "rated_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "evidence": {
+          "name": "evidence",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "promise_rating_source_idx": {
+          "name": "promise_rating_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "promise_rating_ingest_run_idx": {
+          "name": "promise_rating_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "promise_rating_promise_id_promise_id_fk": {
+          "name": "promise_rating_promise_id_promise_id_fk",
+          "tableFrom": "promise_rating",
+          "columnsFrom": [
+            "promise_id"
+          ],
+          "tableTo": "promise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "promise_rating_source_id_source_id_fk": {
+          "name": "promise_rating_source_id_source_id_fk",
+          "tableFrom": "promise_rating",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "promise_rating_ingest_run_id_ingest_run_id_fk": {
+          "name": "promise_rating_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "promise_rating",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "promise_rating_natural_key": {
+          "name": "promise_rating_natural_key",
+          "columns": [
+            "promise_id",
+            "rater"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.candidacy": {
+      "name": "candidacy",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "candidacy_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cycle": {
+          "name": "cycle",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "office_id": {
+          "name": "office_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fec_candidate_id": {
+          "name": "fec_candidate_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "party": {
+          "name": "party",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "candidacy_outcome",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "candidacy_office_idx": {
+          "name": "candidacy_office_idx",
+          "columns": [
+            {
+              "expression": "office_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "candidacy_fec_candidate_idx": {
+          "name": "candidacy_fec_candidate_idx",
+          "columns": [
+            {
+              "expression": "fec_candidate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "candidacy_source_idx": {
+          "name": "candidacy_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "candidacy_ingest_run_idx": {
+          "name": "candidacy_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "candidacy_person_id_person_id_fk": {
+          "name": "candidacy_person_id_person_id_fk",
+          "tableFrom": "candidacy",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "tableTo": "person",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "candidacy_office_id_office_id_fk": {
+          "name": "candidacy_office_id_office_id_fk",
+          "tableFrom": "candidacy",
+          "columnsFrom": [
+            "office_id"
+          ],
+          "tableTo": "office",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "candidacy_source_id_source_id_fk": {
+          "name": "candidacy_source_id_source_id_fk",
+          "tableFrom": "candidacy",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "candidacy_ingest_run_id_ingest_run_id_fk": {
+          "name": "candidacy_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "candidacy",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "candidacy_natural_key": {
+          "name": "candidacy_natural_key",
+          "columns": [
+            "person_id",
+            "cycle",
+            "office_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.office": {
+      "name": "office",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "office_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "level": {
+          "name": "level",
+          "type": "office_level",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chamber": {
+          "name": "chamber",
+          "type": "chamber",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "district": {
+          "name": "district",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "office_natural_key": {
+          "name": "office_natural_key",
+          "columns": [
+            "level",
+            "chamber",
+            "state",
+            "district"
+          ],
+          "nullsNotDistinct": true
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.person": {
+      "name": "person",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "person_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "birth_date": {
+          "name": "birth_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "person_source_idx": {
+          "name": "person_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "person_ingest_run_idx": {
+          "name": "person_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "person_source_id_source_id_fk": {
+          "name": "person_source_id_source_id_fk",
+          "tableFrom": "person",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "person_ingest_run_id_ingest_run_id_fk": {
+          "name": "person_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "person",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "person_slug_unique": {
+          "name": "person_slug_unique",
+          "columns": [
+            "slug"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.person_identifier": {
+      "name": "person_identifier",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "person_identifier_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scheme": {
+          "name": "scheme",
+          "type": "identifier_scheme",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "person_identifier_person_idx": {
+          "name": "person_identifier_person_idx",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "person_identifier_source_idx": {
+          "name": "person_identifier_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "person_identifier_ingest_run_idx": {
+          "name": "person_identifier_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "person_identifier_person_id_person_id_fk": {
+          "name": "person_identifier_person_id_person_id_fk",
+          "tableFrom": "person_identifier",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "tableTo": "person",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "person_identifier_source_id_source_id_fk": {
+          "name": "person_identifier_source_id_source_id_fk",
+          "tableFrom": "person_identifier",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "person_identifier_ingest_run_id_ingest_run_id_fk": {
+          "name": "person_identifier_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "person_identifier",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "person_identifier_natural_key": {
+          "name": "person_identifier_natural_key",
+          "columns": [
+            "scheme",
+            "value"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.term": {
+      "name": "term",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "term_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "office_id": {
+          "name": "office_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "party": {
+          "name": "party",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "term_office_idx": {
+          "name": "term_office_idx",
+          "columns": [
+            {
+              "expression": "office_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "term_source_idx": {
+          "name": "term_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "term_ingest_run_idx": {
+          "name": "term_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "term_person_id_person_id_fk": {
+          "name": "term_person_id_person_id_fk",
+          "tableFrom": "term",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "tableTo": "person",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "term_office_id_office_id_fk": {
+          "name": "term_office_id_office_id_fk",
+          "tableFrom": "term",
+          "columnsFrom": [
+            "office_id"
+          ],
+          "tableTo": "office",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "term_source_id_source_id_fk": {
+          "name": "term_source_id_source_id_fk",
+          "tableFrom": "term",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "term_ingest_run_id_ingest_run_id_fk": {
+          "name": "term_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "term",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "term_natural_key": {
+          "name": "term_natural_key",
+          "columns": [
+            "person_id",
+            "office_id",
+            "start_date"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.bill": {
+      "name": "bill",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "bill_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "congress": {
+          "name": "congress",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bill_type": {
+          "name": "bill_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "number": {
+          "name": "number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "introduced_date": {
+          "name": "introduced_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sponsor_person_id": {
+          "name": "sponsor_person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "latest_action_text": {
+          "name": "latest_action_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "latest_action_date": {
+          "name": "latest_action_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "bill_sponsor_idx": {
+          "name": "bill_sponsor_idx",
+          "columns": [
+            {
+              "expression": "sponsor_person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "bill_source_idx": {
+          "name": "bill_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "bill_ingest_run_idx": {
+          "name": "bill_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "bill_sponsor_person_id_person_id_fk": {
+          "name": "bill_sponsor_person_id_person_id_fk",
+          "tableFrom": "bill",
+          "columnsFrom": [
+            "sponsor_person_id"
+          ],
+          "tableTo": "person",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "bill_source_id_source_id_fk": {
+          "name": "bill_source_id_source_id_fk",
+          "tableFrom": "bill",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "bill_ingest_run_id_ingest_run_id_fk": {
+          "name": "bill_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "bill",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "bill_natural_key": {
+          "name": "bill_natural_key",
+          "columns": [
+            "congress",
+            "bill_type",
+            "number"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.bill_policy_area": {
+      "name": "bill_policy_area",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "bill_policy_area_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "bill_id": {
+          "name": "bill_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_area_id": {
+          "name": "policy_area_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "bill_policy_area_policy_area_idx": {
+          "name": "bill_policy_area_policy_area_idx",
+          "columns": [
+            {
+              "expression": "policy_area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "bill_policy_area_source_idx": {
+          "name": "bill_policy_area_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "bill_policy_area_ingest_run_idx": {
+          "name": "bill_policy_area_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "bill_policy_area_bill_id_bill_id_fk": {
+          "name": "bill_policy_area_bill_id_bill_id_fk",
+          "tableFrom": "bill_policy_area",
+          "columnsFrom": [
+            "bill_id"
+          ],
+          "tableTo": "bill",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "bill_policy_area_policy_area_id_policy_area_id_fk": {
+          "name": "bill_policy_area_policy_area_id_policy_area_id_fk",
+          "tableFrom": "bill_policy_area",
+          "columnsFrom": [
+            "policy_area_id"
+          ],
+          "tableTo": "policy_area",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "bill_policy_area_source_id_source_id_fk": {
+          "name": "bill_policy_area_source_id_source_id_fk",
+          "tableFrom": "bill_policy_area",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "bill_policy_area_ingest_run_id_ingest_run_id_fk": {
+          "name": "bill_policy_area_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "bill_policy_area",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "bill_policy_area_natural_key": {
+          "name": "bill_policy_area_natural_key",
+          "columns": [
+            "bill_id",
+            "policy_area_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.bill_subject": {
+      "name": "bill_subject",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "bill_subject_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "bill_id": {
+          "name": "bill_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "bill_subject_source_idx": {
+          "name": "bill_subject_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "bill_subject_ingest_run_idx": {
+          "name": "bill_subject_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "bill_subject_bill_id_bill_id_fk": {
+          "name": "bill_subject_bill_id_bill_id_fk",
+          "tableFrom": "bill_subject",
+          "columnsFrom": [
+            "bill_id"
+          ],
+          "tableTo": "bill",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "bill_subject_source_id_source_id_fk": {
+          "name": "bill_subject_source_id_source_id_fk",
+          "tableFrom": "bill_subject",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "bill_subject_ingest_run_id_ingest_run_id_fk": {
+          "name": "bill_subject_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "bill_subject",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "bill_subject_natural_key": {
+          "name": "bill_subject_natural_key",
+          "columns": [
+            "bill_id",
+            "subject"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.policy_area": {
+      "name": "policy_area",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "policy_area_name_unique": {
+          "name": "policy_area_name_unique",
+          "columns": [
+            "name"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.rollcall": {
+      "name": "rollcall",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "rollcall_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "congress": {
+          "name": "congress",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chamber": {
+          "name": "chamber",
+          "type": "chamber",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "number": {
+          "name": "number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vote_date": {
+          "name": "vote_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "question": {
+          "name": "question",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "result": {
+          "name": "result",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "yea_count": {
+          "name": "yea_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nay_count": {
+          "name": "nay_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "rollcall_vote_date_idx": {
+          "name": "rollcall_vote_date_idx",
+          "columns": [
+            {
+              "expression": "vote_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "rollcall_source_idx": {
+          "name": "rollcall_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "rollcall_ingest_run_idx": {
+          "name": "rollcall_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "rollcall_source_id_source_id_fk": {
+          "name": "rollcall_source_id_source_id_fk",
+          "tableFrom": "rollcall",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "rollcall_ingest_run_id_ingest_run_id_fk": {
+          "name": "rollcall_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "rollcall",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "rollcall_natural_key": {
+          "name": "rollcall_natural_key",
+          "columns": [
+            "congress",
+            "chamber",
+            "number"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.rollcall_bill": {
+      "name": "rollcall_bill",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "rollcall_bill_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "rollcall_id": {
+          "name": "rollcall_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bill_id": {
+          "name": "bill_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_final_passage": {
+          "name": "is_final_passage",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "rollcall_bill_bill_idx": {
+          "name": "rollcall_bill_bill_idx",
+          "columns": [
+            {
+              "expression": "bill_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "rollcall_bill_source_idx": {
+          "name": "rollcall_bill_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "rollcall_bill_ingest_run_idx": {
+          "name": "rollcall_bill_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "rollcall_bill_rollcall_id_rollcall_id_fk": {
+          "name": "rollcall_bill_rollcall_id_rollcall_id_fk",
+          "tableFrom": "rollcall_bill",
+          "columnsFrom": [
+            "rollcall_id"
+          ],
+          "tableTo": "rollcall",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "rollcall_bill_bill_id_bill_id_fk": {
+          "name": "rollcall_bill_bill_id_bill_id_fk",
+          "tableFrom": "rollcall_bill",
+          "columnsFrom": [
+            "bill_id"
+          ],
+          "tableTo": "bill",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "rollcall_bill_source_id_source_id_fk": {
+          "name": "rollcall_bill_source_id_source_id_fk",
+          "tableFrom": "rollcall_bill",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "rollcall_bill_ingest_run_id_ingest_run_id_fk": {
+          "name": "rollcall_bill_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "rollcall_bill",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "rollcall_bill_natural_key": {
+          "name": "rollcall_bill_natural_key",
+          "columns": [
+            "rollcall_id",
+            "bill_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.vote_position": {
+      "name": "vote_position",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "vote_position_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "rollcall_id": {
+          "name": "rollcall_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "vote_position_value",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "vote_position_person_idx": {
+          "name": "vote_position_person_idx",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vote_position_source_idx": {
+          "name": "vote_position_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vote_position_ingest_run_idx": {
+          "name": "vote_position_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vote_position_rollcall_id_rollcall_id_fk": {
+          "name": "vote_position_rollcall_id_rollcall_id_fk",
+          "tableFrom": "vote_position",
+          "columnsFrom": [
+            "rollcall_id"
+          ],
+          "tableTo": "rollcall",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "vote_position_person_id_person_id_fk": {
+          "name": "vote_position_person_id_person_id_fk",
+          "tableFrom": "vote_position",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "tableTo": "person",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "vote_position_source_id_source_id_fk": {
+          "name": "vote_position_source_id_source_id_fk",
+          "tableFrom": "vote_position",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "vote_position_ingest_run_id_ingest_run_id_fk": {
+          "name": "vote_position_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "vote_position",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "vote_position_natural_key": {
+          "name": "vote_position_natural_key",
+          "columns": [
+            "rollcall_id",
+            "person_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.candidate_cycle_totals": {
+      "name": "candidate_cycle_totals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "candidate_cycle_totals_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "fec_candidate_id": {
+          "name": "fec_candidate_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cycle": {
+          "name": "cycle",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total_receipts_cents": {
+          "name": "total_receipts_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "individual_cents": {
+          "name": "individual_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unitemized_individual_cents": {
+          "name": "unitemized_individual_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "other_committee_cents": {
+          "name": "other_committee_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "party_cents": {
+          "name": "party_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "candidate_self_cents": {
+          "name": "candidate_self_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_disbursements_cents": {
+          "name": "total_disbursements_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cash_on_hand_cents": {
+          "name": "cash_on_hand_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "debts_cents": {
+          "name": "debts_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "coverage_end_date": {
+          "name": "coverage_end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "candidate_cycle_totals_person_idx": {
+          "name": "candidate_cycle_totals_person_idx",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cycle",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "candidate_cycle_totals_source_idx": {
+          "name": "candidate_cycle_totals_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "candidate_cycle_totals_ingest_run_idx": {
+          "name": "candidate_cycle_totals_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "candidate_cycle_totals_person_id_person_id_fk": {
+          "name": "candidate_cycle_totals_person_id_person_id_fk",
+          "tableFrom": "candidate_cycle_totals",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "tableTo": "person",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "candidate_cycle_totals_source_id_source_id_fk": {
+          "name": "candidate_cycle_totals_source_id_source_id_fk",
+          "tableFrom": "candidate_cycle_totals",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "candidate_cycle_totals_ingest_run_id_ingest_run_id_fk": {
+          "name": "candidate_cycle_totals_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "candidate_cycle_totals",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "candidate_cycle_totals_natural_key": {
+          "name": "candidate_cycle_totals_natural_key",
+          "columns": [
+            "fec_candidate_id",
+            "cycle"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.committee": {
+      "name": "committee",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "committee_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "fec_committee_id": {
+          "name": "fec_committee_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "committee_type": {
+          "name": "committee_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "designation": {
+          "name": "designation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "party": {
+          "name": "party",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "connected_organization": {
+          "name": "connected_organization",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "committee_source_idx": {
+          "name": "committee_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "committee_ingest_run_idx": {
+          "name": "committee_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "committee_source_id_source_id_fk": {
+          "name": "committee_source_id_source_id_fk",
+          "tableFrom": "committee",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "committee_ingest_run_id_ingest_run_id_fk": {
+          "name": "committee_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "committee",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "committee_fec_committee_id_unique": {
+          "name": "committee_fec_committee_id_unique",
+          "columns": [
+            "fec_committee_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.committee_contribution": {
+      "name": "committee_contribution",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "committee_contribution_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "fec_sub_id": {
+          "name": "fec_sub_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "committee_id": {
+          "name": "committee_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_fec_candidate_id": {
+          "name": "recipient_fec_candidate_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cycle": {
+          "name": "cycle",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transaction_date": {
+          "name": "transaction_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transaction_type": {
+          "name": "transaction_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "committee_contribution_committee_idx": {
+          "name": "committee_contribution_committee_idx",
+          "columns": [
+            {
+              "expression": "committee_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "committee_contribution_person_idx": {
+          "name": "committee_contribution_person_idx",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cycle",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "committee_contribution_recipient_idx": {
+          "name": "committee_contribution_recipient_idx",
+          "columns": [
+            {
+              "expression": "recipient_fec_candidate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cycle",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "committee_contribution_source_idx": {
+          "name": "committee_contribution_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "committee_contribution_ingest_run_idx": {
+          "name": "committee_contribution_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "committee_contribution_committee_id_committee_id_fk": {
+          "name": "committee_contribution_committee_id_committee_id_fk",
+          "tableFrom": "committee_contribution",
+          "columnsFrom": [
+            "committee_id"
+          ],
+          "tableTo": "committee",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "committee_contribution_person_id_person_id_fk": {
+          "name": "committee_contribution_person_id_person_id_fk",
+          "tableFrom": "committee_contribution",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "tableTo": "person",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "committee_contribution_source_id_source_id_fk": {
+          "name": "committee_contribution_source_id_source_id_fk",
+          "tableFrom": "committee_contribution",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "committee_contribution_ingest_run_id_ingest_run_id_fk": {
+          "name": "committee_contribution_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "committee_contribution",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "committee_contribution_fec_sub_id_unique": {
+          "name": "committee_contribution_fec_sub_id_unique",
+          "columns": [
+            "fec_sub_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.committee_industry": {
+      "name": "committee_industry",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "committee_industry_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "committee_id": {
+          "name": "committee_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "industry_id": {
+          "name": "industry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "method": {
+          "name": "method",
+          "type": "industry_coding_method",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "committee_industry_industry_idx": {
+          "name": "committee_industry_industry_idx",
+          "columns": [
+            {
+              "expression": "industry_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "committee_industry_source_idx": {
+          "name": "committee_industry_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "committee_industry_ingest_run_idx": {
+          "name": "committee_industry_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "committee_industry_committee_id_committee_id_fk": {
+          "name": "committee_industry_committee_id_committee_id_fk",
+          "tableFrom": "committee_industry",
+          "columnsFrom": [
+            "committee_id"
+          ],
+          "tableTo": "committee",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "committee_industry_industry_id_industry_id_fk": {
+          "name": "committee_industry_industry_id_industry_id_fk",
+          "tableFrom": "committee_industry",
+          "columnsFrom": [
+            "industry_id"
+          ],
+          "tableTo": "industry",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "committee_industry_source_id_source_id_fk": {
+          "name": "committee_industry_source_id_source_id_fk",
+          "tableFrom": "committee_industry",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "committee_industry_ingest_run_id_ingest_run_id_fk": {
+          "name": "committee_industry_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "committee_industry",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "committee_industry_natural_key": {
+          "name": "committee_industry_natural_key",
+          "columns": [
+            "committee_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.committee_link": {
+      "name": "committee_link",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "committee_link_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "fec_candidate_id": {
+          "name": "fec_candidate_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "committee_id": {
+          "name": "committee_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cycle": {
+          "name": "cycle",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "designation": {
+          "name": "designation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "committee_link_committee_idx": {
+          "name": "committee_link_committee_idx",
+          "columns": [
+            {
+              "expression": "committee_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "committee_link_source_idx": {
+          "name": "committee_link_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "committee_link_ingest_run_idx": {
+          "name": "committee_link_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "committee_link_committee_id_committee_id_fk": {
+          "name": "committee_link_committee_id_committee_id_fk",
+          "tableFrom": "committee_link",
+          "columnsFrom": [
+            "committee_id"
+          ],
+          "tableTo": "committee",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "committee_link_source_id_source_id_fk": {
+          "name": "committee_link_source_id_source_id_fk",
+          "tableFrom": "committee_link",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "committee_link_ingest_run_id_ingest_run_id_fk": {
+          "name": "committee_link_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "committee_link",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "committee_link_natural_key": {
+          "name": "committee_link_natural_key",
+          "columns": [
+            "fec_candidate_id",
+            "committee_id",
+            "cycle"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.independent_expenditure": {
+      "name": "independent_expenditure",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "independent_expenditure_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "spender_fec_committee_id": {
+          "name": "spender_fec_committee_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fec_transaction_id": {
+          "name": "fec_transaction_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spender_committee_id": {
+          "name": "spender_committee_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spender_name": {
+          "name": "spender_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "candidate_fec_id": {
+          "name": "candidate_fec_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "support_oppose": {
+          "name": "support_oppose",
+          "type": "support_oppose",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cycle": {
+          "name": "cycle",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expenditure_date": {
+          "name": "expenditure_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "purpose": {
+          "name": "purpose",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "independent_expenditure_spender_idx": {
+          "name": "independent_expenditure_spender_idx",
+          "columns": [
+            {
+              "expression": "spender_committee_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "independent_expenditure_person_idx": {
+          "name": "independent_expenditure_person_idx",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cycle",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "independent_expenditure_candidate_idx": {
+          "name": "independent_expenditure_candidate_idx",
+          "columns": [
+            {
+              "expression": "candidate_fec_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cycle",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "independent_expenditure_source_idx": {
+          "name": "independent_expenditure_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "independent_expenditure_ingest_run_idx": {
+          "name": "independent_expenditure_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "independent_expenditure_spender_committee_id_committee_id_fk": {
+          "name": "independent_expenditure_spender_committee_id_committee_id_fk",
+          "tableFrom": "independent_expenditure",
+          "columnsFrom": [
+            "spender_committee_id"
+          ],
+          "tableTo": "committee",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "independent_expenditure_person_id_person_id_fk": {
+          "name": "independent_expenditure_person_id_person_id_fk",
+          "tableFrom": "independent_expenditure",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "tableTo": "person",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "independent_expenditure_source_id_source_id_fk": {
+          "name": "independent_expenditure_source_id_source_id_fk",
+          "tableFrom": "independent_expenditure",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "independent_expenditure_ingest_run_id_ingest_run_id_fk": {
+          "name": "independent_expenditure_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "independent_expenditure",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "independent_expenditure_natural_key": {
+          "name": "independent_expenditure_natural_key",
+          "columns": [
+            "spender_fec_committee_id",
+            "fec_transaction_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.industry": {
+      "name": "industry",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sector": {
+          "name": "sector",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "industry_source_idx": {
+          "name": "industry_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "industry_ingest_run_idx": {
+          "name": "industry_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "industry_source_id_source_id_fk": {
+          "name": "industry_source_id_source_id_fk",
+          "tableFrom": "industry",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "industry_ingest_run_id_ingest_run_id_fk": {
+          "name": "industry_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "industry",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ingest_run": {
+      "name": "ingest_run",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "ingest_run_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "adapter_version": {
+          "name": "adapter_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor": {
+          "name": "actor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'operator'"
+        },
+        "status": {
+          "name": "status",
+          "type": "ingest_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'running'"
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "finished_at": {
+          "name": "finished_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "snapshot_checksum": {
+          "name": "snapshot_checksum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "counts": {
+          "name": "counts",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "read_model_refreshed_before": {
+          "name": "read_model_refreshed_before",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "read_model_refreshed_after": {
+          "name": "read_model_refreshed_after",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "ingest_run_source_started_idx": {
+          "name": "ingest_run_source_started_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "ingest_run_dedupe_idx": {
+          "name": "ingest_run_dedupe_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "adapter_version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "snapshot_checksum",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "ingest_run_source_id_source_id_fk": {
+          "name": "ingest_run_source_id_source_id_fk",
+          "tableFrom": "ingest_run",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.source": {
+      "name": "source",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "license": {
+          "name": "license",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "license_url": {
+          "name": "license_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ideology_score": {
+      "name": "ideology_score",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "ideology_score_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "congress": {
+          "name": "congress",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "method": {
+          "name": "method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dim1": {
+          "name": "dim1",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dim2": {
+          "name": "dim2",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "ideology_score_source_idx": {
+          "name": "ideology_score_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "ideology_score_ingest_run_idx": {
+          "name": "ideology_score_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "ideology_score_person_id_person_id_fk": {
+          "name": "ideology_score_person_id_person_id_fk",
+          "tableFrom": "ideology_score",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "tableTo": "person",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "ideology_score_source_id_source_id_fk": {
+          "name": "ideology_score_source_id_source_id_fk",
+          "tableFrom": "ideology_score",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "ideology_score_ingest_run_id_ingest_run_id_fk": {
+          "name": "ideology_score_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "ideology_score",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "ideology_score_natural_key": {
+          "name": "ideology_score_natural_key",
+          "columns": [
+            "person_id",
+            "congress",
+            "method"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.scorecard_publisher": {
+      "name": "scorecard_publisher",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "self_described_orientation": {
+          "name": "self_described_orientation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "terms_status": {
+          "name": "terms_status",
+          "type": "terms_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'not_reviewed'"
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "methodology_url": {
+          "name": "methodology_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "scorecard_publisher_source_idx": {
+          "name": "scorecard_publisher_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "scorecard_publisher_ingest_run_idx": {
+          "name": "scorecard_publisher_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "scorecard_publisher_source_id_source_id_fk": {
+          "name": "scorecard_publisher_source_id_source_id_fk",
+          "tableFrom": "scorecard_publisher",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "scorecard_publisher_ingest_run_id_ingest_run_id_fk": {
+          "name": "scorecard_publisher_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "scorecard_publisher",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.scorecard_score": {
+      "name": "scorecard_score",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "scorecard_score_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "publisher_id": {
+          "name": "publisher_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "year": {
+          "name": "year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score": {
+          "name": "score",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scale_min": {
+          "name": "scale_min",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scale_max": {
+          "name": "scale_max",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scale_label": {
+          "name": "scale_label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "methodology_url": {
+          "name": "methodology_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingest_run_id": {
+          "name": "ingest_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "scorecard_score_person_idx": {
+          "name": "scorecard_score_person_idx",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "scorecard_score_source_idx": {
+          "name": "scorecard_score_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "scorecard_score_ingest_run_idx": {
+          "name": "scorecard_score_ingest_run_idx",
+          "columns": [
+            {
+              "expression": "ingest_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "scorecard_score_publisher_id_scorecard_publisher_id_fk": {
+          "name": "scorecard_score_publisher_id_scorecard_publisher_id_fk",
+          "tableFrom": "scorecard_score",
+          "columnsFrom": [
+            "publisher_id"
+          ],
+          "tableTo": "scorecard_publisher",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "scorecard_score_person_id_person_id_fk": {
+          "name": "scorecard_score_person_id_person_id_fk",
+          "tableFrom": "scorecard_score",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "tableTo": "person",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "scorecard_score_source_id_source_id_fk": {
+          "name": "scorecard_score_source_id_source_id_fk",
+          "tableFrom": "scorecard_score",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "source",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "scorecard_score_ingest_run_id_ingest_run_id_fk": {
+          "name": "scorecard_score_ingest_run_id_ingest_run_id_fk",
+          "tableFrom": "scorecard_score",
+          "columnsFrom": [
+            "ingest_run_id"
+          ],
+          "tableTo": "ingest_run",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "scorecard_score_natural_key": {
+          "name": "scorecard_score_natural_key",
+          "columns": [
+            "publisher_id",
+            "person_id",
+            "year"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.aligned_position": {
+      "name": "aligned_position",
+      "schema": "public",
+      "values": [
+        "yea",
+        "nay"
+      ]
+    },
+    "public.framework_target_kind": {
+      "name": "framework_target_kind",
+      "schema": "public",
+      "values": [
+        "rollcall",
+        "bill"
+      ]
+    },
+    "public.promise_status": {
+      "name": "promise_status",
+      "schema": "public",
+      "values": [
+        "kept",
+        "compromise",
+        "broken",
+        "in_progress",
+        "stalled",
+        "not_yet_rated"
+      ]
+    },
+    "public.candidacy_outcome": {
+      "name": "candidacy_outcome",
+      "schema": "public",
+      "values": [
+        "won",
+        "lost",
+        "withdrew",
+        "pending"
+      ]
+    },
+    "public.chamber": {
+      "name": "chamber",
+      "schema": "public",
+      "values": [
+        "house",
+        "senate"
+      ]
+    },
+    "public.identifier_scheme": {
+      "name": "identifier_scheme",
+      "schema": "public",
+      "values": [
+        "bioguide",
+        "fec_candidate",
+        "icpsr",
+        "opensecrets",
+        "govtrack",
+        "openstates",
+        "wikidata"
+      ]
+    },
+    "public.office_level": {
+      "name": "office_level",
+      "schema": "public",
+      "values": [
+        "federal",
+        "state"
+      ]
+    },
+    "public.vote_position_value": {
+      "name": "vote_position_value",
+      "schema": "public",
+      "values": [
+        "yea",
+        "nay",
+        "present",
+        "not_voting"
+      ]
+    },
+    "public.industry_coding_method": {
+      "name": "industry_coding_method",
+      "schema": "public",
+      "values": [
+        "curated",
+        "connected_org",
+        "name_rule"
+      ]
+    },
+    "public.support_oppose": {
+      "name": "support_oppose",
+      "schema": "public",
+      "values": [
+        "support",
+        "oppose"
+      ]
+    },
+    "public.ingest_status": {
+      "name": "ingest_status",
+      "schema": "public",
+      "values": [
+        "running",
+        "succeeded",
+        "failed",
+        "partial"
+      ]
+    },
+    "public.terms_status": {
+      "name": "terms_status",
+      "schema": "public",
+      "values": [
+        "not_reviewed",
+        "pending",
+        "cleared",
+        "declined"
+      ]
+    }
+  },
+  "schemas": {},
+  "views": {
+    "public.person_card": {
+      "name": "person_card",
+      "schema": "public",
+      "columns": {
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sort_name": {
+          "name": "sort_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "party": {
+          "name": "party",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "chamber": {
+          "name": "chamber",
+          "type": "chamber",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "district": {
+          "name": "district",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "term_start": {
+          "name": "term_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tenure_years": {
+          "name": "tenure_years",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ideology_congress": {
+          "name": "ideology_congress",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dw_nominate_dim1": {
+          "name": "dw_nominate_dim1",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dw_nominate_dim2": {
+          "name": "dw_nominate_dim2",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "money_cycle": {
+          "name": "money_cycle",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total_receipts_cents": {
+          "name": "total_receipts_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pac_share": {
+          "name": "pac_share",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "small_dollar_share": {
+          "name": "small_dollar_share",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "top_industries": {
+          "name": "top_industries",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "industry_coding_coverage": {
+          "name": "industry_coding_coverage",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "outside_support_cents": {
+          "name": "outside_support_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "outside_oppose_cents": {
+          "name": "outside_oppose_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "votes_eligible": {
+          "name": "votes_eligible",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "missed_vote_rate": {
+          "name": "missed_vote_rate",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "promises_rated": {
+          "name": "promises_rated",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "promise_kept_rate": {
+          "name": "promise_kept_rate",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refreshed_at": {
+          "name": "refreshed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "materialized": true,
+      "isExisting": true
+    },
+    "public.person_card_scorecard": {
+      "name": "person_card_scorecard",
+      "schema": "public",
+      "columns": {
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "publisher_id": {
+          "name": "publisher_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "year": {
+          "name": "year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score": {
+          "name": "score",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scale_min": {
+          "name": "scale_min",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scale_max": {
+          "name": "scale_max",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "normalized": {
+          "name": "normalized",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "materialized": true,
+      "isExisting": true
+    }
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@civic-ledger/ingest",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@civic-ledger/core": "workspace:*",
+    "@civic-ledger/db": "workspace:*",
+    "commander": "^15.0.0",
+    "csv-parse": "^7.0.3",
+    "drizzle-orm": "^0.45.4",
+    "fast-xml-parser": "^5.11.2",
+    "p-limit": "^7.3.3",
+    "pino": "^10.4.0",
+    "yaml": "^2.9.1",
+    "yauzl": "^3.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/yauzl": "^3.4.0"
+  }
+}
