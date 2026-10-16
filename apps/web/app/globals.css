@@ -1,10 +1,254 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
+/* Design tokens: docs/DESIGN.md is the source of truth. Light first; dark follows the OS. */
+:root {
+  color-scheme: light;
+  --paper: #f5f3ee;
+  --surface: #fcfbf8;
+  --surface-sunk: #eeebe4;
+  --ink: #1c1b18;
+  --ink-2: #4d4a43;
+  --ink-3: #6b675d;
+  --rule: #d9d4c8;
+  --line-control: #8a8478;
+  --accent: #1d6b50;
+  --accent-ink: #fcfbf8;
+  --accent-wash: #e2ede6;
+  --bar: #8b8577;
+  --party-dem-bg: #e3e8f0;
+  --party-dem-ink: #2e4466;
+  --party-rep-bg: #f1e3e0;
+  --party-rep-ink: #6e3128;
+  --data-1: #0e7f5a;
+  --data-2: #b07f12;
+  --data-3: #8a4a93;
+  --data-4: #b5651d;
+  --data-other: #a39e92;
 }
 
-/* Numbers in tables use tabular figures (ARCHITECTURE §6). */
-.tabular {
-  font-variant-numeric: tabular-nums;
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #141311;
+    --surface: #1c1b18;
+    --surface-sunk: #24221f;
+    --ink: #ede9e0;
+    --ink-2: #bdb7aa;
+    --ink-3: #9a9487;
+    --rule: #34312c;
+    --line-control: #787266;
+    --accent: #74c2a0;
+    --accent-ink: #141311;
+    --accent-wash: #1f3229;
+    --bar: #8e887b;
+    --party-dem-bg: #222b38;
+    --party-dem-ink: #afc3e0;
+    --party-rep-bg: #352421;
+    --party-rep-ink: #e3b3a9;
+    --data-1: #2f9470;
+    --data-2: #b5841a;
+    --data-3: #a06cb2;
+    --data-4: #c9773a;
+    --data-other: #5e5a52;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunk: var(--surface-sunk);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-control: var(--line-control);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
+  --color-bar: var(--bar);
+  --color-data-1: var(--data-1);
+  --color-data-2: var(--data-2);
+  --color-data-3: var(--data-3);
+  --color-data-4: var(--data-4);
+  --color-data-other: var(--data-other);
+  --font-sans: var(--font-schibsted), ui-sans-serif, sans-serif;
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+}
+
+@theme {
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.5625rem;
+  --text-xl--line-height: 1.2;
+  --text-2xl: 1.9375rem;
+  --text-2xl--line-height: 1.15;
+  --text-3xl: 2.4375rem;
+  --text-3xl--line-height: 1.12;
+  --text-4xl: 3.0625rem;
+  --text-4xl--line-height: 1.08;
+  --radius-control: 4px;
+  --radius-panel: 6px;
+}
+
+@layer base {
+  html {
+    background: var(--paper);
+    color: var(--ink);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    font-family: var(--font-sans);
+    font-feature-settings: "kern";
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  a {
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  ::selection {
+    background: var(--accent-wash);
+  }
+  /* Sticky site header must never hide a focused element. */
+  html {
+    scroll-padding-top: 5rem;
+  }
+}
+
+@layer components {
+  /* Tabular, lining figures for every number that aligns. */
+  .num {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  /* Signature: the accountant's double rule under a total. */
+  .rule-total {
+    border-bottom: 3px double var(--ink);
+  }
+
+  .link {
+    color: var(--accent);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    text-decoration-color: color-mix(in oklab, var(--accent) 45%, transparent);
+  }
+  .link:hover {
+    text-decoration-color: currentColor;
+  }
+
+  /* Quiet link: ink text, underline on hover only (names in tables). */
+  .link-quiet {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    text-decoration-color: transparent;
+    transition: text-decoration-color 120ms ease-out;
+  }
+  .link-quiet:hover {
+    text-decoration-color: currentColor;
+  }
+
+  .eyebrow {
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--ink-3);
+  }
+
+  .skip-link {
+    position: absolute;
+    left: 1rem;
+    top: -4rem;
+    z-index: 30;
+    background: var(--accent);
+    color: var(--accent-ink);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-control);
+    font-weight: 600;
+  }
+  .skip-link:focus {
+    top: 1rem;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0 1rem;
+    border-radius: var(--radius-control);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    transition:
+      background-color 120ms ease-out,
+      border-color 120ms ease-out;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .btn-primary:hover {
+    background: color-mix(in oklab, var(--accent) 88%, var(--ink));
+  }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--line-control);
+  }
+  .btn-secondary:hover {
+    border-color: var(--ink-2);
+  }
+
+  .field {
+    min-height: 2.75rem;
+    border: 1px solid var(--line-control);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0 0.75rem;
+    font-size: var(--text-base);
+  }
+  .field::placeholder {
+    color: var(--ink-3);
+  }
+  select.field {
+    padding-right: 2rem;
+  }
+
+  /* Prose for methodology and long-form copy. */
+  .prose-ledger {
+    max-width: 68ch;
+    line-height: 1.6;
+  }
+  .prose-ledger p + p {
+    margin-top: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
 }

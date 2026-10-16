@@ -9,6 +9,7 @@ export {
 
 export * from './capabilities/curated';
 export * from './capabilities/explore';
+export * from './capabilities/facets';
 export * from './capabilities/frameworks';
 export * from './capabilities/money';
 export * from './capabilities/people';
