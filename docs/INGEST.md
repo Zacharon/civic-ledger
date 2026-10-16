@@ -11,13 +11,15 @@ Each source joins rows loaded by the ones before it, so a full refresh runs in t
 
 | # | Source | Scope flag | Files | Typical size | Live duration (2026-10-16, PGlite) |
 |---|---|---|---|---|---|
-| 1 | `congress-legislators` | none (all) | legislators-current/historical JSON | 15 MB | ~1.5 min |
-| 2 | `voteview` | `--congress 119` | HS119 members / rollcalls / votes CSV | 11 MB | ~3 min |
-| 3 | `fec-bulk` | `--cycle 2026` | cn, cm, ccl, weball, pas2 zips + IE CSV | 18 MB | ~1.5 min |
-| 4 | `govinfo-billstatus` | `--congress 119` | 8 BILLSTATUS type zips | 54 MB | ~1.5 min |
-| 5 | `curated` | none (all) | `data/curated/**` YAML | <1 MB | <1 min |
+| 1 | `congress-legislators` | none (all) | legislators-current/historical JSON | 15 MB | 24 s |
+| 2 | `voteview` | `--congress 119` | HS119 members / rollcalls / votes CSV | 11 MB | 106 s |
+| 3 | `fec-bulk` | `--cycle 2026` | cn, cm, ccl, weball, pas2 zips + IE CSV | 18 MB | 100 s |
+| 4 | `govinfo-billstatus` | `--congress 119` | 8 BILLSTATUS type zips | 54 MB | 89 s |
+| 5 | `curated` | none (all) | `data/curated/**` YAML | <1 MB | 33 s |
 
-Defaults: `--congress` = current congress, `--cycle` = current two-year cycle.
+Full first load: 6 min 10 s. An unchanged rerun (`pnpm ingest all`): 10 s, all files 304,
+every source deduplicated. Defaults: `--congress` = current congress, `--cycle` = current
+two-year cycle.
 
 ## Commands
 
@@ -105,7 +107,7 @@ sharply between runs.
 | `fec-bulk.ie_implausible_amount_dropped` | 15 | New bogus filings; check none is a real buy. |
 | `fec-bulk.ie_unattributed_dropped` | ~2,500 | IEs filed without a candidate id (not attributable). |
 | `fec-bulk.contributions_unresolved_recipient` | ~24 | Recipient committee linked to several candidates. |
-| `fec-bulk.links_unknown_committee` | ~450 | ccl rows whose committee is missing from cm. |
+| `fec-bulk.links_unknown_committee` | ~490 | ccl rows whose committee is missing from cm. |
 | `govinfo-billstatus.recorded_votes_without_rollcall` | 0 | Voteview lags BILLSTATUS: rerun voteview, then BILLSTATUS. |
 | `curated.industry_coverage_bps` | ~7,700 (77% of PAC → candidate dollars) | Falls when new PACs appear: see `topUncoded` in the report and propose rules. |
 | report `rollcallsLinkedToBills / rollcalls` | 852 / 1,589 | Unlinked are nominations (223), cloture and procedural votes. |
