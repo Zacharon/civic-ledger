@@ -13,7 +13,7 @@ Each source joins rows loaded by the ones before it, so a full refresh runs in t
 |---|---|---|---|---|---|
 | 1 | `congress-legislators` | none (all) | legislators-current/historical JSON | 15 MB | 24 s |
 | 2 | `voteview` | `--congress 119` | HS119 members / rollcalls / votes CSV | 11 MB | 106 s |
-| 3 | `fec-bulk` | `--cycle 2026` | cn, cm, ccl, weball, pas2 zips + IE CSV | 18 MB | 100 s |
+| 3 | `fec-bulk` | `--cycle 2026` | cn, cm, ccl, weball, pas2 zips + IE CSV + candidate summary CSV | 20 MB | 80 s |
 | 4 | `govinfo-billstatus` | `--congress 119` | 8 BILLSTATUS type zips | 54 MB | 89 s |
 | 5 | `curated` | none (all) | `data/curated/**` YAML | <1 MB | 33 s |
 
@@ -107,6 +107,9 @@ sharply between runs.
 | `fec-bulk.ie_implausible_amount_dropped` | 15 | New bogus filings; check none is a real buy. |
 | `fec-bulk.ie_unattributed_dropped` | ~2,500 | IEs filed without a candidate id (not attributable). |
 | `fec-bulk.contributions_unresolved_recipient` | ~24 | Recipient committee linked to several candidates. |
+| `fec-bulk.summaries`, `summaries_matched_to_person` | 4,482, 448 | The candidate summary file moved or changed shape (DECISIONS A31). |
+| `fec-bulk.summary_unitemized_out_of_range` | 2 | Filer errors (e.g. negative unitemized); those members' small-donor share reads "No data". |
+| `fec-bulk.summary_period_differs_from_totals` | ~300 | Normal: the summary file trails weball by up to a quarter; each share states its own date. |
 | `fec-bulk.links_unknown_committee` | ~490 | ccl rows whose committee is missing from cm. |
 | `govinfo-billstatus.recorded_votes_without_rollcall` | 0 | Voteview lags BILLSTATUS: rerun voteview, then BILLSTATUS. |
 | `curated.industry_coverage_bps` | ~7,700 (77% of PAC → candidate dollars) | Falls when new PACs appear: see `topUncoded` in the report and propose rules. |
@@ -114,3 +117,41 @@ sharply between runs.
 
 Individual contributors are never loaded: the pipeline does not download individual
 contribution files and never reads pas2 payee names (52 U.S.C. 30111(a)(4)).
+
+## Real-data smoke suite (`pnpm smoke:real`)
+
+Not part of `pnpm check` or CI (it needs a loaded database). Run it after a full load and
+before any release; it is read-only.
+
+```sh
+pnpm smoke:real -- --db .pglite/live            # PGlite
+DATABASE_URL=postgres://... pnpm smoke:real     # Postgres
+pnpm smoke:real -- --db .pglite/live --former 0 # skip the former-member sample
+```
+
+It dispatches every public capability through the same registry as the UI, `/api/v1` and
+MCP: `people.get`, `money.summary` (every available cycle), `votes.list` (first page),
+`scores.list` and `promises.list` for **every current member** plus a sample of former
+members (`--former`, default 100); `explore.table` for every sort column x asc/desc x both
+scopes (first and last page) and both chambers by PAC share; `explore.facets`,
+`people.search`, `people.compare` (all current members in groups of three, plus a
+current + former pair); every policy page (`votes.list` per chamber and the
+`frameworks.evaluate` matrix); every listed framework and a sample spec with roll-call and
+bill rules; `sources.status`. Any `CapabilityError`, including output validation, is a
+failure. stdout is a JSON report (counts and timings per capability, each failure with its
+input and the first validation issues); stderr prints progress and a one-line verdict; exit
+code 1 on any failure. Code: `packages/ingest/src/smoke/`; the runner is also covered on the
+fictional seed by `packages/ingest/test/smoke.test.ts`.
+
+Last run (2026-10-16, fresh `pnpm ingest all --db .pglite/live --migrate`, 4 min 49 s):
+**PASS, 3,667 calls, 0 failures**, 539 current members, 100 former sampled, 16 sort
+columns x 2 scopes, 32 policy areas, 121 s.
+
+Real-data visual QA (`apps/web/playwright.real.config.ts`, also outside CI) captures the
+key pages into `apps/web/screenshots/real/`, writes warm timings to `timings.json` and fails
+on any horizontal overflow at 390 px:
+
+```sh
+PGLITE_DATA_DIR=../../.pglite/live pnpm --filter web start -p 3400
+REAL_BASE_URL=http://localhost:3400 pnpm --filter web screenshots:real
+```

@@ -19,6 +19,7 @@
     "db:seed": "tsx packages/db/src/cli/seed.ts",
     "ingest": "tsx packages/ingest/src/cli.ts",
     "ingest:report": "tsx packages/ingest/src/report-cli.ts",
+    "smoke:real": "tsx packages/ingest/src/smoke/cli.ts",
     "curate:validate": "tsx packages/core/src/cli/curate-validate.ts"
   },
   "devDependencies": {
