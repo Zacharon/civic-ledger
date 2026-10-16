@@ -6,10 +6,10 @@ import { ExploreControls } from '@/components/explore/explore-controls';
 import { ExploreTable } from '@/components/explore/explore-table';
 import { ExploreTransitionProvider, PendingRegion } from '@/components/explore/explore-transition';
 import { Pagination } from '@/components/pagination';
-import { safeHref } from '@/lib/format';
 import { allColumns, visibleColumns } from '@/lib/explore-columns';
 import { exploreParsers, serializeExplore } from '@/lib/explore-params';
 import { describeSort, exploreTableInput, resolvedSort } from '@/lib/explore-query';
+import { safeHref } from '@/lib/format';
 import { read, readOrInvalid } from '@/server/capabilities';
 
 export const metadata: Metadata = {
@@ -38,17 +38,14 @@ export default async function ExplorePage({ searchParams }: PageProps<'/explore'
           Every member, one table
         </h1>
         <p className="mt-3 text-ink-2">
-          Money, votes, independent scores and promises side by side. Sort by any column; nothing
-          is ranked for you. Missing data says so.
+          Money, votes, independent scores and promises side by side. Sort by any column; nothing is
+          ranked for you. Missing data says so.
         </p>
       </header>
 
       <ExploreTransitionProvider>
         <div className="mt-8">
-          <ExploreControls
-            facets={facets}
-            columns={allColumns(scorecards)}
-          />
+          <ExploreControls facets={facets} columns={allColumns(scorecards)} />
         </div>
 
         <PendingRegion>
@@ -65,7 +62,9 @@ export default async function ExplorePage({ searchParams }: PageProps<'/explore'
           ) : result.data.rows.length === 0 ? (
             <div className="mt-6 rounded-panel border border-rule bg-surface p-8 text-center">
               <h2 className="font-serif text-xl font-medium">
-                {result.data.total > 0 ? 'That page does not exist' : 'No members match these filters'}
+                {result.data.total > 0
+                  ? 'That page does not exist'
+                  : 'No members match these filters'}
               </h2>
               <p className="mt-2 text-ink-2">
                 {result.data.total > 0
@@ -112,7 +111,10 @@ export default async function ExplorePage({ searchParams }: PageProps<'/explore'
         </PendingRegion>
       </ExploreTransitionProvider>
 
-      <section aria-labelledby="explore-notes" className="mt-12 grid gap-8 border-t border-rule pt-8 text-sm text-ink-2 md:grid-cols-2">
+      <section
+        aria-labelledby="explore-notes"
+        className="mt-12 grid gap-8 border-t border-rule pt-8 text-sm text-ink-2 md:grid-cols-2"
+      >
         <h2 id="explore-notes" className="sr-only">
           How to read this table
         </h2>
@@ -126,7 +128,11 @@ export default async function ExplorePage({ searchParams }: PageProps<'/explore'
                 <li key={s.publisherId}>
                   {s.name}, which describes itself as {s.selfDescribedOrientation}.{' '}
                   {safeHref(s.methodologyUrl) ? (
-                    <a className="link" href={safeHref(s.methodologyUrl) ?? undefined} rel="noreferrer">
+                    <a
+                      className="link"
+                      href={safeHref(s.methodologyUrl) ?? undefined}
+                      rel="noreferrer"
+                    >
                       Methodology
                     </a>
                   ) : null}
@@ -140,7 +146,10 @@ export default async function ExplorePage({ searchParams }: PageProps<'/explore'
           <p className="mt-1">
             An academic, roll-call based estimate from Voteview. The dot sits between −1 and +1:
             negative is more liberal and positive more conservative, as the method defines them. It
-            is never the default sort. <Link className="link" href="/methodology#dw-nominate">How it works</Link>
+            is never the default sort.{' '}
+            <Link className="link" href="/methodology#dw-nominate">
+              How it works
+            </Link>
           </p>
         </div>
       </section>

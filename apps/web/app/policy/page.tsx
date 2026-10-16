@@ -15,8 +15,8 @@ export default async function PolicyIndexPage() {
       <header className="max-w-3xl">
         <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">Policy areas</h1>
         <p className="mt-3 text-ink-2">
-          Bills grouped by the policy area Congress.gov assigns them, a neutral topic list kept by the
-          Library of Congress. Open an area to see its roll calls and how every member voted.
+          Bills grouped by the policy area Congress.gov assigns them, a neutral topic list kept by
+          the Library of Congress. Open an area to see its roll calls and how every member voted.
         </p>
       </header>
       {areas.items.length === 0 ? (
@@ -26,9 +26,15 @@ export default async function PolicyIndexPage() {
           <caption className="sr-only">Policy areas with bill and roll-call counts</caption>
           <thead>
             <tr className="border-b border-ink text-left">
-              <th scope="col" className="py-2 pr-4 font-semibold">Policy area</th>
-              <th scope="col" className="py-2 pr-4 text-right font-semibold">Bills</th>
-              <th scope="col" className="py-2 text-right font-semibold">Roll calls</th>
+              <th scope="col" className="py-2 pr-4 font-semibold">
+                Policy area
+              </th>
+              <th scope="col" className="py-2 pr-4 text-right font-semibold">
+                Bills
+              </th>
+              <th scope="col" className="py-2 text-right font-semibold">
+                Roll calls
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -45,7 +51,11 @@ export default async function PolicyIndexPage() {
                 </th>
                 <td className="num py-3 pr-4 text-right">{formatNumber(a.billCount)}</td>
                 <td className="num py-3 text-right">
-                  {a.rollcallCount > 0 ? formatNumber(a.rollcallCount) : <span className="text-ink-3">None yet</span>}
+                  {a.rollcallCount > 0 ? (
+                    formatNumber(a.rollcallCount)
+                  ) : (
+                    <span className="text-ink-3">None yet</span>
+                  )}
                 </td>
               </tr>
             ))}

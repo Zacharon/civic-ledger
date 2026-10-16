@@ -59,33 +59,35 @@ export default async function HomePage() {
             number links to its source.
           </p>
 
-          <form role="search" action="/explore" className="mt-8 max-w-xl">
-            <label htmlFor="home-search" className="text-sm font-semibold">
-              Find a member of Congress
-            </label>
-            <div className="mt-1.5 flex gap-2">
-              <div className="relative flex-1">
-                <Search
-                  aria-hidden="true"
-                  strokeWidth={1.75}
-                  className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-ink-3"
-                />
-                <input
-                  id="home-search"
-                  name="q"
-                  type="search"
-                  required
-                  maxLength={100}
-                  autoComplete="off"
-                  placeholder="Name, e.g. Ashvale"
-                  className="field h-12 w-full pl-11 text-lg"
-                />
+          <search className="mt-8 block max-w-xl">
+            <form action="/explore">
+              <label htmlFor="home-search" className="text-sm font-semibold">
+                Find a member of Congress
+              </label>
+              <div className="mt-1.5 flex gap-2">
+                <div className="relative flex-1">
+                  <Search
+                    aria-hidden="true"
+                    strokeWidth={1.75}
+                    className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-ink-3"
+                  />
+                  <input
+                    id="home-search"
+                    name="q"
+                    type="search"
+                    required
+                    maxLength={100}
+                    autoComplete="off"
+                    placeholder="Name, e.g. Ashvale"
+                    className="field h-12 w-full pl-11 text-lg"
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary h-12 px-5 text-base">
+                  Search
+                </button>
               </div>
-              <button type="submit" className="btn btn-primary h-12 px-5 text-base">
-                Search
-              </button>
-            </div>
-          </form>
+            </form>
+          </search>
 
           <div className="mt-10 max-w-xl">
             <h2 className="text-sm font-semibold">Or start from a question</h2>
@@ -174,7 +176,9 @@ export default async function HomePage() {
                   {source.lastSuccess ? (
                     <>
                       Last loaded{' '}
-                      <time dateTime={source.lastSuccess.finishedAt ?? source.lastSuccess.startedAt}>
+                      <time
+                        dateTime={source.lastSuccess.finishedAt ?? source.lastSuccess.startedAt}
+                      >
                         {formatDate(source.lastSuccess.finishedAt ?? source.lastSuccess.startedAt)}
                       </time>
                     </>
@@ -208,7 +212,10 @@ export default async function HomePage() {
           What the ledger holds
         </h2>
         <dl className="mt-6 grid gap-x-12 border-t border-rule md:grid-cols-2">
-          <Entry term="Money" href="/explore?cols=total,pac,small,coverage,outsideFor,outsideAgainst">
+          <Entry
+            term="Money"
+            href="/explore?cols=total,pac,small,coverage,outsideFor,outsideAgainst"
+          >
             FEC receipts by who gave, PAC money by industry with its coding coverage, and outside
             spending for and against.
           </Entry>
@@ -239,7 +246,15 @@ export default async function HomePage() {
   );
 }
 
-function Entry({ term, href, children }: { term: string; href: string; children: React.ReactNode }) {
+function Entry({
+  term,
+  href,
+  children,
+}: {
+  term: string;
+  href: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="border-b border-rule py-5">
       <dt>

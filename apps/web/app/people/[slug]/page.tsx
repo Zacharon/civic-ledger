@@ -119,7 +119,10 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
           <Link href={`/compare?ids=${slug}`} className="btn btn-primary">
             Compare with others
           </Link>
-          <Link href={`/explore?q=${encodeURIComponent(person.lastName)}`} className="btn btn-secondary">
+          <Link
+            href={`/explore?q=${encodeURIComponent(person.lastName)}`}
+            className="btn btn-secondary"
+          >
             Find in table
           </Link>
         </div>
@@ -135,11 +138,13 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
         <Fact label="Missed votes" value={formatShare(card.missedVoteRate)} />
         <Fact
           label={
-            card.ideologyCongress
-              ? `DW-NOMINATE, ${ordinal(card.ideologyCongress)}`
-              : 'DW-NOMINATE'
+            card.ideologyCongress ? `DW-NOMINATE, ${ordinal(card.ideologyCongress)}` : 'DW-NOMINATE'
           }
-          value={card.dwNominateDim1 === null ? null : <PositionStrip value={card.dwNominateDim1} width={64} />}
+          value={
+            card.dwNominateDim1 === null ? null : (
+              <PositionStrip value={card.dwNominateDim1} width={64} />
+            )
+          }
         />
         <Fact
           label="Promises kept"
@@ -152,8 +157,8 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
         />
       </dl>
       <p className="mt-2 text-xs text-ink-3">
-        Summary from the ledger table, rebuilt {formatDate(card.refreshedAt)}. Details and sources in
-        each section below.
+        Summary from the ledger table, rebuilt {formatDate(card.refreshedAt)}. Details and sources
+        in each section below.
       </p>
 
       <div className="mt-12 grid gap-12 lg:grid-cols-[11rem_minmax(0,1fr)]">
@@ -161,7 +166,10 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
           <ul className="sticky top-24 space-y-1 border-l border-rule text-sm">
             {SECTIONS.map((s) => (
               <li key={s.id}>
-                <a href={`#${s.id}`} className="-ml-px block border-l border-transparent py-1 pl-3 text-ink-2 hover:border-ink hover:text-ink">
+                <a
+                  href={`#${s.id}`}
+                  className="-ml-px block border-l border-transparent py-1 pl-3 text-ink-2 hover:border-ink hover:text-ink"
+                >
                   {s.label}
                 </a>
               </li>

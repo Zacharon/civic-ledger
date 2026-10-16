@@ -248,7 +248,9 @@
   *,
   *::before,
   *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every utility */
     transition-duration: 0ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every utility */
     animation-duration: 0ms !important;
   }
 }

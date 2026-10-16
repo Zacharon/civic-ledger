@@ -28,7 +28,8 @@ function parseIds(value: string | undefined): string[] {
   return [...new Set(ids)].slice(0, MAX);
 }
 
-const compareHref = (ids: string[]) => (ids.length > 0 ? `/compare?ids=${ids.join(',')}` : '/compare');
+const compareHref = (ids: string[]) =>
+  ids.length > 0 ? `/compare?ids=${ids.join(',')}` : '/compare';
 
 export default async function ComparePage({ searchParams }: PageProps<'/compare'>) {
   const query = await searchParams;
@@ -51,7 +52,9 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
   return (
     <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10">
       <header className="max-w-3xl">
-        <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">Compare members</h1>
+        <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
+          Compare members
+        </h1>
         <p className="mt-3 text-ink-2">
           Two to four members in aligned columns, every row from the same table. Vote agreement
           counts only roll calls where both voted yea or nay.
@@ -85,7 +88,9 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
       {matches ? (
         <div className="mt-4 max-w-xl" role="status">
           {candidates.length === 0 ? (
-            <p className="text-ink-2">No member matches “{add}”. Check the spelling or try a last name.</p>
+            <p className="text-ink-2">
+              No member matches “{add}”. Check the spelling or try a last name.
+            </p>
           ) : (
             <>
               <p className="text-sm text-ink-2">Several members match “{add}”. Choose one:</p>
@@ -138,9 +143,8 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
         </div>
       ) : comparison ? (
         <>
-          <div
+          <section
             className="mt-10 overflow-x-auto rounded-panel border border-rule bg-surface"
-            role="region"
             aria-label="Comparison table"
             // biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable region must be keyboard reachable
             tabIndex={0}
@@ -158,7 +162,10 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
                       scope="col"
                       className="border-b border-l border-control border-l-rule px-4 py-4 text-left align-top font-normal"
                     >
-                      <Link href={`/people/${p.slug}`} className="link-quiet font-serif text-xl font-medium">
+                      <Link
+                        href={`/people/${p.slug}`}
+                        className="link-quiet font-serif text-xl font-medium"
+                      >
                         {p.fullName}
                       </Link>
                       <span className="mt-1.5 flex items-center gap-2 text-ink-2">
@@ -204,7 +211,10 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
                           ) : null}
                         </th>
                         {comparison.people.map((p) => (
-                          <td key={p.slug} className="border-b border-l border-rule px-4 py-2.5 [&>span]:justify-start">
+                          <td
+                            key={p.slug}
+                            className="border-b border-l border-rule px-4 py-2.5 [&>span]:justify-start"
+                          >
                             <MetricCell column={c} row={p} />
                           </td>
                         ))}
@@ -214,7 +224,7 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
                 );
               })}
             </table>
-          </div>
+          </section>
 
           <section aria-labelledby="agreement" className="mt-12 max-w-3xl">
             <h2 id="agreement" className="font-serif text-2xl font-medium">
@@ -228,7 +238,10 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
                 const name = (slug: string) =>
                   comparison.people.find((p) => p.slug === slug)?.fullName ?? slug;
                 return (
-                  <li key={`${pair.a}-${pair.b}`} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <li
+                    key={`${pair.a}-${pair.b}`}
+                    className="flex flex-wrap items-center justify-between gap-3 py-3"
+                  >
                     <span>
                       {name(pair.a)} <span className="text-ink-3">and</span> {name(pair.b)}
                     </span>
