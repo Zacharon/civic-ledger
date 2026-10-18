@@ -1,5 +1,5 @@
-import { mkdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle as drizzlePg, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
@@ -30,7 +30,22 @@ export type DbHandle =
 
 /** Interactive (web, MCP) statement budget. Batch loads use `BATCH_POOL_DEFAULTS`. */
 export const DEFAULT_STATEMENT_TIMEOUT_MS = 15_000;
-const DEFAULT_PGLITE_DIR = '.pglite/dev';
+
+/**
+ * The default PGlite directory: `.pglite/dev` at the workspace root (the nearest
+ * `pnpm-workspace.yaml` above `from`), so the CLIs, run from any package directory, and
+ * the Next server, run from apps/web, open the same database. Outside a workspace it is
+ * `.pglite/dev` under `from`.
+ */
+export function defaultPgliteDir(from: string = process.cwd()): string {
+  let dir = resolve(from);
+  while (!existsSync(join(dir, 'pnpm-workspace.yaml'))) {
+    const parent = dirname(dir);
+    if (parent === dir) return resolve(from, '.pglite', 'dev');
+    dir = parent;
+  }
+  return join(dir, '.pglite', 'dev');
+}
 
 export const INTERACTIVE_POOL_DEFAULTS: PgPoolSettings = {
   poolMax: 10,
@@ -135,8 +150,8 @@ function intFromEnv(env: EnvVars, name: string, fallback: number): number {
 }
 
 /**
- * `DATABASE_URL` selects Postgres; otherwise a file-backed PGlite under the working
- * directory. Limits come from `DB_*` variables (documented in docs/OPERATIONS.md).
+ * `DATABASE_URL` selects Postgres; otherwise a file-backed PGlite at `defaultPgliteDir()`.
+ * Limits come from `DB_*` variables (documented in docs/OPERATIONS.md).
  */
 export function dbConfigFromEnv(
   env: EnvVars = process.env,
@@ -144,7 +159,7 @@ export function dbConfigFromEnv(
 ): DbConfig {
   const readOnlyUrl = options.readOnly ? readOnlyUrlFrom(env) : undefined;
   const url = readOnlyUrl || env.DATABASE_URL?.trim();
-  if (!url) return { kind: 'pglite', dataDir: resolve(DEFAULT_PGLITE_DIR) };
+  if (!url) return { kind: 'pglite', dataDir: defaultPgliteDir() };
   const base = options.batch ? BATCH_POOL_DEFAULTS : INTERACTIVE_POOL_DEFAULTS;
   const poolMax = intFromEnv(env, 'DB_POOL_MAX', base.poolMax);
   if (poolMax < 1) throw new Error('DB_POOL_MAX must be at least 1');

@@ -1,0 +1,6 @@
+RED reproduction of the Agent parity step (as written: CLIs run from apps/web), commit 6b93135
+seeded dir: .pglite/dev ; server dir ../../.pglite/dev exists: yes
+final /api/health HTTP 503
+{"status":"down","time":"2026-10-18T18:33:52.899Z","checks":{"database":{"status":"down","latencyMs":3,"reason":"unavailable"},"ingest":{"status":"unknown","sources":[]},"rateLimit":{"status":"ok","mode":"per_client"}}}
+relation \"source\" does not exist
+{"level":"error","time":"2026-10-18T18:33:12.954Z","service":"civic-ledger-web","requestId":"a73cac5f-e5fa-42b9-a7a7-a11145becbae","err":{"type":"e","message":"Failed query: select \"id\", \"name\", \"url\", \"license\", \"license_url\", \"description\" from \"source\" order by \"source\".\"id\" asc\nparams: : relation \"source\" does not exist","stack":"Error: Failed query: select \"id\", \"name\", \"url\", \"license\", \"license_url\", \"description\" from \"source\" order by \"source\".\"id\" asc\nparams: \n    at d.queryWithCache (C:\\Users\\user\\Workspace\\_worktrees\\Civic_Ledger\\fix\
