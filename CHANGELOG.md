@@ -39,6 +39,8 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 
 ### Fixed
 
+- The default Vitest suite runs on half the cores (`maxWorkers: '50%'`): with one worker per
+  core, tests that spawn a child process with its own PGlite timed out under the full run.
 - `cli-credentials.test.ts` gives the spawned MCP CLI 120 s instead of 30 s and reports a
   timeout as a start-up problem; under the full parallel suite a cold start was killed and
   read as `status: null`.
