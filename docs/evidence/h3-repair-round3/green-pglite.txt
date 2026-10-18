@@ -1,0 +1,50 @@
+$ git rev-parse --short HEAD: e54d5ff
+$ pnpm exec vitest run packages/ingest/test/cancellation-fec-boundaries.test.ts packages/ingest/test/cancellation-fec.test.ts packages/ingest/test/cancellation.test.ts packages/ingest/test/fec-sql-dedupe.test.ts packages/core/test/restore-normalization.test.ts --reporter=verbose
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r3-cancel-restore-20261018
+
+ ✓ packages/ingest/test/fec-sql-dedupe.test.ts > SQL pas2 dedupe equals the reference rules > seed 1 143ms
+ ✓ packages/ingest/test/fec-sql-dedupe.test.ts > SQL pas2 dedupe equals the reference rules > seed 2 107ms
+ ✓ packages/ingest/test/fec-sql-dedupe.test.ts > SQL pas2 dedupe equals the reference rules > seed 3 86ms
+ ✓ packages/ingest/test/fec-sql-dedupe.test.ts > SQL pas2 dedupe equals the reference rules > seed 4 97ms
+ ✓ packages/ingest/test/fec-sql-dedupe.test.ts > SQL pas2 dedupe equals the reference rules > seed 5 104ms
+ ✓ packages/ingest/test/fec-sql-dedupe.test.ts > SQL IE dedupe equals the reference rules > seed 11 141ms
+ ✓ packages/ingest/test/fec-sql-dedupe.test.ts > SQL IE dedupe equals the reference rules > seed 12 85ms
+ ✓ packages/ingest/test/fec-sql-dedupe.test.ts > SQL IE dedupe equals the reference rules > seed 13 69ms
+ ✓ packages/ingest/test/fec-sql-dedupe.test.ts > SQL IE dedupe equals the reference rules > seed 14 96ms
+ ✓ packages/ingest/test/fec-sql-dedupe.test.ts > SQL IE dedupe equals the reference rules > seed 15 82ms
+ ✓ packages/ingest/test/cancellation.test.ts > cancellation (H3-04) > P5: a run whose signal is already aborted loads nothing and says cancelled 16635ms
+ ✓ packages/core/test/restore-normalization.test.ts > restore comparison normalization (H3R3-01) > a refresh changes only the named refresh-time fields 433ms
+ ✓ packages/core/test/restore-normalization.test.ts > restore comparison normalization (H3R3-01) > normalization keeps business values: a changed fact is still a difference 321ms
+ ✓ packages/ingest/test/cancellation-fec.test.ts > FEC cancellation at statement boundaries (H3R2-02) > an abort pas2: right after the kept table is built issues no further statement and rolls back 17828ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: initial stage DROP issues no further loader statement and rolls back 359ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: stage CREATE issues no further loader statement and rolls back 314ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: stage INSERT issues no further loader statement and rolls back 331ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: kept-table CREATE issues no further loader statement and rolls back 286ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: statistics query issues no further loader statement and rolls back 289ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: first kept-page read issues no further loader statement and rolls back 240ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: initial stage DROP issues no further loader statement and rolls back 249ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: stage CREATE issues no further loader statement and rolls back 397ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: stage INSERT issues no further loader statement and rolls back 343ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: kept-table CREATE issues no further loader statement and rolls back 377ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: statistics query issues no further loader statement and rolls back 327ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: first kept-page read issues no further loader statement and rolls back 282ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 1 (committee_contribution) issues no further loader statement and rolls back 285ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 2 (independent_expenditure) issues no further loader statement and rolls back 341ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 3 (candidate_cycle_totals) issues no further loader statement and rolls back 314ms
+ ✓ packages/ingest/test/cancellation.test.ts > cancellation (H3-04) > an abort during the load rolls the load back 6243ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 4 (committee_link) issues no further loader statement and rolls back 338ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 5 (candidate_cycle_summary) issues no further loader statement and rolls back 466ms
+ ✓ packages/ingest/test/cancellation-fec.test.ts > FEC cancellation at statement boundaries (H3R2-02) > an abort pas2: right after the first kept page is read issues no further statement and rolls back 6782ms
+ ✓ packages/ingest/test/cancellation.test.ts > cancellation (H3-04) > an abort during publication (read-model refresh) rolls everything back 5812ms
+ ✓ packages/ingest/test/cancellation-fec.test.ts > FEC cancellation at statement boundaries (H3R2-02) > an abort IE: right after the kept table is built issues no further statement and rolls back 6670ms
+ ✓ packages/ingest/test/cancellation.test.ts > cancellation (H3-04) > a whole-run deadline cancels a run that outlives it 5946ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort after ANY loader statement or savepoint issues no further loader statement and rolls back 11148ms
+ ✓ packages/ingest/test/cancellation-fec.test.ts > FEC cancellation at statement boundaries (H3R2-02) > an abort IE: right after the first kept page is read issues no further statement and rolls back 5662ms
+
+ Test Files  5 passed (5)
+      Tests  38 passed (38)
+   Start at  17:08:25
+   Duration  41.86s (tests 87%, import 11%, transform 2%)
+
+exit: 0

@@ -1,0 +1,106 @@
+$ git rev-parse --short HEAD: e54d5ff
+$ pnpm check
+$ pnpm lint && pnpm typecheck && pnpm test && pnpm build
+$ biome check .
+Checked 282 files in 595ms. No fixes applied.
+$ tsc --noEmit -p tsconfig.json && pnpm -r typecheck
+Scope: 5 of 6 workspace projects
+packages/db typecheck$ tsc --noEmit
+packages/db typecheck: Done
+packages/core typecheck$ tsc --noEmit
+packages/core typecheck: Done
+packages/ingest typecheck$ tsc --noEmit
+packages/mcp typecheck$ tsc --noEmit
+packages/mcp typecheck: Done
+packages/ingest typecheck: Done
+apps/web typecheck$ next typegen && tsc --noEmit
+apps/web typecheck: Generating route types...
+apps/web typecheck: ✓ Types generated successfully
+apps/web typecheck: Done
+$ vitest run
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r3-cancel-restore-20261018
+
+
+ Test Files  48 passed (48)
+      Tests  413 passed (413)
+   Start at  17:10:30
+   Duration  209.58s (tests 81%, import 18%, transform 1%)
+
+$ pnpm -r --if-present build
+Scope: 5 of 6 workspace projects
+apps/web build$ next build
+apps/web build: ▲ Next.js 16.4.1 (Turbopack)
+apps/web build: ✓ Running next.config.ts took 307ms
+apps/web build:   Creating an optimized production build ...
+apps/web build: ✓ Compiled successfully in 24.0s
+apps/web build:   Running TypeScript ...
+apps/web build:   Finished TypeScript in 5.8s ...
+apps/web build:   Collecting page data using 7 workers ...
+apps/web build:   Generating static pages using 7 workers (0/9) ...
+apps/web build:   Generating static pages using 7 workers (2/9) 
+apps/web build:   Generating static pages using 7 workers (4/9) 
+apps/web build:   Generating static pages using 7 workers (6/9) 
+apps/web build: ✓ Generating static pages using 7 workers (9/9) in 514ms
+apps/web build: Turbopack build encountered 1 warning:
+apps/web build: ./packages/db/src/client.ts:41:13
+apps/web build: Warning: Dynamic filesystem access causes tracing of the whole project
+apps/web build:   [90m39 |[0m [90m */[0m
+apps/web build:   [90m40 |[0m [36mexport[0m [36mfunction[0m defaultPgliteDir([36mfrom[0m: string = process.cwd()): string {
+apps/web build: [33m[1m>[0m [90m41 |[0m   [36mlet[0m dir = resolve([36mfrom[0m);
+apps/web build:   [90m   |[0m             [33m[1m^^^^^^^^^^^^^[0m
+apps/web build:   [90m42 |[0m   [36mwhile[0m (!existsSync(join(dir, [32m'pnpm-workspace.yaml'[0m))) {
+apps/web build:   [90m43 |[0m     [36mconst[0m parent = dirname(dir);
+apps/web build:   [90m44 |[0m     [36mif[0m (parent === dir) [36mreturn[0m resolve([36mfrom[0m, [32m'.pglite'[0m, [32m'dev'[0m);
+apps/web build: Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+apps/web build: This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+apps/web build: This can slow down deployments or lead to failures when size limits are exceeded.
+apps/web build: To resolve this, you can
+apps/web build: - make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+apps/web build: - only use them in development, or
+apps/web build: - opt out by adding an ignore comment to the highlighted call: path.resolve(/*turbopackIgnore: true*/ ...), or
+apps/web build: - remove them.
+apps/web build: Import traces:
+apps/web build:   Instrumentation:
+apps/web build:     ./packages/db/src/client.ts
+apps/web build:     ./apps/web/src/server/db-config.ts
+apps/web build:     ./apps/web/src/server/startup-check.ts
+apps/web build:     ./apps/web/instrumentation.ts
+apps/web build:   Server Component:
+apps/web build:     ./packages/db/src/client.ts
+apps/web build:     ./packages/db/src/index.ts
+apps/web build:     ./packages/core/src/index.ts
+apps/web build:     ./apps/web/app/compare/page.tsx
+apps/web build:   App Route:
+apps/web build:     ./packages/db/src/client.ts
+apps/web build:     ./packages/db/src/index.ts
+apps/web build:     ./packages/core/src/index.ts
+apps/web build:     ./apps/web/src/server/api/handler.ts
+apps/web build:     ./apps/web/app/api/v1/[capability]/route.ts
+apps/web build:   Middleware:
+apps/web build:     ./packages/db/src/client.ts
+apps/web build:     ./packages/db/src/index.ts
+apps/web build:     ./packages/core/src/index.ts
+apps/web build:     ./apps/web/src/server/api/guard.ts
+apps/web build:     ./apps/web/src/server/api/runtime.ts
+apps/web build:     ./apps/web/proxy.ts
+apps/web build:   Finalizing page optimization ...
+apps/web build: Route (app)
+apps/web build: ┌ ƒ /
+apps/web build: ├ ƒ /_not-found
+apps/web build: ├ ƒ /api/health
+apps/web build: ├ ƒ /api/live
+apps/web build: ├ ƒ /api/v1/[capability]
+apps/web build: ├ ƒ /api/v1/openapi.json
+apps/web build: ├ ƒ /compare
+apps/web build: ├ ƒ /explore
+apps/web build: ├ ƒ /frameworks
+apps/web build: ├ ƒ /methodology
+apps/web build: ├ ƒ /people/[slug]
+apps/web build: ├ ƒ /policy
+apps/web build: ├ ƒ /policy/[area]
+apps/web build: └ ƒ /sources
+apps/web build: ƒ Proxy (Middleware)
+apps/web build: ƒ  (Dynamic)  server-rendered on demand
+apps/web build: Done
+exit: 0

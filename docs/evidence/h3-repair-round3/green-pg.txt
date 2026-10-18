@@ -1,0 +1,32 @@
+$ git rev-parse --short HEAD: e54d5ff
+$ pnpm exec vitest run --config vitest.pg.config.ts test-pg/cancellation-fec-boundaries.pgtest.ts --reporter=verbose
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r3-cancel-restore-20261018
+
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: initial stage DROP issues no further loader statement and rolls back 169ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: stage CREATE issues no further loader statement and rolls back 146ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: stage INSERT issues no further loader statement and rolls back 134ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: kept-table CREATE issues no further loader statement and rolls back 153ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: statistics query issues no further loader statement and rolls back 171ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: first kept-page read issues no further loader statement and rolls back 167ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: initial stage DROP issues no further loader statement and rolls back 152ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: stage CREATE issues no further loader statement and rolls back 152ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: stage INSERT issues no further loader statement and rolls back 163ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: kept-table CREATE issues no further loader statement and rolls back 180ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: statistics query issues no further loader statement and rolls back 179ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: first kept-page read issues no further loader statement and rolls back 184ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 1 (committee_contribution) issues no further loader statement and rolls back 178ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 2 (independent_expenditure) issues no further loader statement and rolls back 180ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 3 (candidate_cycle_totals) issues no further loader statement and rolls back 166ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 4 (committee_link) issues no further loader statement and rolls back 171ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 5 (candidate_cycle_summary) issues no further loader statement and rolls back 220ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort after ANY loader statement or savepoint issues no further loader statement and rolls back 5464ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > a lost source lock right after the pas2 initial stage DROP stops the loader and stays failed 721ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > a lost source lock right after the first sweep DELETE stops the loader and stays failed 1098ms
+
+ Test Files  1 passed (1)
+      Tests  20 passed (20)
+   Start at  17:09:10
+   Duration  32.33s (tests 83%, import 14%, transform 4%)
+
+exit: 0
