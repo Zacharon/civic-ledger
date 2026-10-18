@@ -9,18 +9,28 @@ const TSX = fileURLToPath(new URL('../node_modules/tsx/dist/cli.mjs', import.met
 // Nothing listens on port 1: if the CLI ever tried to connect, it would fail differently.
 const OWNER_URL = 'postgres://owner:owner-secret@127.0.0.1:1/civic';
 
+// A cold tsx start of the CLI takes ~5 s on an idle Windows machine and several times that
+// while the full suite runs in parallel; 30 s budgets killed the child (status null).
+const CLI_BUDGET_MS = 120_000;
+
 function startCli(env: Record<string, string>, args: string[] = []) {
   const { DATABASE_URL, DATABASE_URL_READONLY, DB_ALLOW_OWNER_CREDENTIALS, ...rest } = process.env;
-  return spawnSync(process.execPath, [TSX, CLI, ...args], {
+  const result = spawnSync(process.execPath, [TSX, CLI, ...args], {
     env: { ...rest, ...env },
     input: '',
     encoding: 'utf8',
-    timeout: 30_000,
+    timeout: CLI_BUDGET_MS,
   });
+  if (result.status === null) {
+    throw new Error(
+      `mcp CLI did not exit within ${CLI_BUDGET_MS} ms (signal ${result.signal}): a start-up time problem, not a credential result`,
+    );
+  }
+  return result;
 }
 
 /** VC-068: the real MCP process refuses to start in production without a read-only role. */
-describe('mcp server startup credentials', () => {
+describe('mcp server startup credentials', { timeout: CLI_BUDGET_MS + 10_000 }, () => {
   it('exits 1 with a clear message instead of connecting as DATABASE_URL', () => {
     const result = startCli({ NODE_ENV: 'production', DATABASE_URL: OWNER_URL });
     expect(result.status).toBe(1);
