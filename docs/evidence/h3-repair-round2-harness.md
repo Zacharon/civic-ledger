@@ -140,8 +140,12 @@ and by a relative-link check over the changed files.
 
 CI run 39159281652 at `51f6695`: the new job scanned **42 commits** (49 on all fetched
 refs) and failed with **2 findings**, both rule `generic-api-key` at
-`apps/web/src/lib/explore-columns.ts:168,179` in `dab15bf`: the values are
-`sortKey: 'dwNominateDim1'` and `'dwNominateDim2'`, column sort identifiers matched
-because the property name ends in "Key". Not credentials. They are suppressed by exact
-fingerprint in `.gitleaksignore` (read by default from the scanned directory); the rule
-itself stays on. Green confirmation is the next CI run on the integration branch.
+`apps/web/src/lib/explore-columns.ts:168,179` in `dab15bf`: the two DW-NOMINATE
+dimension sort identifiers of the Explore columns, matched because the property name ends
+in "Key". Not credentials. They are suppressed by exact fingerprint in `.gitleaksignore`
+(read by default from the scanned directory); the rule itself stays on.
+
+CI run 39159671521 at `bcc8701` (43 commits): the two originals were suppressed, but the
+first `.gitleaksignore` comment and this note had quoted the identifiers in the same
+`property: 'value'` form, so commit `a5f2462` produced two new findings of the same rule.
+Those two fingerprints are added too, and neither text quotes the identifiers any more.

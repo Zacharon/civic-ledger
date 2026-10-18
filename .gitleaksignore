@@ -1,4 +1,7 @@
-# Reviewed false positives (generic-api-key on column sort identifiers, not credentials):
-# sortKey: 'dwNominateDim1' and 'dwNominateDim2' in the Explore column definitions.
+# Reviewed false positives, rule generic-api-key. None is a credential.
+# dab15bf: the two DW-NOMINATE column sort identifiers in the Explore column definitions.
 dab15bfa21154231bc2c48018859f01835853b45:apps/web/src/lib/explore-columns.ts:generic-api-key:168
 dab15bfa21154231bc2c48018859f01835853b45:apps/web/src/lib/explore-columns.ts:generic-api-key:179
+# a5f2462: this file's first comment and an evidence note quoted those identifiers.
+a5f24624b7bf117220b0d41b7edb3f69b1ac97bf:.gitleaksignore:generic-api-key:2
+a5f24624b7bf117220b0d41b7edb3f69b1ac97bf:docs/evidence/h3-repair-round2-harness.md:generic-api-key:144
