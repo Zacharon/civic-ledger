@@ -10,7 +10,8 @@ import { IE_IMPLAUSIBLE_CENTS, type IeRow, type Pas2Row } from './dedupe';
  * rules of `dedupe.ts` (still the reference, and tested for equality with this) run in
  * SQL; kept rows are read back one page at a time. Memory is O(batch), not O(file).
  * The tables live in the run's load transaction: a rollback removes them, and they are
- * dropped after use.
+ * dropped after use. `check` is the run's cancellation checkpoint: the dedupe calls it
+ * before each of its statements and the page readers before every page (H3R2-02).
  */
 const PAS2_STAGE = 'fec_pas2_stage';
 const PAS2_KEPT = 'fec_pas2_kept';
@@ -20,6 +21,10 @@ const IE_KEPT = 'fec_ie_kept';
 export type IeStageRow = IeRow & { spenderName: string; purpose: string | null };
 
 const rowsOf = <T>(result: unknown) => (result as { rows: T[] }).rows;
+
+/** A cancellation checkpoint: throws when the run must stop. */
+export type Check = () => void;
+const noCheck: Check = () => {};
 
 export async function createPas2Stage(db: Db): Promise<void> {
   await db.execute(sql.raw(`drop table if exists ${PAS2_STAGE}, ${PAS2_KEPT}`));
@@ -55,7 +60,8 @@ export interface Pas2SqlStats {
  * Supersession group: (committee, report type, TRAN_ID, transaction year); duplicate key:
  * (committee, TRAN_ID, type, date, amount, recipient); latest = highest FILE_NUM, then SUB_ID.
  */
-export async function dedupeStagedPas2(db: Db): Promise<Pas2SqlStats> {
+export async function dedupeStagedPas2(db: Db, check: Check = noCheck): Promise<Pas2SqlStats> {
+  check();
   await db.execute(
     sql.raw(`create temp table ${PAS2_KEPT} as
     with g as (
@@ -83,6 +89,7 @@ export async function dedupeStagedPas2(db: Db): Promise<Pas2SqlStats> {
     select distinct on (dkey) * from after
     order by dkey, file_num desc, (case when sub_id = '' then 0 else sub_id::numeric end) desc, seq`),
   );
+  check();
   const [stats] = rowsOf<{ superseded: number; after: number; kept: number }>(
     await db.execute(
       sql.raw(`with g as (
@@ -109,8 +116,8 @@ export async function dedupeStagedPas2(db: Db): Promise<Pas2SqlStats> {
   return { amendmentSuperseded: superseded, duplicateReports: (stats?.after ?? 0) - kept, kept };
 }
 
-export function keptPas2Pages(db: Db): AsyncGenerator<Pas2Row[]> {
-  return pages(db, PAS2_KEPT, (r: Record<string, unknown>) => ({
+export function keptPas2Pages(db: Db, check: Check = noCheck): AsyncGenerator<Pas2Row[]> {
+  return pages(db, PAS2_KEPT, check, (r: Record<string, unknown>) => ({
     cmteId: String(r.cmte_id),
     amndtInd: String(r.amndt_ind),
     rptTp: String(r.rpt_tp),
@@ -162,7 +169,7 @@ export interface IeSqlStats {
 }
 
 /** `dedupeIndependentExpenditures` in SQL: same rule order, same keys, same tie-breaks. */
-export async function dedupeStagedIe(db: Db): Promise<IeSqlStats> {
+export async function dedupeStagedIe(db: Db, check: Check = noCheck): Promise<IeSqlStats> {
   const classified = `
     select s.*, case
       when support_oppose not in ('S', 'O') then 'invalid'
@@ -170,12 +177,14 @@ export async function dedupeStagedIe(db: Db): Promise<IeSqlStats> {
       when abs(amount_cents) >= ${IE_IMPLAUSIBLE_CENTS} then 'implausible'
       else 'ok' end as class
     from ${IE_STAGE} s`;
+  check();
   await db.execute(
     sql.raw(`create temp table ${IE_KEPT} as
     select distinct on (spender_id, tran_id, candidate_id, support_oppose, amount_cents, coalesce(exp_date, '')) *
     from (${classified}) c where class = 'ok'
     order by spender_id, tran_id, candidate_id, support_oppose, amount_cents, coalesce(exp_date, ''), file_num desc, seq`),
   );
+  check();
   const [stats] = rowsOf<Record<keyof IeSqlStats | 'ok', number>>(
     await db.execute(
       sql.raw(`select
@@ -197,8 +206,8 @@ export async function dedupeStagedIe(db: Db): Promise<IeSqlStats> {
   };
 }
 
-export function keptIePages(db: Db): AsyncGenerator<IeStageRow[]> {
-  return pages(db, IE_KEPT, (r: Record<string, unknown>) => ({
+export function keptIePages(db: Db, check: Check = noCheck): AsyncGenerator<IeStageRow[]> {
+  return pages(db, IE_KEPT, check, (r: Record<string, unknown>) => ({
     spenderId: String(r.spender_id),
     spenderName: String(r.spender_name),
     tranId: String(r.tran_id),
@@ -217,14 +226,16 @@ export async function dropIeStage(db: Db): Promise<void> {
   await db.execute(sql.raw(`drop table if exists ${IE_STAGE}, ${IE_KEPT}`));
 }
 
-/** Keyset pages of a kept table in input order (`seq`). */
+/** Keyset pages of a kept table in input order (`seq`); `check` runs before each page. */
 async function* pages<T>(
   db: Db,
   table: string,
+  check: Check,
   map: (row: Record<string, unknown>) => T,
 ): AsyncGenerator<T[]> {
   let after = 0;
   for (;;) {
+    check();
     const query: SQL = sql`select * from ${sql.identifier(table)} where seq > ${after} order by seq limit ${BATCH_SIZE}`;
     const rows = rowsOf<Record<string, unknown>>(await db.execute(query));
     if (rows.length === 0) return;

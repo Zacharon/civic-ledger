@@ -49,11 +49,14 @@ with `runId`, `source` and `scope` on every line (`LOG_LEVEL=debug` for more). E
    (sha256 per file, upstream run ids, snapshot checksum). Requests use a timeout,
    at most 3 retries with full-jitter backoff on 429/5xx/network errors only, follow
    redirects (FEC → S3) and send `If-None-Match` / `If-Modified-Since` from
-   `data/raw/<source>/http-cache.json`.
-4. If (source, adapter version, snapshot checksum) already succeeded and that run is still
-   the latest successful run of the scope, the provisional row is dropped and the original
-   receipt is returned with `"deduplicated": true`. If a later run superseded it, the run
-   is refused with `snapshot_superseded` (see "How to rerun").
+   `data/raw/<source>/http-cache.json`. A cached copy is offered for that 304 reuse only
+   if it still matches its recorded size and sha256 and is within the current
+   `INGEST_MAX_DOWNLOAD_BYTES`; otherwise the file is fetched in full (A65).
+4. If (source, adapter version, snapshot checksum) is the key of the latest successful
+   run of the scope (also when that run was a `--force-replay`), the provisional row is
+   dropped and that run's receipt is returned with `"deduplicated": true`. If the key
+   succeeded earlier but a later run superseded it, the run is refused with
+   `snapshot_superseded` (see "How to rerun").
 5. Opens **one transaction** (DECISIONS A50) and, inside it: streams, parses and upserts
    in batches (each a savepoint), stages FEC pas2/IE rows and dedupes them in SQL
    (A53), deletes rows the source no longer asserts (A18), runs the shrink guard (below),
@@ -81,9 +84,9 @@ re-codes new committees and re-resolves framework targets even when the YAML is 
 | Symptom | Meaning | Action |
 |---|---|---|
 | `conflict: run_in_progress` | Another run of that source holds the lock. | Wait; check the `running` row in `sources.status`. |
-| receipt `status: cancelled` | Ctrl-C or the run deadline (`--deadline-minutes`, `INGEST_RUN_DEADLINE_MS`) stopped the run before its commit. Nothing was committed. | Rerun when ready (a longer deadline if it timed out). |
+| receipt `status: cancelled` | Ctrl-C or the run deadline (`--deadline-minutes`, `INGEST_RUN_DEADLINE_MS`) stopped the run before its commit, at the next record, phase or (FEC staging/dedupe/page) statement boundary; a statement already running finishes first. Nothing was committed. | Rerun when ready (a longer deadline if it timed out). |
 | `failed`, `error: snapshot_superseded: …` | You replayed a snapshot an older run loaded, after a later run loaded other data. Replay is not a restore. | Rerun with `--force-replay` if you really want that snapshot back; the receipt records `replayOf`. |
-| `failed`, `error: … download cap` / `… decompression cap` | A file or zip entry is larger than `INGEST_MAX_DOWNLOAD_BYTES` / `INGEST_MAX_DECOMPRESSED_BYTES`. | Check the upstream file; raise the cap only if the size is genuine. |
+| `failed`, `error: … download cap` / `… decompression cap` | A downloaded file, a cached copy that would be reused, or a zip entry is larger than `INGEST_MAX_DOWNLOAD_BYTES` / `INGEST_MAX_DECOMPRESSED_BYTES`. | Check the upstream file; raise the cap only if the size is genuine. |
 | `failed`, `error: … manifest schema_version N is not supported` | `--snapshot` points at a snapshot written by a newer build. | Use a build that reads that version. |
 | receipt `status: failed`, `error: GET … HTTP 404` | File moved or not published yet (new cycle/congress). | Check the URL in DATA_SOURCES.md; nothing was loaded. |
 | `failed` after retries on 5xx / timeout | Source down or slow. | Rerun later; nothing was loaded. |
@@ -131,7 +134,9 @@ intended change) are not guarded. Thresholds are the agent's defaults pending ow
 
 ## How to rerun
 
-- Same files again → deduplicated, no writes (by design).
+- Same files again → deduplicated, no writes (by design). This also holds right after a
+  `--force-replay`: retrying the replayed snapshot without the flag returns the replay
+  run. Retrying *with* `--force-replay` loads it once more (a new run, same data).
 - **Replaying an older snapshot is not a restore.** If snapshot A succeeded, then B, then
   A is offered again, the run is refused (`snapshot_superseded`) and B's data stays. To
   load A again as a new run (receipt `replayOf` = A's run), pass `--force-replay`:

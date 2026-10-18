@@ -45,7 +45,7 @@ Base `https://www.fec.gov/files/bulk-downloads/2026/` (302 → S3; follow redire
 - pas2 profile (2026-10-11): 220,203 rows; TRANSACTION_TP 24K 200,614 · 24E 14,459 · 24A 3,615 · 24C 924 · 24Z 511 · 24F 63 · 24N 17. AMNDT_IND N 190,042 · A 29,844 · T 317. 7,074 negative (refunds), 1,301 blank dates, 4,345 memo (X), 1,484 24K rows with blank CAND_ID (resolve via OTHER_ID → ccl/cm).
 - Transaction types: 24K contribution to nonaffiliated committee (PAC → candidate), 24Z in-kind, 24E IE for, 24A IE against, 24C coordinated party, 24F/24N communication cost for/against.
 - **Do not sum raw rows**: handle amendments (latest per transaction; FEC dedupe key unverified — test), memo rows, refunds.
-- pas2 and IE dedupe compare rows across the whole file; the loader stages rows in temp tables and applies the rules in SQL (DECISIONS A53), so file size does not bound memory. Downloads and inflated zip entries are capped (`INGEST_MAX_DOWNLOAD_BYTES`, `INGEST_MAX_DECOMPRESSED_BYTES`).
+- pas2 and IE dedupe compare rows across the whole file; the loader stages rows in temp tables and applies the rules in SQL (DECISIONS A53), so file size does not bound memory. Downloads (including cached copies reused on 304) and inflated zip entries are capped (`INGEST_MAX_DOWNLOAD_BYTES`, `INGEST_MAX_DECOMPRESSED_BYTES`).
 - **52 U.S.C. 30111(a)(4)**: individual contributor names/addresses may not be sold or used for solicitation/commercial purposes. Show aggregates; never list individual donors (pas2 has 964 `ENTITY_TP=IND` rows).
 - Cadence: varies daily–weekly; masters refreshed 2026-10-15, pas2 2026-10-11. Poll Last-Modified.
 - OpenFEC API `https://api.open.fec.gov/v1/` (api.data.gov key, 1,000/hr; DEMO_KEY unusable for ingest).

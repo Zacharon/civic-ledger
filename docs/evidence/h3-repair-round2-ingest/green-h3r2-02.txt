@@ -1,0 +1,13 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r2-ingest-20261018
+
+ ✓ packages/ingest/test/cancellation-fec.test.ts > FEC cancellation at statement boundaries (H3R2-02) > an abort pas2: right after the kept table is built issues no further statement and rolls back 10029ms
+ ✓ packages/ingest/test/cancellation-fec.test.ts > FEC cancellation at statement boundaries (H3R2-02) > an abort pas2: right after the first kept page is read issues no further statement and rolls back 6106ms
+ ✓ packages/ingest/test/cancellation-fec.test.ts > FEC cancellation at statement boundaries (H3R2-02) > an abort IE: right after the kept table is built issues no further statement and rolls back 6533ms
+ ✓ packages/ingest/test/cancellation-fec.test.ts > FEC cancellation at statement boundaries (H3R2-02) > an abort IE: right after the first kept page is read issues no further statement and rolls back 5985ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  15:42:04
+   Duration  32.57s (tests 89%, import 9%, transform 2%)
+

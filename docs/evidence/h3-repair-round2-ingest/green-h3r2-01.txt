@@ -1,0 +1,12 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r2-ingest-20261018
+
+ ✓ packages/ingest/test/replay-current.test.ts > retry after a forced replay (H3R2-01) > A -> B -> forced A -> A deduplicates to the forced run 8008ms
+ ✓ packages/ingest/test/replay-current.test.ts > retry after a forced replay (H3R2-01) > a lost-response retry after a forced replay returns the current receipt 6401ms
+ ✓ packages/ingest/test/replay-current.test.ts > retry after a forced replay (H3R2-01) > still refuses a snapshot that a later run superseded (A -> B -> forced A -> B) 5553ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  15:41:36
+   Duration  23.66s (tests 86%, import 11%, transform 3%)
+

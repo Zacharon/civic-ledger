@@ -1,0 +1,57 @@
+$ pnpm lint && pnpm typecheck && pnpm test && pnpm build
+$ biome check .
+Checked 277 files in 5s. No fixes applied.
+$ tsc --noEmit -p tsconfig.json && pnpm -r typecheck
+Scope: 5 of 6 workspace projects
+packages/db typecheck$ tsc --noEmit
+packages/db typecheck: Done
+packages/core typecheck$ tsc --noEmit
+packages/core typecheck: Done
+packages/ingest typecheck$ tsc --noEmit
+packages/mcp typecheck$ tsc --noEmit
+packages/mcp typecheck: Done
+packages/ingest typecheck: Done
+apps/web typecheck$ next typegen && tsc --noEmit
+apps/web typecheck: Generating route types...
+apps/web typecheck: ✓ Types generated successfully
+apps/web typecheck: Done
+$ vitest run
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r2-ingest-20261018
+
+ ❯ packages/mcp/test/cli-credentials.test.ts (3 tests | 1 failed) 56327ms
+   ❯ mcp server startup credentials (3)
+     × exits 1 with a clear message instead of connecting as DATABASE_URL 30339ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/mcp/test/cli-credentials.test.ts > mcp server startup credentials > exits 1 with a clear message instead of connecting as DATABASE_URL
+AssertionError: expected null to be 1 // Object.is equality
+
+- Expected:
+1
+
++ Received:
+null
+
+ ❯ packages/mcp/test/cli-credentials.test.ts:26:27
+     24|   it('exits 1 with a clear message instead of connecting as DATABASE_U…
+     25|     const result = startCli({ NODE_ENV: 'production', DATABASE_URL: OW…
+     26|     expect(result.status).toBe(1);
+       |                           ^
+     27|     expect(result.stdout).toBe('');
+     28|     const line = JSON.parse(result.stderr.trim().split('\n').at(-1) ??…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 45 passed (46)
+      Tests  1 failed | 392 passed (393)
+   Start at  15:27:30
+   Duration  300.72s (tests 81%, import 18%, transform 1%)
+
+    Isolate  46 workers spawned · ~1.85s startup each (spawn + environment, per file)
+             at least ~10.33s faster with isolate: false — reuses workers across files instead of one per file
+
+[ELIFECYCLE] Test failed. See above for more details.
+[ELIFECYCLE] Command failed with exit code 1.

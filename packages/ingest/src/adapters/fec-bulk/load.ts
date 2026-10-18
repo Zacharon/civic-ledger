@@ -159,6 +159,7 @@ export async function loadFec(
   };
 
   for await (const { kind, items } of kindBatches(records)) {
+    checkpoint(ctx);
     if (kind !== 'totals' && s.pendingTotals.length > 0) await flushTotals(s);
     if (kind === 'committee') await loadCommittees(s, ofKind(items, 'committee'));
     if (kind === 'candidate') await loadCandidates(s, ofKind(items, 'candidate'));
@@ -176,44 +177,70 @@ export async function loadFec(
   if (s.pendingSummaries.length > 0) await flushSummaries(s);
   if (s.pas2Staged) await flushPas2(s);
   if (s.ieStaged) await flushIe(s);
+  checkpoint(ctx);
   await deleteStaleCycleRows(s);
   return s.counts.toJSON();
 }
 
+/**
+ * Cancellation checkpoint before each statement of the loader's multi-statement phases
+ * (DECISIONS A52, H3R2-02): an abort, the deadline or a lost lock stops the load at the
+ * next statement instead of after the remaining staging, dedupe, page and sweep work.
+ */
+function checkpoint(ctx: LoadContext): void {
+  if (ctx.checkpoint) ctx.checkpoint();
+  else ctx.signal?.throwIfAborted();
+}
+
 async function stagePas2Rows(s: State, rows: Parameters<typeof stagePas2>[1]) {
+  checkpoint(s.ctx);
   if (!s.pas2Staged) await createPas2Stage(s.ctx.db);
   s.pas2Staged = true;
+  checkpoint(s.ctx);
   await stagePas2(s.ctx.db, rows);
 }
 
-/** Dedupes the staged pas2 rows in SQL and loads the kept ones one page at a time. */
+/**
+ * Dedupes the staged pas2 rows in SQL and loads the kept ones one page at a time, with a
+ * cancellation checkpoint before every statement. A cancelled flush leaves the stage
+ * tables to the rollback of the load transaction, which removes them.
+ */
 async function flushPas2(s: State) {
   s.pas2Staged = false;
-  const stats = await dedupeStagedPas2(s.ctx.db);
+  const check = () => checkpoint(s.ctx);
+  const stats = await dedupeStagedPas2(s.ctx.db, check);
   s.counts.add('pas2_amendment_superseded', stats.amendmentSuperseded);
   s.counts.add('pas2_duplicate_reports', stats.duplicateReports);
-  for await (const page of keptPas2Pages(s.ctx.db)) {
+  for await (const page of keptPas2Pages(s.ctx.db, check)) {
+    check();
     await loadContributions(s, page.map(contributionFromPas2));
   }
+  check();
   await dropPas2Stage(s.ctx.db);
 }
 
 async function stageIeRows(s: State, rows: Parameters<typeof stageIe>[1]) {
+  checkpoint(s.ctx);
   if (!s.ieStaged) await createIeStage(s.ctx.db);
   s.ieStaged = true;
+  checkpoint(s.ctx);
   await stageIe(s.ctx.db, rows);
 }
 
+/** As `flushPas2`, for the staged independent expenditures. */
 async function flushIe(s: State) {
   s.ieStaged = false;
-  const stats = await dedupeStagedIe(s.ctx.db);
+  const check = () => checkpoint(s.ctx);
+  const stats = await dedupeStagedIe(s.ctx.db, check);
   s.counts.add('ie_superseded_filings', stats.superseded);
   s.counts.add('ie_duplicate_reports', stats.duplicateReports);
   s.counts.add('ie_invalid_support_oppose', stats.invalidSupportOppose);
   s.counts.add('ie_implausible_amount_dropped', stats.implausibleAmount);
-  for await (const page of keptIePages(s.ctx.db)) {
+  for await (const page of keptIePages(s.ctx.db, check)) {
+    check();
     await loadExpenditures(s, page.map(expenditureFromRow));
   }
+  check();
   await dropIeStage(s.ctx.db);
 }
 
@@ -398,6 +425,7 @@ async function flushTotals(s: State) {
   });
   s.counts.add('persons_with_several_fec_ids_in_cycle', personsWithSeveral);
   for (let i = 0; i < rows.length; i += 1_000) {
+    checkpoint(s.ctx);
     const values = rows.slice(i, i + 1_000).map((r) => ({
       fecCandidateId: r.candidateId,
       cycle: s.cycle,
@@ -501,6 +529,7 @@ async function flushSummaries(s: State) {
     };
   });
   for (let i = 0; i < values.length; i += 1_000) {
+    checkpoint(s.ctx);
     const chunk = values.slice(i, i + 1_000);
     await s.ctx.db.transaction((tx) =>
       tx

@@ -1,0 +1,66 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r2-ingest-20261018
+
+ ❯ packages/ingest/test/download-cache-cap.test.ts (3 tests | 2 failed) 1694ms
+   ❯ cached 304 reuse and the download cap (H3R2-03) (3)
+     × refuses to reuse a cached copy larger than a lowered cap 358ms
+     × stops validating the cached copy when the run is cancelled 1239ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/ingest/test/download-cache-cap.test.ts > cached 304 reuse and the download cap (H3R2-03) > refuses to reuse a cached copy larger than a lowered cap
+AssertionError: promise resolved "{ fileName: 'file.csv', …(3) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "bytes": 4096,
++   "fileName": "file.csv",
++   "notModified": true,
++   "sha256": "a2e659dacb4691e887ac0139f8893d04764ee197d70fb73d3190d56113d18e3e",
+  }
+
+ ❯ packages/ingest/test/download-cache-cap.test.ts:53:6
+     51|     await expect(
+     52|       downloadToFile({ url: URL_, targetPath: target, cachePath, maxBy…
+     53|     ).rejects.toThrow(/4096 bytes.*1024-byte download cap/);
+       |      ^
+     54|     // The over-cap copy was not offered for revalidation and nothing …
+     55|     expect(calls[1]?.['if-none-match']).toBeUndefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  packages/ingest/test/download-cache-cap.test.ts > cached 304 reuse and the download cap (H3R2-03) > stops validating the cached copy when the run is cancelled
+AssertionError: promise resolved "{ fileName: 'file.csv', …(3) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "bytes": 33554432,
++   "fileName": "file.csv",
++   "notModified": true,
++   "sha256": "05f052c8f6da8ee5228ec291820b559c4be183773b9e97a6b82e30dacff85dd3",
+  }
+
+ ❯ packages/ingest/test/download-cache-cap.test.ts:87:26
+     85|     );
+     86|     setTimeout(() => abort.abort(new Error('interrupted (SIGINT)')), 0…
+     87|     await expect(pending).rejects.toThrow('interrupted (SIGINT)');
+       |                          ^
+     88|     // Cancelled before the conditional request: no second fetch was m…
+     89|     expect(calls).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  15:12:44
+   Duration  2.49s (tests 92%, import 4%, worker 2%, transform 2%)
+

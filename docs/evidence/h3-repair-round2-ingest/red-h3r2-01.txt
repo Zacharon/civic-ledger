@@ -1,0 +1,65 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r2-ingest-20261018
+
+ ❯ packages/ingest/test/replay-current.test.ts (3 tests | 2 failed) 26729ms
+   ❯ retry after a forced replay (H3R2-01) (3)
+     × A -> B -> forced A -> A deduplicates to the forced run 11792ms
+     × a lost-response retry after a forced replay returns the current receipt 7713ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/ingest/test/replay-current.test.ts > retry after a forced replay (H3R2-01) > A -> B -> forced A -> A deduplicates to the forced run
+AssertionError: expected 'snapshot_superseded: this snapshot wa…' to be null
+
+- Expected:
+null
+
++ Received:
+"snapshot_superseded: this snapshot was loaded by run 1, but run 3 has loaded other data for all since. Replaying it is not a restore; nothing was changed. To load it again as a new run, rerun with --force-replay."
+
+ ❯ packages/ingest/test/replay-current.test.ts:81:25
+     79|
+     80|     const retry = await ingestFixture(rt, 'congress-legislators', A);
+     81|     expect(retry.error).toBeNull();
+       |                         ^
+     82|     expect(retry).toEqual({ ...forced, deduplicated: true });
+     83|     expect(retry.replayOf).toBe(first.runId);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  packages/ingest/test/replay-current.test.ts > retry after a forced replay (H3R2-01) > a lost-response retry after a forced replay returns the current receipt
+AssertionError: expected { runId: 4, …(16) } to match object { runId: 3, status: 'succeeded', …(3) }
+(12 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "deduplicated": true,
+-   "error": null,
+-   "replayOf": 1,
+-   "runId": 3,
+-   "status": "succeeded",
++   "deduplicated": false,
++   "error": "snapshot_superseded: this snapshot was loaded by run 1, but run 3 has loaded other data for all since. Replaying it is not a restore; nothing was changed. To load it again as a new run, rerun with --force-replay.",
++   "replayOf": null,
++   "runId": 4,
++   "status": "failed",
+  }
+
+ ❯ packages/ingest/test/replay-current.test.ts:105:19
+    103|     // The caller retries the same snapshot normally.
+    104|     const retry = await ingestFixture(rt, 'congress-legislators', A);
+    105|     expect(retry).toMatchObject({
+       |                   ^
+    106|       runId: committed?.id,
+    107|       status: 'succeeded',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  15:11:21
+   Duration  32.46s (tests 84%, import 12%, transform 4%)
+

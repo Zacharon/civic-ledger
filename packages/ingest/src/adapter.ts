@@ -139,6 +139,13 @@ export interface LoadContext {
   logger: Logger;
   /** The run's cancellation signal; loaders may check it between batches. */
   signal?: AbortSignal;
+  /**
+   * The run's cancellation checkpoint (`RunControl.checkpoint`, DECISIONS A52): throws when
+   * the operator aborted, the deadline passed or the source lock was lost. Loaders with
+   * multi-statement phases call it before each statement (the FEC staging, dedupe, page
+   * and sweep statements). Absent outside a run; loaders then check `signal`.
+   */
+  checkpoint?: () => void;
 }
 
 /** Rows upserted (and anomaly counters) per table, recorded on the ingest_run receipt. */
