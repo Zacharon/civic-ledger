@@ -1,0 +1,7 @@
+# Abrupt kill of the vitest process during 'pnpm test:pg' (throwaway 90 s test, deleted afterwards), Windows 10, default fork (not detached)
+embedded-server child pid 43196; its parent pid 36300 is the vitest process: True
+postgres processes before kill (server up): 6
+killed vitest pid 36300 with Stop-Process -Force (that process only)
+after 15 s: embedded-server child alive: False
+after 15 s: postgres processes: 0 
+after 15 s: civic-embedded-pg-* temp dirs: 1

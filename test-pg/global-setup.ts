@@ -1,8 +1,11 @@
+import { fork } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { TestProject } from 'vitest/node';
+import type { ServerMessage } from './embedded-server';
 
 declare module 'vitest' {
   export interface ProvidedContext {
@@ -26,19 +29,39 @@ function freePort(): Promise<number> {
   });
 }
 
+const SERVER_SCRIPT = fileURLToPath(new URL('./embedded-server.ts', import.meta.url));
+
 /**
- * embedded-postgres registers async-exit-hook at import, whose `beforeExit` handler calls
- * `process.exit(0)` and so replaced vitest's failing exit code: `pnpm test:pg` exited 0
- * with failed tests. Import it only when needed and drop that one listener; teardown
- * below stops the server explicitly, and the signal hooks stay in place.
+ * Runs the embedded Postgres in a child process (`embedded-server.ts`), never in the
+ * vitest process. embedded-postgres registers async-exit-hook at import: its `beforeExit`
+ * handler called `process.exit(0)` over vitest's failing exit code (DECISIONS A56), and
+ * with that listener removed its `exit` handler called `gracefulShutdown()` without the
+ * callback (`TypeError: done is not a function`, H3R2-05). In the child those hooks only
+ * govern the child, and the stop below shuts down this server alone.
  */
-async function importEmbeddedPostgres() {
-  const before = new Set(process.listeners('beforeExit'));
-  const { default: EmbeddedPostgres } = await import('embedded-postgres');
-  for (const listener of process.listeners('beforeExit')) {
-    if (!before.has(listener)) process.removeListener('beforeExit', listener);
-  }
-  return EmbeddedPostgres;
+async function startEmbeddedPostgres(databaseDir: string, port: number) {
+  const child = fork(SERVER_SCRIPT, [databaseDir, String(port)], {
+    execArgv: [],
+    stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+  });
+  const exited = new Promise<number | null>((resolve) => child.once('exit', resolve));
+  await new Promise<void>((resolve, reject) => {
+    child.once('error', reject);
+    child.once('message', (message: ServerMessage) =>
+      message.type === 'ready'
+        ? resolve()
+        : reject(new Error(`embedded Postgres failed to start: ${message.message}`)),
+    );
+    void exited.then((code) =>
+      reject(new Error(`embedded Postgres process exited before it was ready (code ${code})`)),
+    );
+  });
+  return {
+    async stop(): Promise<void> {
+      if (child.connected) child.send({ type: 'stop' });
+      await exited;
+    },
+  };
 }
 
 /** CI points at a postgres:17 service via PG_TEST_URL; locally an embedded Postgres 17 is started. */
@@ -48,21 +71,9 @@ export default async function setup(project: TestProject): Promise<() => Promise
     project.provide('pgAdminUrl', external);
     return async () => {};
   }
-  const EmbeddedPostgres = await importEmbeddedPostgres();
   const databaseDir = await mkdtemp(join(tmpdir(), 'civic-embedded-pg-'));
   const port = await freePort();
-  const server = new EmbeddedPostgres({
-    databaseDir,
-    port,
-    user: 'postgres',
-    password: 'postgres',
-    persistent: false,
-    postgresFlags: ['-c', 'fsync=off', '-c', 'max_connections=200'],
-    onLog: () => {},
-    onError: () => {},
-  });
-  await server.initialise();
-  await server.start();
+  const server = await startEmbeddedPostgres(databaseDir, port);
   project.provide('pgAdminUrl', `postgres://postgres:postgres@127.0.0.1:${port}/postgres`);
   return async () => {
     await server.stop();

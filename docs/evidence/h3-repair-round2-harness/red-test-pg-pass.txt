@@ -1,0 +1,22 @@
+$ vitest run --config vitest.pg.config.ts
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r2-harness-docs-20261018
+
+{"level":"error","msg":"database pool error","err":"terminating connection due to administrator command"}
+
+ Test Files  8 passed (8)
+      Tests  47 passed (47)
+   Start at  15:04:29
+   Duration  228.56s (tests 88%, import 11%, transform 1%)
+
+file:///C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r2-harness-docs-20261018/node_modules/.pnpm/embedded-postgres@17.10.0-beta.17/node_modules/embedded-postgres/dist/index.js:393
+        done();
+        ^
+
+TypeError: done is not a function
+    at file:///C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r2-harness-docs-20261018/node_modules/.pnpm/embedded-postgres@17.10.0-beta.17/node_modules/embedded-postgres/dist/index.js:393:9
+    at Generator.next (<anonymous>)
+    at fulfilled (file:///C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r2-harness-docs-20261018/node_modules/.pnpm/embedded-postgres@17.10.0-beta.17/node_modules/embedded-postgres/dist/index.js:4:58)
+
+Node.js v24.16.0
+EXIT=0

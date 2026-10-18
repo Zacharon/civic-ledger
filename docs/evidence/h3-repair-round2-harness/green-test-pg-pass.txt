@@ -1,0 +1,13 @@
+$ pnpm test:pg
+$ vitest run --config vitest.pg.config.ts
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r2-harness-docs-20261018
+
+{"level":"error","msg":"database pool error","err":"terminating connection due to administrator command"}
+
+ Test Files  8 passed (8)
+      Tests  47 passed (47)
+   Start at  15:10:55
+   Duration  246.86s (tests 86%, import 13%)
+
+EXIT=0

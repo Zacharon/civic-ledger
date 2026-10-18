@@ -49,6 +49,23 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 - Documentation that over-claimed: cache invalidation by `revalidateTag` (there is none;
   freshness is time-based, A46), `GET /` as a liveness probe (A47), the stale CSP
   comment, and the agent-native evidence counts (13 capabilities, 39 parity tests).
+- `pnpm test:pg` no longer prints `TypeError: done is not a function` from
+  embedded-postgres after the summary (H3R2-05). The local server runs in a child process
+  (`test-pg/embedded-server.ts`) that `global-setup.ts` starts and stops, so the
+  package's exit hooks never run in the vitest process; a failing test still exits
+  nonzero (A56).
+- CI `secret-scan` scans the full git history. `gitleaks/gitleaks-action` limited push
+  scans to the pushed first-parent range (8 commits, then 0); the job now runs the
+  pinned, checksum-verified gitleaks 8.30.1 CLI (`gitleaks git --redact`) over every
+  commit checkout fetched, with no license key or secret.
+- Current-state documentation that contradicted the code or was stale: ARCHITECTURE said
+  the read model refreshes after the commit (it refreshes inside the publication
+  transaction, A50); AGENT_NATIVE_EVIDENCE still said ingest repairs were in progress and
+  that there was no GitHub remote (gate statuses now follow the round-2 review, none
+  upgraded); the OPERATIONS restore drill proposed `pnpm test` against a seeded copy as
+  verification (replaced by assertions against the exact restored target; the drill has
+  not been run); the byte-cap defaults comment claimed small-host headroom that was never
+  measured (now an unmeasured proposal pending owner/host sizing, A53).
 
 ### Security
 
