@@ -89,6 +89,15 @@ tagged; the first tag waits for the production-readiness gate and owner approval
   before every statement it issues and at the start of every savepoint callback; tested
   after each of the fixture reload's 39 statement/savepoint boundaries on PGlite and
   Postgres, plus a lost lock (still `failed`).
+- Docs: the OPERATIONS restore drill required `sources.status` and recorded capability
+  answers to equal the pre-backup JSON. Regenerated `readModelRefreshedAt` / `refreshedAt`
+  values always differ after a restore, and date-dependent "current" answers can. It now
+  names the excluded volatile fields, compares date-dependent answers as of the record
+  date or lists them as excluded, keeps exact checks for everything else, and reports
+  strict-health freshness separately from content integrity (H3R3-01; still never run).
+- Docs: OPERATIONS no longer says an app rollback "never changes a contract that
+  clients saw": stable `/api/v1` paths are design intent; previous-app and previous-client
+  compatibility is unverified (VC-055).
 
 ### Security
 

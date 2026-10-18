@@ -300,32 +300,70 @@ Restore procedure to rehearse once the host exists (VC-084 needs an actual resto
 **This drill has never been run**; no script implements the record or the comparison yet.
 
 0. When each backup is taken, record from the source database, in the same transaction
-   snapshot as the dump if possible, and store the record beside the backup: for every
-   table in `public` and both materialized views, `count(*)` and a content checksum
-   (for example `select md5(string_agg(t::text, '|' order by t::text)) from <table> t`);
-   the latest `ingest_run` rows per source (`id`, `source_id`, `scope`, `status`,
-   `snapshot_checksum`, `counts`, `finished_at`); the `sources.status` answer; and the JSON
-   answers of a fixed sample of public capabilities (at least `people.get`,
-   `money.summary`, `votes.list`, `explore.table` and `frameworks.evaluate` for recorded
-   inputs).
+   snapshot as the dump if possible, and store the record beside the backup: the record
+   date (`select current_date`); for every table in `public`, `count(*)` and a content
+   checksum (for example `select md5(string_agg(t::text, '|' order by t::text)) from
+   <table> t`); for the two materialized views, `count(*)` and the checksums named in the
+   comparison policy below; the latest `ingest_run` rows per source (`id`, `source_id`,
+   `scope`, `status`, `snapshot_checksum`, `counts`, `finished_at`); the `sources.status`
+   answer; and the JSON answers of a fixed sample of public capabilities (at least
+   `people.get`, `money.summary`, `votes.list`, `explore.table` and `frameworks.evaluate`
+   for recorded inputs; pass `scope: 'all'` wherever the input has a member scope).
 1. Create an empty Postgres (new instance; never restore over production).
 2. `pnpm db:migrate` against it, so the schema and `drizzle` journal are current.
 3. `pg_restore --clean --if-exists --no-owner -d "$RESTORE_URL" backup.dump`.
-4. Verify the exact restored target (`$RESTORE_URL`) before any ingest or refresh touches
-   it, against the record from step 0. Every item must match; any difference fails the
-   drill:
-   * per-table row counts and content checksums equal the record. If the materialized
-     views came back unpopulated, refresh them (`REFRESH MATERIALIZED VIEW person_card`,
-     then `person_card_scorecard`) and compare their checksums with refresh-time columns
-     excluded;
+4. **Content integrity.** Verify the exact restored target (`$RESTORE_URL`) before any
+   ingest touches it, against the record from step 0, under the comparison policy
+   below. Every compared item must match; any difference fails the drill:
+   * per-table row counts and content checksums equal the record, `ingest_run` included.
+     If the materialized views came back unpopulated, refresh them (`REFRESH MATERIALIZED
+     VIEW person_card`, then `person_card_scorecard`); no other refresh or ingest;
+   * the view counts and normalized view checksums equal the record;
    * the `ingest_run` rows equal the record;
-   * a web process pointed at the restored target answers `/api/health?strict=1` with
-     200, and `sources.status` equals the recorded answer;
-   * the recorded capability sample, called through `/api/v1` on that process, returns
-     the recorded JSON (response bodies; request ids and headers excluded).
+   * a web process pointed at the restored target answers `/api/health` (not strict)
+     with 200, and its `sources.status` answer and the recorded capability sample,
+     called through `/api/v1`, equal the recorded JSON after normalization.
+
+   **Freshness and traffic readiness are a separate result.** `/api/health?strict=1`
+   judges each source's latest success against the current time, so an old but correct
+   backup can legitimately answer 503 (`degraded`, stale sources). Record that answer
+   next to the integrity result, not as an integrity failure. Whether to serve a stale
+   restore or to re-ingest first is the operator's decision; an ingest after the check
+   is outside the comparison.
 
    `pnpm test` and `pnpm test:pg` build their own fixture databases and cannot verify
    restored content; a pass there is not restore evidence.
+
+   **Comparison policy (normalization and as-of).** Only the fields below are treated
+   specially; everything else, including every business value, provenance field
+   (`sourceId`, `sourceKey`, `ingestRunId`, `retrievedAt`), row count, receipt field
+   and `ingest_run` row, must be exactly equal.
+   * *Regenerated at refresh, always excluded:* the `sources.status` field
+     `readModelRefreshedAt`; every `refreshedAt` key in a capability answer (the
+     person-card rows, e.g. `card.refreshedAt` in `people.get`); the view column
+     `person_card.refreshed_at`, so the `person_card` checksum is taken over
+     `to_jsonb(t) - 'refreshed_at'` in the record and in the drill.
+     `person_card_scorecard` has no such column and is compared raw. These values
+     change on every refresh, and pg_restore itself refreshes the views (a dump stores
+     the REFRESH, not the view rows). Request ids and response headers are excluded
+     too.
+   * *Date-dependent, compared as of the record date or excluded:* "current" is
+     evaluated at the database's `current_date` and no capability takes an as-of date.
+     This affects `isCurrent` on person rows and cards; answers filtered to
+     `scope: 'current'` (the `explore.table` default, `people.search` with that scope)
+     and the current counts of `explore.facets`; the `people.search` order (current
+     members first); and `tenureYears` / `person_card.tenure_years`, fixed when the view
+     is refreshed. If the restore's view refresh and the capability calls run on the
+     record date (same `current_date` on the database), compare these exactly.
+     Otherwise exclude exactly these fields and answers, remove `tenure_years` from the
+     `person_card` checksum as well (record both variants in step 0), and list each
+     exclusion in the drill result with the record and drill dates. The term rows they
+     derive from are still compared exactly through the table checksums.
+
+   `packages/core/test/restore-normalization.test.ts` shows on the fictional PGlite seed
+   that a refresh on one date changes only the regenerated fields above and that a
+   changed fact still differs after normalization. It is a check of the policy, not
+   restore evidence, and it does not exercise a date change.
 5. Record date, backup age (data age at restore, against the RPO), measured duration
    from step 1 to a passing step 4 (against the RTO), and every mismatch, in the table
    below.
@@ -339,8 +377,13 @@ Restore procedure to rehearse once the host exists (VC-084 needs an actual resto
 **Application release.** Redeploy the previous build: `git revert` the merge on `main`
 and redeploy, or promote the previous build in the host (instant rollback; pending D1).
 Verify with `/api/health?strict=1` and one request per cache class. API paths are
-versioned (`/api/v1`), so rolling the app back never changes a contract that clients
-saw before the bad release; a breaking change ships as `/api/v2` beside v1.
+versioned (`/api/v1`). The design intent is that a rollback does not break a contract
+clients saw: v1 changes are meant to be additive, and a breaking change ships as
+`/api/v2` beside v1. This is intent, not demonstrated compatibility. A rollback also
+removes whatever additive fields or capabilities the bad release added, which clients
+may already use; nobody has run the previous app, or a previous client, against the
+current schema; and A63's structural check (no dropped or retyped column) is not such a
+run. Rollback compatibility stays unverified (VC-055).
 
 **Database migration.** Migrations are forward-only. Each has a hand rollback note in
 `packages/db/migrations/README.md`. Roll the app back first (an older app works with a
