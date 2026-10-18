@@ -1,0 +1,6 @@
+After widening the CLI budget (120 s, explicit timeout error):
+cli-credentials.test.ts alone: 3 passed, 13.12 s
+pnpm check run 1:  Test Files  46 passed (46)
+pnpm check run 1:       Tests  393 passed (393)
+pnpm check run 2:  Test Files  46 passed (46)
+pnpm check run 2:       Tests  393 passed (393)

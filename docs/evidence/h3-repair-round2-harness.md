@@ -149,3 +149,15 @@ CI run 39159671521 at `bcc8701` (43 commits): the two originals were suppressed,
 first `.gitleaksignore` comment and this note had quoted the identifiers in the same
 `property: 'value'` form, so commit `a5f2462` produced two new findings of the same rule.
 Those two fingerprints are added too, and neither text quotes the identifiers any more.
+
+## Follow-up: `cli-credentials.test.ts` start-up budget (orchestrator, 2026-10-18)
+
+Failed three times in full `pnpm check` runs (twice while other suites ran, once at
+`70012cf` on an otherwise idle machine) with `expected null to be 1`: `spawnSync` killed
+the CLI at its 30 s budget, so `status` was null (`red-mcp-cli-budget.txt`). The refusal
+itself is correct; a cold tsx start of the CLI takes 5.3–5.8 s idle and far longer under
+the parallel suite. The budget is now 120 s, and a kill throws "did not exit within …: a
+start-up time problem, not a credential result" instead of an opaque status mismatch.
+Green: the file alone 3/3, then two consecutive full `pnpm check` runs 393/393
+(`green-mcp-cli-budget.txt`). Limit: this widens a test budget; the CLI's own start-up
+time is unchanged.

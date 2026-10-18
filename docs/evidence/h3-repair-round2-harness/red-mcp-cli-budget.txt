@@ -1,0 +1,27 @@
+pnpm check at 70012cf (orchestrator, idle machine, 2026-10-18): exit 1
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/mcp/test/cli-credentials.test.ts > mcp server startup credentials > exits 1 with a clear message instead of connecting as DATABASE_URL
+AssertionError: expected null to be 1 // Object.is equality
+
+- Expected:
+1
+
++ Received:
+null
+
+ ❯ packages/mcp/test/cli-credentials.test.ts:26:27
+     24|   it('exits 1 with a clear message instead of connecting as DATABASE_U…
+     25|     const result = startCli({ NODE_ENV: 'production', DATABASE_URL: OW…
+     26|     expect(result.status).toBe(1);
+       |                           ^
+     27|     expect(result.stdout).toBe('');
+     28|     const line = JSON.parse(result.stderr.trim().split('\n').at(-1) ??…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed | 45 passed (46)
+      Tests  1 failed | 392 passed (393)
+
+Idle cold start of the same CLI invocation: 5816 ms and 5253 ms (exit 1, expected refusal).

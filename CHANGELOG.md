@@ -39,6 +39,9 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 
 ### Fixed
 
+- `cli-credentials.test.ts` gives the spawned MCP CLI 120 s instead of 30 s and reports a
+  timeout as a start-up problem; under the full parallel suite a cold start was killed and
+  read as `status: null`.
 - Ingest: an ordinary retry right after a `--force-replay` returns the replay run
   (`deduplicated: true`) instead of refusing it as `snapshot_superseded`. Idempotency now
   compares the requested key with the latest successful run of the scope; `replayOf` still
