@@ -1,0 +1,322 @@
+$ pnpm exec vitest run packages/ingest/test/cancellation-fec-boundaries.test.ts --reporter=verbose   (pre-fix: production code as at 221d9cd)
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r3-cancel-restore-20261018
+
+ × packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: initial stage DROP issues no further loader statement and rolls back 154ms
+   → expected [ Array(1) ] to deeply equal []
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: stage CREATE issues no further loader statement and rolls back 194ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: stage INSERT issues no further loader statement and rolls back 181ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: kept-table CREATE issues no further loader statement and rolls back 216ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: statistics query issues no further loader statement and rolls back 177ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: first kept-page read issues no further loader statement and rolls back 161ms
+ × packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: initial stage DROP issues no further loader statement and rolls back 187ms
+   → expected [ Array(1) ] to deeply equal []
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: stage CREATE issues no further loader statement and rolls back 202ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: stage INSERT issues no further loader statement and rolls back 229ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: kept-table CREATE issues no further loader statement and rolls back 213ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: statistics query issues no further loader statement and rolls back 188ms
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: first kept-page read issues no further loader statement and rolls back 193ms
+ × packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 1 (committee_contribution) issues no further loader statement and rolls back 176ms
+   → expected [ …(4) ] to deeply equal []
+ × packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 2 (independent_expenditure) issues no further loader statement and rolls back 195ms
+   → expected [ …(3) ] to deeply equal []
+ × packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 3 (candidate_cycle_totals) issues no further loader statement and rolls back 184ms
+   → expected [ 'delete committee_link', …(1) ] to deeply equal []
+ × packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 4 (committee_link) issues no further loader statement and rolls back 165ms
+   → expected [ 'delete candidate_cycle_summary' ] to deeply equal []
+ ✓ packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 5 (candidate_cycle_summary) issues no further loader statement and rolls back 206ms
+ × packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort after ANY loader statement or savepoint issues no further loader statement and rolls back 6714ms
+   → 39 statement boundaries checked: expected [ { index: 1, …(3) }, …(14) ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after pas2: initial stage DROP issues no further loader statement and rolls back
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "execute: create temp table fec_pas2_stage ( seq bigint generated always as iden",
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:264:30
+    262|       const { receipt, rec } = await cancelledReload(handle, { when: f…
+    263|       expect(rec.fired, 'trigger statement reached').toBe(true);
+    264|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+    265|       expect(receipt.status).toBe('cancelled');
+    266|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after IE: initial stage DROP issues no further loader statement and rolls back
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "execute: create temp table fec_ie_stage ( seq bigint generated always as identi",
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:264:30
+    262|       const { receipt, rec } = await cancelledReload(handle, { when: f…
+    263|       expect(rec.fired, 'trigger statement reached').toBe(true);
+    264|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+    265|       expect(receipt.status).toBe('cancelled');
+    266|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 1 (committee_contribution) issues no further loader statement and rolls back
+AssertionError: expected [ …(4) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "delete independent_expenditure",
++   "delete candidate_cycle_totals",
++   "delete committee_link",
++   "delete candidate_cycle_summary",
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:264:30
+    262|       const { receipt, rec } = await cancelledReload(handle, { when: f…
+    263|       expect(rec.fired, 'trigger statement reached').toBe(true);
+    264|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+    265|       expect(receipt.status).toBe('cancelled');
+    266|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 2 (independent_expenditure) issues no further loader statement and rolls back
+AssertionError: expected [ …(3) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "delete candidate_cycle_totals",
++   "delete committee_link",
++   "delete candidate_cycle_summary",
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:264:30
+    262|       const { receipt, rec } = await cancelledReload(handle, { when: f…
+    263|       expect(rec.fired, 'trigger statement reached').toBe(true);
+    264|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+    265|       expect(receipt.status).toBe('cancelled');
+    266|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 3 (candidate_cycle_totals) issues no further loader statement and rolls back
+AssertionError: expected [ 'delete committee_link', …(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "delete committee_link",
++   "delete candidate_cycle_summary",
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:264:30
+    262|       const { receipt, rec } = await cancelledReload(handle, { when: f…
+    263|       expect(rec.fired, 'trigger statement reached').toBe(true);
+    264|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+    265|       expect(receipt.status).toBe('cancelled');
+    266|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort right after sweep: DELETE 4 (committee_link) issues no further loader statement and rolls back
+AssertionError: expected [ 'delete candidate_cycle_summary' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "delete candidate_cycle_summary",
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:264:30
+    262|       const { receipt, rec } = await cancelledReload(handle, { when: f…
+    263|       expect(rec.fired, 'trigger statement reached').toBe(true);
+    264|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+    265|       expect(receipt.status).toBe('cancelled');
+    266|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort after ANY loader statement or savepoint issues no further loader statement and rolls back
+AssertionError: 39 statement boundaries checked: expected [ { index: 1, …(3) }, …(14) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 1,
++     "issued": [
++       "insert committee",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 3,
++     "issued": [
++       "insert office",
++       "insert candidacy",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "insert office",
++     "index": 4,
++     "issued": [
++       "insert candidacy",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 6,
++     "issued": [
++       "insert committee_link",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 9,
++     "issued": [
++       "insert candidate_cycle_totals",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 11,
++     "issued": [
++       "insert candidate_cycle_summary",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "execute: drop table if exists fec_pas2_stage, fec_pas2_kept",
++     "index": 13,
++     "issued": [
++       "execute: create temp table fec_pas2_stage ( seq bigint generated always as iden",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 19,
++     "issued": [
++       "insert committee_contribution",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "execute: drop table if exists fec_ie_stage, fec_ie_kept",
++     "index": 23,
++     "issued": [
++       "execute: create temp table fec_ie_stage ( seq bigint generated always as identi",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 29,
++     "issued": [
++       "insert independent_expenditure",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 33,
++     "issued": [
++       "delete committee_contribution",
++       "delete independent_expenditure",
++       "delete candidate_cycle_totals",
++       "delete committee_link",
++       "delete candidate_cycle_summary",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "delete committee_contribution",
++     "index": 34,
++     "issued": [
++       "delete independent_expenditure",
++       "delete candidate_cycle_totals",
++       "delete committee_link",
++       "delete candidate_cycle_summary",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "delete independent_expenditure",
++     "index": 35,
++     "issued": [
++       "delete candidate_cycle_totals",
++       "delete committee_link",
++       "delete candidate_cycle_summary",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "delete candidate_cycle_totals",
++     "index": 36,
++     "issued": [
++       "delete committee_link",
++       "delete candidate_cycle_summary",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "delete committee_link",
++     "index": 37,
++     "issued": [
++       "delete candidate_cycle_summary",
++     ],
++     "status": "cancelled",
++   },
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:296:70
+    294|       }
+    295|     }
+    296|     expect(violations, `${all.length} statement boundaries checked`).t…
+       |                                                                      ^
+    297|   }, 600_000);
+    298| }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 11 passed (18)
+   Start at  16:56:23
+   Duration  19.47s (tests 86%, import 11%, transform 2%)
+
+exit: 1
