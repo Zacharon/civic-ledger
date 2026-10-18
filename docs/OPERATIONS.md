@@ -38,7 +38,8 @@ Related: [API.md](API.md) (contract), [ARCHITECTURE.md](ARCHITECTURE.md) section
 | `HEALTH_DB_TIMEOUT_MS` | 2000 | Database round-trip budget for health |
 | `HEALTH_MAX_INGEST_AGE_HOURS` | 336 | Staleness limit for sources without a built-in limit |
 
-Secrets are environment-only; `.env*` is gitignored and CI runs a secret scan.
+Secrets are environment-only; `.env*` is gitignored and CI runs a full-history secret scan
+(`secret-scan` job: pinned gitleaks CLI over every fetched commit).
 Invalid numeric values for the `DB_*` / `INGEST_*` variables stop the process at start
 with a message naming the variable; empty means "use the default".
 
@@ -293,16 +294,39 @@ Proposed approach, to confirm with D1 (targets are proposals for the owner):
 | RTO | 4 h | 4 h |
 | Retention | 14 daily, 8 weekly | same |
 
-Restore procedure to rehearse once the host exists (VC-084 needs an actual restore):
+Restore procedure to rehearse once the host exists (VC-084 needs an actual restore).
+**This drill has never been run**; no script implements the record or the comparison yet.
 
+0. When each backup is taken, record from the source database, in the same transaction
+   snapshot as the dump if possible, and store the record beside the backup: for every
+   table in `public` and both materialized views, `count(*)` and a content checksum
+   (for example `select md5(string_agg(t::text, '|' order by t::text)) from <table> t`);
+   the latest `ingest_run` rows per source (`id`, `source_id`, `scope`, `status`,
+   `snapshot_checksum`, `counts`, `finished_at`); the `sources.status` answer; and the JSON
+   answers of a fixed sample of public capabilities (at least `people.get`,
+   `money.summary`, `votes.list`, `explore.table` and `frameworks.evaluate` for recorded
+   inputs).
 1. Create an empty Postgres (new instance; never restore over production).
 2. `pnpm db:migrate` against it, so the schema and `drizzle` journal are current.
 3. `pg_restore --clean --if-exists --no-owner -d "$RESTORE_URL" backup.dump`.
-4. Refresh the read model (`REFRESH MATERIALIZED VIEW person_card` and
-   `person_card_scorecard`, or run any ingest).
-5. Verify: `/api/health?strict=1` against the restored instance is 200, `sources.status`
-   shows the expected last runs, and `pnpm test` parity passes against a seeded copy.
-6. Record date, backup age, duration and problems in the table below.
+4. Verify the exact restored target (`$RESTORE_URL`) before any ingest or refresh touches
+   it, against the record from step 0. Every item must match; any difference fails the
+   drill:
+   * per-table row counts and content checksums equal the record. If the materialized
+     views came back unpopulated, refresh them (`REFRESH MATERIALIZED VIEW person_card`,
+     then `person_card_scorecard`) and compare their checksums with refresh-time columns
+     excluded;
+   * the `ingest_run` rows equal the record;
+   * a web process pointed at the restored target answers `/api/health?strict=1` with
+     200, and `sources.status` equals the recorded answer;
+   * the recorded capability sample, called through `/api/v1` on that process, returns
+     the recorded JSON (response bodies; request ids and headers excluded).
+
+   `pnpm test` and `pnpm test:pg` build their own fixture databases and cannot verify
+   restored content; a pass there is not restore evidence.
+5. Record date, backup age (data age at restore, against the RPO), measured duration
+   from step 1 to a passing step 4 (against the RTO), and every mismatch, in the table
+   below.
 
 | Drill date | Backup age | Duration | Result |
 |---|---|---|---|

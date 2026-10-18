@@ -6,11 +6,15 @@ capabilities exposed by the web UI, the JSON API (`/api/v1`) and the MCP server
 (`explore.facets` was added with the web UI, DECISIONS A24), plus the operator-side
 gates of `ingest.run` where they are stated explicitly below.
 
-Updated for the H3 repair round 1 (app, parity and human-usability cluster); evidence and
-red/green runs: [evidence/h3-repair-round1-app.md](evidence/h3-repair-round1-app.md). The
-ingest-cluster gates (safe recovery, receipts, publication of ingest writes) are being
-repaired on a separate branch and are **not** re-rated here: see
-`h3-repair-round1-ingest`.
+Current state as of 2026-10-18 (integration head `33ef2d5`). Gate statuses follow the
+independent H3 readiness review, round 2 (2026-10-18), which rated the read adapters and the
+explicitly adopted operator gates of `ingest.run` together; this file does not upgrade any of
+them. Round-1 repair evidence: [evidence/h3-repair-round1-app.md](evidence/h3-repair-round1-app.md)
+(app, parity, human usability) and [evidence/h3-repair-round1-ingest.md](evidence/h3-repair-round1-ingest.md)
+(ingest publication, cancellation, bounded input, replay, manifest); both are merged. The
+round-2 ingest findings (H3R2-01 replay retry, H3R2-02 FEC cancellation, H3R2-03 cached
+byte cap) are open and are being repaired separately; Safe recovery stays FAIL until
+H3R2-01's red/green evidence lands.
 
 Environments:
 
@@ -25,26 +29,34 @@ Environments:
   `shared-values.spec.ts` runs `next start` and the MCP stdio server as **separate
   production processes on one Postgres 17 database through a select-only login**.
 
-Status words: PASS, FAIL, PARTIAL, NOT RUN, NOT APPLICABLE (reason). All results are
-local; nothing here was run on GitHub, a host or by a real user.
+Status words: PASS, FAIL, PARTIAL, NOT RUN, NOT APPLICABLE (reason). Results are local
+unless a GitHub run is named. The repository has a public GitHub remote. GitHub CI
+(`check`, `postgres`, `e2e`, `audit`, `secret-scan`) passed at `6b93135` (Actions run
+39153921815; the `e2e` job retries a failing test once, so green is not first-attempt
+proof). The Agent parity workflow **failed** at `6b93135` (run 39153921808: seeded server
+never became ready, `/api/health` 503, `relation "source" does not exist`, H3R2-04); its
+fix is merged at `33ef2d5` and a green run at that commit is **pending confirmation**. The
+`secret-scan` job at `6b93135` covered 0 commits (8 on the first push) because of the
+action's push-range scan; the job now scans the full history (CHANGELOG, H3R2 harness
+evidence) but has not yet run on GitHub. Nothing here ran on a host or with a real user.
 
 ## Gate table
 
 | Gate | Status | Evidence / reason |
 |---|---|---|
 | Shared capabilities | PARTIAL | **Adapters (PASS, unchanged):** for 2-4 representative inputs of every public capability, `dispatchByName`, the HTTP handler and the MCP tool return deep-equal payloads (`parity.test.ts` > "read capabilities return equal payloads through dispatch, HTTP and MCP"); identical invalid input yields identical errors (20 cases); "has representative inputs for every public capability" fails on a capability without cases. **UI path (new):** `e2e/shared-values.spec.ts` > "pages show the values the API and the MCP server return for the same input" compares, on one Postgres, the rendered values (`data-value` hooks and the visible text through the app's own formatters) with `/api/v1` and the separate MCP process for: Explore rows (order, names, total, 11 metric columns), a profile's headline facts (raised, PAC share, small-donor share, missed votes), money stats (raised, spent, cash on hand, debts) and its vote rows, Compare cells (incl. scorecards) and vote agreement, and a framework's results (order, aligned/considered/not counted/rate). A negative control (Explore PAC cell wired to the wrong field) fails it. **Why PARTIAL:** the profile Scores, Promises, Platform and Career sections, the outside-spending and industry figures, Policy pages, Sources page and Home preview are not value-compared (they call the same `read()` → `dispatch` path, which is shown structurally only). |
-| Shared state | PARTIAL | **Read side (PASS, local):** `shared-values.spec.ts` > "a data change plus read-model refresh reaches the UI, the API and MCP alike" (owner rename + FEC total change, then the app's `refreshPersonCard`; profile heading, card total, Explore row and Compare agree across UI/HTTP/MCP, `refreshedAt` advances) and "after restarting the web and MCP processes all three still agree" (both processes stopped and started: new connections, same values). `parity.test.ts` > "both adapters see state changed after a refresh" (PGlite). **Why PARTIAL:** the change is a direct owner write, not `ingest.run`; whether ingest publishes facts and read model consistently is H3-01, repair in progress (see `h3-repair-round1-ingest`). A database-server restart was not exercised. |
+| Shared state | PARTIAL | **Read side (PASS, local):** `shared-values.spec.ts` > "a data change plus read-model refresh reaches the UI, the API and MCP alike" (owner rename + FEC total change, then the app's `refreshPersonCard`; profile heading, card total, Explore row and Compare agree across UI/HTTP/MCP, `refreshedAt` advances) and "after restarting the web and MCP processes all three still agree" (both processes stopped and started: new connections, same values). `parity.test.ts` > "both adapters see state changed after a refresh" (PGlite). **Ingest side (PASS, local, separate tests):** ingest publication is transaction-consistent on both drivers (`publication.test.ts`, `publication.pgtest.ts`; DECISIONS A50). **Why PARTIAL:** the browser scenario still uses a direct owner write, not `ingest.run`, and the database server is not restarted; no single ingest-through-all-surfaces/restart scenario exists. |
 | Scoped authority | PASS (local application boundary) | Public readers only; no principal exists in v1. `parity.test.ts` > "operator-only capabilities are unreachable" (`curated.validate`, `ingest.run`, an invented name: HTTP 404 GET/POST, MCP unknown tool; MCP tool list = public set, all `readOnlyHint: true`); `openapi.test.ts`; strict schemas (`query.test.ts`). Abuse limits: `rate-limit.test.ts`, `rate-limit-identity.test.ts`, `server.test.ts` > "session rate limit". **Read-only credential now enforced (VC-068):** with `NODE_ENV=production` web and MCP refuse to start without `DATABASE_URL_READONLY` unless `DB_ALLOW_OWNER_CREDENTIALS=1` (`client-readonly.test.ts`, `db-config.test.ts`, `cli-credentials.test.ts` spawning the real CLI, `shared-values.spec.ts` > "a production web server without the read-only role refuses to start"); on a real `civic_readonly` login every public capability works and writes fail with 25006/42501 (`readonly-credentials.pgtest.ts`, `roles.pgtest.ts`). Not covered: a `DATABASE_URL_READONLY` that points at a writable role is not detected; hosted provisioning NOT RUN (D1). Caller authentication: NOT APPLICABLE (no accounts, public data). |
 | Human usability | PASS (local, automated) | Essential AI-free workflow `workflow.spec.ts` (search → filter → sort → profile → compare → framework) plus axe light/dark/mobile, keyboard and URL-state specs. **H3-06 repaired:** the intermittent loss of a click on an Explore filter chip before hydration was reproduced (4 of 30 repeated runs) and fixed; `before-hydration.spec.ts` (5 tests) holds the page scripts and proves chips, "Clear filters", radios, selects and a typed name chosen before hydration are applied; `workflow.spec.ts --repeat-each=30` 60/60 after. Full suite three consecutive runs: see the evidence report. API side: readable structured errors with dotted `issues[].path`, OpenAPI 3.1, `docs/API.md`, request id on every response. NOT RUN: manual screen-reader pass, real-user acceptance. |
-| Visible supervision | NOT APPLICABLE (reads); operator side: repair in progress | Reads delegate no actions, propose no changes and run no jobs. Ingest cancellation and outcome visibility (H3-04, H3-01) are repaired in `h3-repair-round1-ingest`; not re-rated here. |
-| Safe recovery | NOT APPLICABLE (reads); operator side: repair in progress | Reads have no effects; retries are safe (`idempotentHint: true`, byte-stable 304 in `handler.test.ts`). Ingest recovery (failed-run publication, snapshot replay) is repaired in `h3-repair-round1-ingest`; the H3 FAIL stands until that branch's evidence. |
-| Receipts | NOT APPLICABLE (reads); operator side: repair in progress | No public state change, so no receipt; request ids and one log line per request are traces, not receipts. `ingest_run` receipt consistency (H3 FAIL) is repaired in `h3-repair-round1-ingest`. |
+| Visible supervision | PARTIAL | Reads delegate no actions, propose no changes and run no jobs. Operator side: the `ingest_run` ledger, `failed`/`cancelled` status mapping (`cancelled` reads as `failed` in `sources.status@1`, A52) and override notes are inspectable, and a tested cancellation preserves the previous data (`cancellation.test.ts`). **Why PARTIAL:** FEC cancellation after parsing does not stop at the next statement/page boundary as documented (H3R2-02, open). No public delegated job or account UI exists or is implied. |
+| Safe recovery | FAIL (pending H3R2-01) | Reads have no effects; retries are safe (`idempotentHint: true`, byte-stable 304 in `handler.test.ts`). Operator side: atomic failure rollback (A50) and refusal of a genuinely superseded snapshot replay (A54, `replay-manifest.test.ts`) are tested. **Why FAIL:** after a forced replay, a retry of the current snapshot key does not return the current successful result (H3R2-01, disproven by the round-2 review, repair in progress separately). Replay is not multi-source restoration; hosted restore and rollback are unverified (VC-084, VC-055). |
+| Receipts | PASS (tested local publication boundary) | Reads change no public state; request ids and one log line per request are traces, not receipts. Operator side: facts, both read models and the `succeeded` row commit together; failures at refresh or at the ledger write, and process loss before commit, preserve the prior data (`publication.test.ts`, `publication.pgtest.ts`); a commit whose acknowledgement was lost still reads as success, and abandoned `running` rows are reaped by a later locked run. The receipt records a safe input summary, source, scope, adapter version, checksum, counts, read-model refresh times, outcome, note and `replayOf`. Not claimed: production durability, verified human identity (actor `operator` means possession of the trusted CLI credential). |
 
 ## Other capabilities
 
 | Capability | Status | Note |
 |---|---|---|
-| `ingest.run@1` | Repair in progress (ingest cluster) | Proven unreachable through HTTP and MCP here. |
+| `ingest.run@1` | Operator-only; gates rated in the table above | Proven unreachable through HTTP and MCP here. Round-2 findings H3R2-01..03 open. |
 | `curated.validate@1` | PARTIAL | Shares schemas with the loader via core. Proven unexposed over HTTP/MCP. |
 | Curated data approval | NOT APPLICABLE | Human-only merge in git; no adapter can approve. |
 
@@ -93,8 +105,11 @@ All PASS (payload equality across direct dispatch, HTTP and MCP; test
 
 ## Not run / limitations
 
-* CI: the `e2e`, `postgres` and `agent-parity` jobs are configured but have not run on
-  GitHub (no remote). Local proof only.
+* CI: `check`, `postgres`, `e2e`, `audit` and `secret-scan` passed on GitHub at `6b93135`;
+  the Agent parity workflow failed there (H3R2-04) and its green run at `33ef2d5` is
+  pending confirmation. GitHub results are CI evidence, not a hosted or production run.
+* Secret scanning: the passing GitHub scans covered 8 and then 0 commits; a full-history
+  scan has not yet run on GitHub. Bundle, log and screenshot coverage is unverified.
 * Live model/platform behavior (Claude Code / Desktop connecting): NOT RUN.
 * Hosted or production environment, real TLS, real roles: NOT RUN (decision D1).
 * Manual screen-reader and real-user acceptance: NOT RUN.

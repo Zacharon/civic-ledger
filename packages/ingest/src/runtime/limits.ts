@@ -2,8 +2,10 @@ import type { IngestLimits } from '../adapter';
 
 /**
  * Raw-input byte caps (DECISIONS A53). Defaults sit far above the largest 2026 files
- * (BILLSTATUS zips 54 MB in total, FEC pas2 tens of MB) and far below what would exhaust
- * a small host's disk or memory; a breach fails the run with a receipt.
+ * (BILLSTATUS zips 54 MB in total, FEC pas2 tens of MB). They are an unmeasured agent
+ * proposal, not a sizing result: no host has been selected and no total disk/memory use
+ * was measured against one, so they await owner/host sizing (A53, D1). A breach fails the
+ * run with a receipt.
  */
 export const DEFAULT_LIMITS: IngestLimits = {
   maxDownloadBytes: 1024 ** 3,

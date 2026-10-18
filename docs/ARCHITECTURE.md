@@ -116,9 +116,12 @@ interface SourceAdapter {
   (`succeeded | failed | partial`) with counts and the raw snapshot checksum.
 - Same snapshot checksum + same adapter version = no-op (dedupe).
 - A per-source advisory lock prevents overlapping runs (VC-021, VC-039).
-- Loads run in one transaction (one savepoint per batch, DECISIONS A41); the read model
-  refreshes only after the commit. A shrink guard rolls back a load that would delete
-  more than 10% of a source's rows or load under half the last run's records (A42).
+- Publication is one transaction (one savepoint per batch, DECISIONS A41, A50): the load,
+  the shrink guard, `REFRESH MATERIALIZED VIEW CONCURRENTLY` of `person_card` and
+  `person_card_scorecard`, and the `succeeded` receipt commit together or not at all;
+  the refresh runs before the commit, inside the same transaction. A shrink guard rolls
+  back a load that would delete more than 10% of a source's rows or load under half the
+  last run's records (A42, per dataset A51).
 - Schedules (production, later): legislators daily, FEC bulk weekly, Voteview
   weekly, BILLSTATUS daily. Runner: GitHub Actions cron (D1 decides the target DB).
 - Tests use committed small fixtures; no network in CI.
