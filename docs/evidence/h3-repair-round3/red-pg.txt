@@ -1,0 +1,371 @@
+$ pnpm exec vitest run --config vitest.pg.config.ts test-pg/cancellation-fec-boundaries.pgtest.ts --reporter=verbose   (pre-fix: production code as at 221d9cd)
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r3-cancel-restore-20261018
+
+ × test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: initial stage DROP issues no further loader statement and rolls back 173ms
+   → expected [ Array(1) ] to deeply equal []
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: stage CREATE issues no further loader statement and rolls back 131ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: stage INSERT issues no further loader statement and rolls back 126ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: kept-table CREATE issues no further loader statement and rolls back 147ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: statistics query issues no further loader statement and rolls back 166ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: first kept-page read issues no further loader statement and rolls back 173ms
+ × test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: initial stage DROP issues no further loader statement and rolls back 129ms
+   → expected [ Array(1) ] to deeply equal []
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: stage CREATE issues no further loader statement and rolls back 144ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: stage INSERT issues no further loader statement and rolls back 149ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: kept-table CREATE issues no further loader statement and rolls back 174ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: statistics query issues no further loader statement and rolls back 190ms
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: first kept-page read issues no further loader statement and rolls back 173ms
+ × test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 1 (committee_contribution) issues no further loader statement and rolls back 163ms
+   → expected [ …(4) ] to deeply equal []
+ × test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 2 (independent_expenditure) issues no further loader statement and rolls back 147ms
+   → expected [ …(3) ] to deeply equal []
+ × test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 3 (candidate_cycle_totals) issues no further loader statement and rolls back 153ms
+   → expected [ 'delete committee_link', …(1) ] to deeply equal []
+ × test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 4 (committee_link) issues no further loader statement and rolls back 164ms
+   → expected [ 'delete candidate_cycle_summary' ] to deeply equal []
+ ✓ test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 5 (candidate_cycle_summary) issues no further loader statement and rolls back 198ms
+ × test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort after ANY loader statement or savepoint issues no further loader statement and rolls back 5316ms
+   → 39 statement boundaries checked: expected [ { index: 1, …(3) }, …(14) ] to deeply equal []
+ × test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > a lost source lock right after the pas2 initial stage DROP stops the loader and stays failed 696ms
+   → expected [ Array(1) ] to deeply equal []
+ × test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > a lost source lock right after the first sweep DELETE stops the loader and stays failed 1064ms
+   → expected [ …(4) ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after pas2: initial stage DROP issues no further loader statement and rolls back
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "execute: create temp table fec_pas2_stage ( seq bigint generated always as iden",
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:264:30
+    262|       const { receipt, rec } = await cancelledReload(handle, { when: f…
+    263|       expect(rec.fired, 'trigger statement reached').toBe(true);
+    264|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+    265|       expect(receipt.status).toBe('cancelled');
+    266|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after IE: initial stage DROP issues no further loader statement and rolls back
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "execute: create temp table fec_ie_stage ( seq bigint generated always as identi",
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:264:30
+    262|       const { receipt, rec } = await cancelledReload(handle, { when: f…
+    263|       expect(rec.fired, 'trigger statement reached').toBe(true);
+    264|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+    265|       expect(receipt.status).toBe('cancelled');
+    266|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 1 (committee_contribution) issues no further loader statement and rolls back
+AssertionError: expected [ …(4) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "delete independent_expenditure",
++   "delete candidate_cycle_totals",
++   "delete committee_link",
++   "delete candidate_cycle_summary",
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:264:30
+    262|       const { receipt, rec } = await cancelledReload(handle, { when: f…
+    263|       expect(rec.fired, 'trigger statement reached').toBe(true);
+    264|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+    265|       expect(receipt.status).toBe('cancelled');
+    266|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 2 (independent_expenditure) issues no further loader statement and rolls back
+AssertionError: expected [ …(3) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "delete candidate_cycle_totals",
++   "delete committee_link",
++   "delete candidate_cycle_summary",
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:264:30
+    262|       const { receipt, rec } = await cancelledReload(handle, { when: f…
+    263|       expect(rec.fired, 'trigger statement reached').toBe(true);
+    264|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+    265|       expect(receipt.status).toBe('cancelled');
+    266|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 3 (candidate_cycle_totals) issues no further loader statement and rolls back
+AssertionError: expected [ 'delete committee_link', …(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "delete committee_link",
++   "delete candidate_cycle_summary",
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:264:30
+    262|       const { receipt, rec } = await cancelledReload(handle, { when: f…
+    263|       expect(rec.fired, 'trigger statement reached').toBe(true);
+    264|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+    265|       expect(receipt.status).toBe('cancelled');
+    266|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort right after sweep: DELETE 4 (committee_link) issues no further loader statement and rolls back
+AssertionError: expected [ 'delete candidate_cycle_summary' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "delete candidate_cycle_summary",
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:264:30
+    262|       const { receipt, rec } = await cancelledReload(handle, { when: f…
+    263|       expect(rec.fired, 'trigger statement reached').toBe(true);
+    264|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+    265|       expect(receipt.status).toBe('cancelled');
+    266|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > an abort after ANY loader statement or savepoint issues no further loader statement and rolls back
+AssertionError: 39 statement boundaries checked: expected [ { index: 1, …(3) }, …(14) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 1,
++     "issued": [
++       "insert committee",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 3,
++     "issued": [
++       "insert office",
++       "insert candidacy",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "insert office",
++     "index": 4,
++     "issued": [
++       "insert candidacy",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 6,
++     "issued": [
++       "insert committee_link",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 9,
++     "issued": [
++       "insert candidate_cycle_totals",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 11,
++     "issued": [
++       "insert candidate_cycle_summary",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "execute: drop table if exists fec_pas2_stage, fec_pas2_kept",
++     "index": 13,
++     "issued": [
++       "execute: create temp table fec_pas2_stage ( seq bigint generated always as iden",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 19,
++     "issued": [
++       "insert committee_contribution",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "execute: drop table if exists fec_ie_stage, fec_ie_kept",
++     "index": 23,
++     "issued": [
++       "execute: create temp table fec_ie_stage ( seq bigint generated always as identi",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 29,
++     "issued": [
++       "insert independent_expenditure",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "savepoint (transaction callback entered)",
++     "index": 33,
++     "issued": [
++       "delete committee_contribution",
++       "delete independent_expenditure",
++       "delete candidate_cycle_totals",
++       "delete committee_link",
++       "delete candidate_cycle_summary",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "delete committee_contribution",
++     "index": 34,
++     "issued": [
++       "delete independent_expenditure",
++       "delete candidate_cycle_totals",
++       "delete committee_link",
++       "delete candidate_cycle_summary",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "delete independent_expenditure",
++     "index": 35,
++     "issued": [
++       "delete candidate_cycle_totals",
++       "delete committee_link",
++       "delete candidate_cycle_summary",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "delete candidate_cycle_totals",
++     "index": 36,
++     "issued": [
++       "delete committee_link",
++       "delete candidate_cycle_summary",
++     ],
++     "status": "cancelled",
++   },
++   {
++     "after": "delete committee_link",
++     "index": 37,
++     "issued": [
++       "delete candidate_cycle_summary",
++     ],
++     "status": "cancelled",
++   },
++ ]
+
+ ❯ packages/ingest/test/support/fec-boundary-scenarios.ts:296:70
+    294|       }
+    295|     }
+    296|     expect(violations, `${all.length} statement boundaries checked`).t…
+       |                                                                      ^
+    297|   }, 600_000);
+    298| }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > a lost source lock right after the pas2 initial stage DROP stops the loader and stays failed
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "execute: create temp table fec_pas2_stage ( seq bigint generated always as iden",
++ ]
+
+ ❯ test-pg/cancellation-fec-boundaries.pgtest.ts:59:30
+     57|       });
+     58|       expect(rec.fired).toBe(true);
+     59|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+     60|       expect(receipt.status).toBe('failed');
+     61|       expect(receipt.error).toMatch(/source lock connection lost/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  test-pg/cancellation-fec-boundaries.pgtest.ts > FEC cancellation at every loader statement boundary (Postgres) > a lost source lock right after the first sweep DELETE stops the loader and stays failed
+AssertionError: expected [ …(4) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "delete independent_expenditure",
++   "delete candidate_cycle_totals",
++   "delete committee_link",
++   "delete candidate_cycle_summary",
++ ]
+
+ ❯ test-pg/cancellation-fec-boundaries.pgtest.ts:59:30
+     57|       });
+     58|       expect(rec.fired).toBe(true);
+     59|       expect(rec.afterAbort).toEqual([]);
+       |                              ^
+     60|       expect(receipt.status).toBe('failed');
+     61|       expect(receipt.error).toMatch(/source lock connection lost/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 11 passed (20)
+   Start at  16:56:45
+   Duration  32.56s (tests 84%, import 13%, transform 4%)
+
+exit: 1

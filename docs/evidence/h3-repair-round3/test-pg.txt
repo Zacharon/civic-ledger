@@ -1,0 +1,14 @@
+$ git rev-parse --short HEAD: e54d5ff
+$ pnpm test:pg
+$ vitest run --config vitest.pg.config.ts
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r3-cancel-restore-20261018
+
+{"level":"error","msg":"database pool error","err":"terminating connection due to administrator command"}
+
+ Test Files  9 passed (9)
+      Tests  67 passed (67)
+   Start at  17:14:56
+   Duration  171.16s (tests 87%, import 12%, transform 1%)
+
+exit: 0

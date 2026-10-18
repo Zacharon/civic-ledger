@@ -1,0 +1,42 @@
+$ FEC_BOUNDARY_LIST=1 pnpm exec vitest run packages/ingest/test/cancellation-fec-boundaries.test.ts -t 'ANY loader statement'   (the reference reload's awaited loader statements and savepoints; index = trigger point)
+stdout | packages/ingest/test/cancellation-fec-boundaries.test.ts > FEC cancellation at every loader statement boundary (PGlite) > an abort after ANY loader statement or savepoint issues no further loader statement and rolls back
+0: select
+1: savepoint (transaction callback entered)
+2: insert committee
+3: savepoint (transaction callback entered)
+4: insert office
+5: insert candidacy
+6: savepoint (transaction callback entered)
+7: insert committee_link
+8: selectDistinctOn
+9: savepoint (transaction callback entered)
+10: insert candidate_cycle_totals
+11: savepoint (transaction callback entered)
+12: insert candidate_cycle_summary
+13: execute: drop table if exists fec_pas2_stage, fec_pas2_kept
+14: execute: create temp table fec_pas2_stage ( seq bigint generated always as iden
+15: execute: insert into "fec_pas2_stage" (cmte_id, amndt_ind, rpt_tp, transaction_
+16: execute: create temp table fec_pas2_kept as with g as ( select s.*, case when t
+17: execute: with g as ( select case when tran_id <> '' then cmte_id || '|' || rpt_
+18: execute: select * from "fec_pas2_kept" where seq > $1 order by seq limit $2
+19: savepoint (transaction callback entered)
+20: insert committee_contribution
+21: execute: select * from "fec_pas2_kept" where seq > $1 order by seq limit $2
+22: execute: drop table if exists fec_pas2_stage, fec_pas2_kept
+23: execute: drop table if exists fec_ie_stage, fec_ie_kept
+24: execute: create temp table fec_ie_stage ( seq bigint generated always as identi
+25: execute: insert into "fec_ie_stage" (spender_id, spender_name, tran_id, file_nu
+26: execute: create temp table fec_ie_kept as select distinct on (spender_id, tran_
+27: execute: select (count(*) filter (where class = 'invalid'))::int as "invalidSup
+28: execute: select * from "fec_ie_kept" where seq > $1 order by seq limit $2
+29: savepoint (transaction callback entered)
+30: insert independent_expenditure
+31: execute: select * from "fec_ie_kept" where seq > $1 order by seq limit $2
+32: execute: drop table if exists fec_ie_stage, fec_ie_kept
+33: savepoint (transaction callback entered)
+34: delete committee_contribution
+35: delete independent_expenditure
+36: delete candidate_cycle_totals
+37: delete committee_link
+38: delete candidate_cycle_summary
+

@@ -84,7 +84,7 @@ re-codes new committees and re-resolves framework targets even when the YAML is 
 | Symptom | Meaning | Action |
 |---|---|---|
 | `conflict: run_in_progress` | Another run of that source holds the lock. | Wait; check the `running` row in `sources.status`. |
-| receipt `status: cancelled` | Ctrl-C or the run deadline (`--deadline-minutes`, `INGEST_RUN_DEADLINE_MS`) stopped the run before its commit, at the next record, phase or (FEC staging/dedupe/page) statement boundary; a statement already running finishes first. Nothing was committed. | Rerun when ready (a longer deadline if it timed out). |
+| receipt `status: cancelled` | Ctrl-C or the run deadline (`--deadline-minutes`, `INGEST_RUN_DEADLINE_MS`) stopped the run before its commit, at the next record or phase boundary; inside the FEC loader, before its next statement (stage, dedupe, page and each sweep statement; DECISIONS A52). A statement already running finishes first; other loaders finish the batch in hand. Nothing was committed. | Rerun when ready (a longer deadline if it timed out). |
 | `failed`, `error: snapshot_superseded: …` | You replayed a snapshot an older run loaded, after a later run loaded other data. Replay is not a restore. | Rerun with `--force-replay` if you really want that snapshot back; the receipt records `replayOf`. |
 | `failed`, `error: … download cap` / `… decompression cap` | A downloaded file, a cached copy that would be reused, or a zip entry is larger than `INGEST_MAX_DOWNLOAD_BYTES` / `INGEST_MAX_DECOMPRESSED_BYTES`. | Check the upstream file; raise the cap only if the size is genuine. |
 | `failed`, `error: … manifest schema_version N is not supported` | `--snapshot` points at a snapshot written by a newer build. | Use a build that reads that version. |
