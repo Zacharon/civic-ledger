@@ -5,6 +5,7 @@ export {
   type DbConfig,
   type DbHandle,
   dbConfigFromEnv,
+  defaultPgliteDir,
 } from '@civic-ledger/db';
 
 export * from './capabilities/curated';

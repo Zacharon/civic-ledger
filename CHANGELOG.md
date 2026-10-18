@@ -41,6 +41,11 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 
 - `packageManager` pins pnpm 11.13.1. pnpm marked 11.13.0 a broken release, and
   `pnpm/action-setup` refuses to install it, so every CI job failed at setup.
+- The db CLIs and the web server agree on the default PGlite directory: both use
+  `defaultPgliteDir()`, the workspace-root `.pglite/dev`. The CLIs used to resolve it
+  against the working directory, so `migrate`/`seed` run from apps/web (as the Agent
+  parity workflow does) filled `apps/web/.pglite/dev` while the server opened an empty
+  root database and `/api/health` stayed 503.
 - Documentation that over-claimed: cache invalidation by `revalidateTag` (there is none;
   freshness is time-based, A46), `GET /` as a liveness probe (A47), the stale CSP
   comment, and the agent-native evidence counts (13 capabilities, 39 parity tests).

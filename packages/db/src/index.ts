@@ -6,6 +6,7 @@ export {
   type DbHandle,
   DEFAULT_STATEMENT_TIMEOUT_MS,
   dbConfigFromEnv,
+  defaultPgliteDir,
   type EnvConfigOptions,
   INTERACTIVE_POOL_DEFAULTS,
   type PgPoolSettings,

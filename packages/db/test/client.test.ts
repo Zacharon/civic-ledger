@@ -1,3 +1,4 @@
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { BATCH_POOL_DEFAULTS, dbConfigFromEnv, INTERACTIVE_POOL_DEFAULTS } from '../src/client';
 
@@ -8,6 +9,20 @@ describe('dbConfigFromEnv', () => {
   it('falls back to PGlite without DATABASE_URL', () => {
     expect(dbConfigFromEnv({}).kind).toBe('pglite');
     expect(dbConfigFromEnv({ DATABASE_URL: '  ' }).kind).toBe('pglite');
+  });
+
+  it('defaults to the repo-root .pglite/dev from any package directory', () => {
+    const root = resolve(import.meta.dirname, '../../..');
+    const before = process.cwd();
+    try {
+      process.chdir(join(root, 'apps', 'web'));
+      expect(dbConfigFromEnv({})).toEqual({
+        kind: 'pglite',
+        dataDir: join(root, '.pglite', 'dev'),
+      });
+    } finally {
+      process.chdir(before);
+    }
   });
 
   it('uses interactive defaults for web and MCP, batch defaults for ingest', () => {

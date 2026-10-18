@@ -1,0 +1,4 @@
+GREEN: same Agent parity step (CLIs still run from apps/web), with the shared defaultPgliteDir
+apps/web/.pglite exists: no ; repo-root .pglite/dev exists: yes
+/api/health HTTP 200 after 2s
+health?strict=1 ok: 1 ; /explore: 200 ; people.search items: 1 ; curated.validate (operator-only): 404
