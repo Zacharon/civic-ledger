@@ -1,0 +1,116 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r2-ingest-20261018
+
+ ❯ packages/ingest/test/cancellation-fec.test.ts (4 tests | 4 failed) 35660ms
+   ❯ FEC cancellation at statement boundaries (H3R2-02) (4)
+     × an abort pas2: right after the kept table is built issues no further statement and rolls back 10233ms
+     × an abort pas2: right after the first kept page is read issues no further statement and rolls back 8613ms
+     × an abort IE: right after the kept table is built issues no further statement and rolls back 8182ms
+     × an abort IE: right after the first kept page is read issues no further statement and rolls back 8627ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/ingest/test/cancellation-fec.test.ts > FEC cancellation at statement boundaries (H3R2-02) > an abort pas2: right after the kept table is built issues no further statement and rolls back
+AssertionError: expected [ …(5) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "execute: with g as ( select case when tran_id <> '' then cmte_id || '",
++   "execute: select * from \"fec_pas2_kept\" where seq > $1 order by seq li",
++   "transaction",
++   "execute: select * from \"fec_pas2_kept\" where seq > $1 order by seq li",
++   "execute: drop table if exists fec_pas2_stage, fec_pas2_kept",
++ ]
+
+ ❯ packages/ingest/test/cancellation-fec.test.ts:107:26
+    105|       );
+    106|       expect(abort.signal.aborted).toBe(true);
+    107|       expect(afterAbort).toEqual([]);
+       |                          ^
+    108|       expect(receipt.status).toBe('cancelled');
+    109|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  packages/ingest/test/cancellation-fec.test.ts > FEC cancellation at statement boundaries (H3R2-02) > an abort pas2: right after the first kept page is read issues no further statement and rolls back
+AssertionError: expected [ 'transaction', …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "transaction",
++   "execute: select * from \"fec_pas2_kept\" where seq > $1 order by seq li",
++   "execute: drop table if exists fec_pas2_stage, fec_pas2_kept",
++ ]
+
+ ❯ packages/ingest/test/cancellation-fec.test.ts:107:26
+    105|       );
+    106|       expect(abort.signal.aborted).toBe(true);
+    107|       expect(afterAbort).toEqual([]);
+       |                          ^
+    108|       expect(receipt.status).toBe('cancelled');
+    109|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  packages/ingest/test/cancellation-fec.test.ts > FEC cancellation at statement boundaries (H3R2-02) > an abort IE: right after the kept table is built issues no further statement and rolls back
+AssertionError: expected [ …(6) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "execute: select (count(*) filter (where class = 'invalid'))::int as \"",
++   "execute: select * from \"fec_ie_kept\" where seq > $1 order by seq limi",
++   "transaction",
++   "execute: select * from \"fec_ie_kept\" where seq > $1 order by seq limi",
++   "execute: drop table if exists fec_ie_stage, fec_ie_kept",
++   "transaction",
++ ]
+
+ ❯ packages/ingest/test/cancellation-fec.test.ts:107:26
+    105|       );
+    106|       expect(abort.signal.aborted).toBe(true);
+    107|       expect(afterAbort).toEqual([]);
+       |                          ^
+    108|       expect(receipt.status).toBe('cancelled');
+    109|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  packages/ingest/test/cancellation-fec.test.ts > FEC cancellation at statement boundaries (H3R2-02) > an abort IE: right after the first kept page is read issues no further statement and rolls back
+AssertionError: expected [ 'transaction', …(3) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "transaction",
++   "execute: select * from \"fec_ie_kept\" where seq > $1 order by seq limi",
++   "execute: drop table if exists fec_ie_stage, fec_ie_kept",
++   "transaction",
++ ]
+
+ ❯ packages/ingest/test/cancellation-fec.test.ts:107:26
+    105|       );
+    106|       expect(abort.signal.aborted).toBe(true);
+    107|       expect(afterAbort).toEqual([]);
+       |                          ^
+    108|       expect(receipt.status).toBe('cancelled');
+    109|       expect(receipt.error).toMatch(/^cancelled: interrupted \(SIGINT\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  15:11:59
+   Duration  40.60s (tests 89%, import 9%, transform 2%)
+
