@@ -2,8 +2,9 @@
  * Run cancellation (DECISIONS A52). One signal combines the operator's abort (SIGINT), the
  * optional whole-run deadline and the source-lock connection. `checkpoint` runs at every
  * phase boundary, before every parsed record and, through `LoadContext.checkpoint`, before
- * each statement of the FEC loader's staging, SQL dedupe, kept-page and sweep phases
- * (H3R2-02). A statement already running finishes first (bounded by the statement
+ * every statement the FEC loader issues itself and at the start of each of its savepoint
+ * callbacks (H3R2-02, H3R3; the driver's own SAVEPOINT / RELEASE / ROLLBACK TO statements
+ * are not checked). A statement already running finishes first (bounded by the statement
  * timeout). Other loaders are checked per record only: the statements of the batch in
  * hand, and after the last record their final sweep, complete before the runtime's next
  * checkpoint. Before the load transaction commits, an abort rolls everything back; the

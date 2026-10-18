@@ -10,8 +10,10 @@ import { IE_IMPLAUSIBLE_CENTS, type IeRow, type Pas2Row } from './dedupe';
  * rules of `dedupe.ts` (still the reference, and tested for equality with this) run in
  * SQL; kept rows are read back one page at a time. Memory is O(batch), not O(file).
  * The tables live in the run's load transaction: a rollback removes them, and they are
- * dropped after use. `check` is the run's cancellation checkpoint: the dedupe calls it
- * before each of its statements and the page readers before every page (H3R2-02).
+ * dropped after use. `check` is the run's cancellation checkpoint: the stage creators
+ * call it between their DROP and CREATE (H3R3), the dedupe before each of its statements
+ * and the page readers before every page (H3R2-02). The caller checks before the first
+ * statement of each helper.
  */
 const PAS2_STAGE = 'fec_pas2_stage';
 const PAS2_KEPT = 'fec_pas2_kept';
@@ -26,8 +28,9 @@ const rowsOf = <T>(result: unknown) => (result as { rows: T[] }).rows;
 export type Check = () => void;
 const noCheck: Check = () => {};
 
-export async function createPas2Stage(db: Db): Promise<void> {
+export async function createPas2Stage(db: Db, check: Check = noCheck): Promise<void> {
   await db.execute(sql.raw(`drop table if exists ${PAS2_STAGE}, ${PAS2_KEPT}`));
+  check();
   await db.execute(
     sql.raw(`create temp table ${PAS2_STAGE} (
       seq bigint generated always as identity primary key,
@@ -137,8 +140,9 @@ export async function dropPas2Stage(db: Db): Promise<void> {
   await db.execute(sql.raw(`drop table if exists ${PAS2_STAGE}, ${PAS2_KEPT}`));
 }
 
-export async function createIeStage(db: Db): Promise<void> {
+export async function createIeStage(db: Db, check: Check = noCheck): Promise<void> {
   await db.execute(sql.raw(`drop table if exists ${IE_STAGE}, ${IE_KEPT}`));
+  check();
   await db.execute(
     sql.raw(`create temp table ${IE_STAGE} (
       seq bigint generated always as identity primary key,

@@ -141,6 +141,7 @@ export async function loadFec(
   ctx: LoadContext,
 ): Promise<LoadCounts> {
   if (ctx.scope.kind !== 'cycle') throw new Error('fec-bulk needs a cycle scope');
+  checkpoint(ctx);
   const s: State = {
     ctx,
     cycle: ctx.scope.cycle,
@@ -183,18 +184,35 @@ export async function loadFec(
 }
 
 /**
- * Cancellation checkpoint before each statement of the loader's multi-statement phases
- * (DECISIONS A52, H3R2-02): an abort, the deadline or a lost lock stops the load at the
- * next statement instead of after the remaining staging, dedupe, page and sweep work.
+ * Cancellation checkpoint (DECISIONS A52, H3R2-02, H3R3). This loader calls it before
+ * every statement it issues (in this file and `stage.ts`: each `execute` and query-builder
+ * statement, including between a stage DROP and CREATE and before each sweep DELETE) and
+ * as the first step of every savepoint callback (`savepoint`). So once an abort, the
+ * deadline or a lost lock is visible, the loader starts no further statement of its own;
+ * a statement already running finishes first. Not covered: the SAVEPOINT / RELEASE /
+ * ROLLBACK TO SAVEPOINT statements the driver issues around a callback.
  */
 function checkpoint(ctx: LoadContext): void {
   if (ctx.checkpoint) ctx.checkpoint();
   else ctx.signal?.throwIfAborted();
 }
 
+/**
+ * A savepoint (nested transaction) whose callback starts at a checkpoint: the driver
+ * awaits its SAVEPOINT statement before calling `work`, and an abort seen during that
+ * round trip must stop the load before the callback's first statement.
+ */
+function savepoint<T>(s: State, work: (tx: Db) => Promise<T> | PromiseLike<T>): Promise<T> {
+  checkpoint(s.ctx);
+  return s.ctx.db.transaction(async (tx: Db) => {
+    checkpoint(s.ctx);
+    return work(tx);
+  });
+}
+
 async function stagePas2Rows(s: State, rows: Parameters<typeof stagePas2>[1]) {
   checkpoint(s.ctx);
-  if (!s.pas2Staged) await createPas2Stage(s.ctx.db);
+  if (!s.pas2Staged) await createPas2Stage(s.ctx.db, () => checkpoint(s.ctx));
   s.pas2Staged = true;
   checkpoint(s.ctx);
   await stagePas2(s.ctx.db, rows);
@@ -221,7 +239,7 @@ async function flushPas2(s: State) {
 
 async function stageIeRows(s: State, rows: Parameters<typeof stageIe>[1]) {
   checkpoint(s.ctx);
-  if (!s.ieStaged) await createIeStage(s.ctx.db);
+  if (!s.ieStaged) await createIeStage(s.ctx.db, () => checkpoint(s.ctx));
   s.ieStaged = true;
   checkpoint(s.ctx);
   await stageIe(s.ctx.db, rows);
@@ -255,7 +273,7 @@ async function loadCommittees(s: State, rows: CommitteeRecord[]) {
     connectedOrganization: r.connectedOrg,
     ...provenance(s.ctx, `cm:${r.id}`),
   }));
-  const inserted = await s.ctx.db.transaction((tx) =>
+  const inserted = await savepoint(s, (tx) =>
     tx
       .insert(committee)
       .values(values)
@@ -292,11 +310,12 @@ async function loadCandidates(s: State, rows: CandidateRecord[]) {
     return [{ r, personId, key, electionYear: r.electionYear }];
   });
   if (withOffice.length === 0) return;
-  await s.ctx.db.transaction(async (tx) => {
+  await savepoint(s, async (tx) => {
     await s.offices.resolve(
       tx,
       withOffice.map((w) => w.key),
     );
+    checkpoint(s.ctx);
     const values = lastPerKey(
       withOffice.map(({ r, personId, key, electionYear }) => ({
         personId,
@@ -348,7 +367,7 @@ async function loadLinks(s: State, rows: LinkRecord[]) {
   }
   const unique = lastPerKey(values, (v) => `${v.fecCandidateId}|${v.committeeId}|${v.cycle}`);
   if (unique.length === 0) return;
-  await s.ctx.db.transaction((tx) =>
+  await savepoint(s, (tx) =>
     tx
       .insert(committeeLink)
       .values(unique)
@@ -418,6 +437,7 @@ export function attributeTotals(
 async function flushTotals(s: State) {
   const rows = lastPerKey(s.pendingTotals, (r) => r.candidateId);
   s.pendingTotals = [];
+  checkpoint(s.ctx);
   const { attributed, personsWithSeveral } = attributeTotals(rows, s.personByFec, {
     cycle: s.cycle,
     electionYear: s.electionYear,
@@ -443,7 +463,7 @@ async function flushTotals(s: State) {
       coverageEndDate: r.coverageEndDate,
       ...provenance(s.ctx, `weball:${r.candidateId}:${s.cycle}`),
     }));
-    await s.ctx.db.transaction((tx) =>
+    await savepoint(s, (tx) =>
       tx
         .insert(candidateCycleTotals)
         .values(values)
@@ -531,7 +551,7 @@ async function flushSummaries(s: State) {
   for (let i = 0; i < values.length; i += 1_000) {
     checkpoint(s.ctx);
     const chunk = values.slice(i, i + 1_000);
-    await s.ctx.db.transaction((tx) =>
+    await savepoint(s, (tx) =>
       tx
         .insert(candidateCycleSummary)
         .values(chunk)
@@ -590,7 +610,7 @@ async function loadContributions(s: State, rows: ContributionRecord[]) {
     });
   }
   if (values.length === 0) return;
-  await s.ctx.db.transaction((tx) =>
+  await savepoint(s, (tx) =>
     tx
       .insert(committeeContribution)
       .values(values)
@@ -628,7 +648,7 @@ async function loadExpenditures(s: State, rows: IeRecord[]) {
   }
   const unique = lastPerKey(values, (v) => `${v.spenderFecCommitteeId}|${v.fecTransactionId}`);
   if (unique.length === 0) return;
-  await s.ctx.db.transaction((tx) =>
+  await savepoint(s, (tx) =>
     tx
       .insert(independentExpenditure)
       .values(unique)
@@ -659,9 +679,12 @@ function recordStats(s: State, stats: StatsRecord) {
  * The bulk files are the complete record for the cycle, so this cycle's money rows not
  * re-asserted by this run (superseded by an amendment since the last load) are removed.
  * Runs only after every batch loaded; a failed run leaves the previous rows in place.
+ * One savepoint, five DELETEs, a checkpoint before each (H3R3): an abort seen after one
+ * DELETE stops the sweep before the next, and the load transaction rolls all back.
  */
 async function deleteStaleCycleRows(s: State) {
-  const { db, ingestRunId, sourceId } = s.ctx;
+  const { ingestRunId, sourceId } = s.ctx;
+  const check = () => checkpoint(s.ctx);
   const stale = (
     table:
       | typeof committeeContribution
@@ -672,23 +695,28 @@ async function deleteStaleCycleRows(s: State) {
   ) =>
     and(eq(table.sourceId, sourceId), eq(table.cycle, s.cycle), ne(table.ingestRunId, ingestRunId));
   // Per-table counters let the shrink guard judge each table on its own (DECISIONS A51).
-  await db.transaction(async (tx: Db) => {
+  await savepoint(s, async (tx: Db) => {
+    check();
     const a = await tx
       .delete(committeeContribution)
       .where(stale(committeeContribution))
       .returning({ id: committeeContribution.id });
+    check();
     const b = await tx
       .delete(independentExpenditure)
       .where(stale(independentExpenditure))
       .returning({ id: independentExpenditure.id });
+    check();
     const c = await tx
       .delete(candidateCycleTotals)
       .where(stale(candidateCycleTotals))
       .returning({ id: candidateCycleTotals.id });
+    check();
     const d = await tx
       .delete(committeeLink)
       .where(stale(committeeLink))
       .returning({ id: committeeLink.id });
+    check();
     const e = await tx
       .delete(candidateCycleSummary)
       .where(stale(candidateCycleSummary))

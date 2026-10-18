@@ -141,9 +141,10 @@ export interface LoadContext {
   signal?: AbortSignal;
   /**
    * The run's cancellation checkpoint (`RunControl.checkpoint`, DECISIONS A52): throws when
-   * the operator aborted, the deadline passed or the source lock was lost. Loaders with
-   * multi-statement phases call it before each statement (the FEC staging, dedupe, page
-   * and sweep statements). Absent outside a run; loaders then check `signal`.
+   * the operator aborted, the deadline passed or the source lock was lost. The FEC loader
+   * calls it before every statement it issues and at the start of each savepoint callback
+   * (DECISIONS A52); other loaders do not use it yet. Absent outside a run; loaders then
+   * check `signal`.
    */
   checkpoint?: () => void;
 }

@@ -81,6 +81,14 @@ tagged; the first tag waits for the production-readiness gate and owner approval
   verification (replaced by assertions against the exact restored target; the drill has
   not been run); the byte-cap defaults comment claimed small-host headroom that was never
   measured (now an unmeasured proposal pending owner/host sizing, A53).
+- Ingest: FEC cancellation now holds at every loader statement (A52, H3R3; residual of
+  H3R2-02). An abort after a stage DROP still ran the stage CREATE, an abort after the
+  first cycle-sweep DELETE still ran the other four, and the candidacy insert after the
+  office upsert and the first statement of each savepoint callback (after the driver's
+  SAVEPOINT) also ran without a check. The FEC loader now calls the run checkpoint
+  before every statement it issues and at the start of every savepoint callback; tested
+  after each of the fixture reload's 39 statement/savepoint boundaries on PGlite and
+  Postgres, plus a lost lock (still `failed`).
 
 ### Security
 
