@@ -219,3 +219,14 @@ and the historical files under `docs/evidence/`.
 
 All of this is local evidence. Nothing was pushed, merged, run in CI or run against a
 live provider or production database.
+
+## Follow-up: test parallelism (orchestrator, 2026-10-18)
+
+Full `pnpm check` on the merged head `e143876` (machine otherwise idle) failed one test:
+`publication.test.ts` > "a process that dies after loading…" timed out at 120 s; the file
+took 212 s inside the suite and 36 s alone (4/4). It spawns a child process with its own
+on-disk PGlite; with Vitest's default of one worker per core (8) the child starved. Same
+pattern as the earlier `cli-credentials.test.ts` budget failures. `vitest.config.ts` now
+sets `maxWorkers: '50%'`. Two consecutive full `pnpm check` runs: 413/413 in 372 s and
+413/413 in 294 s (the failing uncapped run took 541 s). Same head: `pnpm test:pg` 9 files /
+67 tests, `db:seed` + web e2e 52/52.
