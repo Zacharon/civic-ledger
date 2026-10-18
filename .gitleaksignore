@@ -1,0 +1,4 @@
+# Reviewed false positives (generic-api-key on column sort identifiers, not credentials):
+# sortKey: 'dwNominateDim1' and 'dwNominateDim2' in the Explore column definitions.
+dab15bfa21154231bc2c48018859f01835853b45:apps/web/src/lib/explore-columns.ts:generic-api-key:168
+dab15bfa21154231bc2c48018859f01835853b45:apps/web/src/lib/explore-columns.ts:generic-api-key:179
