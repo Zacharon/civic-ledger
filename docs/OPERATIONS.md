@@ -25,7 +25,7 @@ Related: [API.md](API.md) (contract), [ARCHITECTURE.md](ARCHITECTURE.md) section
 | `INGEST_MIN_RECORD_RATIO` | 0.5 | Shrink guard: fewest records, as a share of the last successful run, a run may load |
 | `INGEST_MIN_RECORD_BASELINE` | 20 | Shrink guard: the record floors apply only when the last run loaded at least this many; per-table sweep fractions are judged from this many rows (and always when a sweep would empty a table) |
 | `INGEST_RUN_DEADLINE_MS` | unset (no deadline) | Whole-run deadline; past it the run is rolled back and recorded `cancelled` (`--deadline-minutes` overrides) |
-| `INGEST_MAX_DOWNLOAD_BYTES` | 1073741824 (1 GiB) | Largest downloaded file; larger fails the run |
+| `INGEST_MAX_DOWNLOAD_BYTES` | 1073741824 (1 GiB) | Largest downloaded file, also for a cached copy reused on 304 (A65); larger fails the run. `--snapshot` and repository curated files are not download-capped |
 | `INGEST_MAX_DECOMPRESSED_BYTES` | 2147483648 (2 GiB) | Largest inflated zip entry; larger fails the run |
 | `PAGE_RATE_LIMIT_PER_MINUTE` | 300 | Bucket for HTML pages (burst = this) |
 | `RATE_LIMIT_SINGLE_BUCKET` | unset | `1` acknowledges that, without `TRUSTED_PROXY_HEADER`, all callers share one bucket (required in production) |

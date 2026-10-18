@@ -56,9 +56,10 @@ export type IngestRunInput = z.infer<typeof IngestRunInputSchema>;
 
 /**
  * Receipt = the `ingest_run` row. Idempotency key is (source, adapterVersion,
- * snapshotChecksum): a repeat of the current snapshot returns the original run with
- * `deduplicated: true`; a key whose run was superseded by a later successful run of the
- * same scope is refused (`snapshot_superseded`) unless `forceReplay` is set.
+ * snapshotChecksum): a repeat of the key of the current generation (the latest successful
+ * run of the scope, a forced replay included) returns that run with `deduplicated: true`;
+ * a key that succeeded earlier but was superseded by a later successful run of the same
+ * scope is refused (`snapshot_superseded`) unless `forceReplay` is set.
  */
 export const IngestRunReceiptSchema = z.object({
   runId: z.int(),

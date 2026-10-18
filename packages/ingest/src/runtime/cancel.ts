@@ -1,10 +1,13 @@
 /**
  * Run cancellation (DECISIONS A52). One signal combines the operator's abort (SIGINT), the
- * optional whole-run deadline and the source-lock connection. It is checked at every
- * phase boundary and before every parsed record, so an abort stops the run at the next
- * record or statement boundary (a statement already running finishes first, bounded by
- * the statement timeout). Before the load transaction commits, an abort rolls everything
- * back; the commit itself is the irrevocable boundary.
+ * optional whole-run deadline and the source-lock connection. `checkpoint` runs at every
+ * phase boundary, before every parsed record and, through `LoadContext.checkpoint`, before
+ * each statement of the FEC loader's staging, SQL dedupe, kept-page and sweep phases
+ * (H3R2-02). A statement already running finishes first (bounded by the statement
+ * timeout). Other loaders are checked per record only: the statements of the batch in
+ * hand, and after the last record their final sweep, complete before the runtime's next
+ * checkpoint. Before the load transaction commits, an abort rolls everything back; the
+ * commit itself is the irrevocable boundary.
  */
 export class RunControl {
   readonly signal: AbortSignal;

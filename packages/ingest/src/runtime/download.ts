@@ -28,7 +28,10 @@ export interface DownloadOptions {
   signal?: AbortSignal;
   logger?: Logger;
   policy?: RetryPolicy;
-  /** Largest body accepted (DECISIONS A53); a larger one fails and leaves no file. */
+  /**
+   * Largest file accepted (DECISIONS A53): a larger body fails and leaves no file, and a
+   * cached copy larger than the current cap is never reused (H3R2-03).
+   */
   maxBytes?: number;
 }
 
@@ -44,7 +47,9 @@ type HttpCache = Record<string, CacheEntry>;
 /**
  * Streams a URL to disk while hashing it (never buffering the body), using conditional GET
  * when an earlier copy exists. Writes to a temp file and renames, so a failed download
- * never leaves a partial file under the snapshot name.
+ * never leaves a partial file under the snapshot name. The cached copy is offered for
+ * revalidation only if it is intact and within the current `maxBytes` (checked on its
+ * on-disk size before it is hashed); its hash stops when `signal` aborts.
  */
 export async function downloadToFile(
   options: DownloadOptions,
@@ -52,7 +57,15 @@ export async function downloadToFile(
 ): Promise<DownloadedFile> {
   const cache = await readCache(options.cachePath);
   const cached = cache[options.url];
-  const reusable = cached && (await isIntact(cached)) ? cached : undefined;
+  const check = cached ? await checkCached(cached, options.maxBytes, options.signal) : null;
+  const reusable = check?.state === 'intact' ? cached : undefined;
+  const overCapBytes = check?.state === 'over-cap' ? check.bytes : null;
+  if (overCapBytes !== null) {
+    options.logger?.warn(
+      { url: options.url, bytes: overCapBytes, maxBytes: options.maxBytes },
+      'cached copy exceeds the download cap; not reused',
+    );
+  }
   const conditional: Record<string, string> = {};
   if (reusable?.etag) conditional['if-none-match'] = reusable.etag;
   if (reusable?.lastModified) conditional['if-modified-since'] = reusable.lastModified;
@@ -80,6 +93,14 @@ export async function downloadToFile(
     options.logger?.info({ url: options.url }, 'not modified; reusing cached copy');
     await updateCache(options.cachePath, options.url, { ...reusable, path: options.targetPath });
     return { fileName, sha256: reusable.sha256, bytes: reusable.bytes, notModified: true };
+  }
+  if (response.status === 304) {
+    await response.body?.cancel();
+    throw new Error(
+      overCapBytes !== null
+        ? `GET ${options.url}: the cached copy is ${overCapBytes} bytes, over the ${options.maxBytes}-byte download cap, so it is not reused, and the server answered 304 Not Modified to an unconditional request`
+        : `GET ${options.url}: 304 Not Modified but no intact cached copy to reuse`,
+    );
   }
   if (!response.body) throw new Error(`GET ${options.url}: empty response body`);
   const declared = Number(response.headers.get('content-length') ?? Number.NaN);
@@ -141,13 +162,35 @@ export async function hashFile(
   return { sha256: hash.digest('hex'), bytes };
 }
 
-async function isIntact(entry: CacheEntry): Promise<boolean> {
+type CachedCheck =
+  | { state: 'intact' }
+  | { state: 'invalid' }
+  | { state: 'over-cap'; bytes: number };
+
+/**
+ * Whether a cached copy may be reused: present with its recorded size, within the current
+ * cap (judged on the on-disk size, before any hashing), and with its recorded sha256. A
+ * cancelled run stops the hash and rethrows the abort instead of reporting "invalid".
+ */
+async function checkCached(
+  entry: CacheEntry,
+  maxBytes: number | undefined,
+  signal: AbortSignal | undefined,
+): Promise<CachedCheck> {
+  let size: number;
   try {
-    const info = await stat(entry.path);
-    if (info.size !== entry.bytes) return false;
-    return (await hashFile(entry.path)).sha256 === entry.sha256;
+    size = (await stat(entry.path)).size;
   } catch {
-    return false;
+    return { state: 'invalid' };
+  }
+  if (size !== entry.bytes) return { state: 'invalid' };
+  if (maxBytes !== undefined && size > maxBytes) return { state: 'over-cap', bytes: size };
+  try {
+    const { sha256 } = await hashFile(entry.path, signal);
+    return sha256 === entry.sha256 ? { state: 'intact' } : { state: 'invalid' };
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return { state: 'invalid' };
   }
 }
 

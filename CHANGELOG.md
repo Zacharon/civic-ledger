@@ -39,6 +39,18 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 
 ### Fixed
 
+- Ingest: an ordinary retry right after a `--force-replay` returns the replay run
+  (`deduplicated: true`) instead of refusing it as `snapshot_superseded`. Idempotency now
+  compares the requested key with the latest successful run of the scope; `replayOf` still
+  names the key's earliest run, and a truly superseded snapshot is still refused (A54,
+  H3R2-01).
+- Ingest: cancellation and the run deadline stop the FEC loader at the next statement of
+  its staging, SQL dedupe, kept-page and sweep phases (`LoadContext.checkpoint`); before,
+  an abort during pas2/IE post-processing still ran the remaining stats, page, write and
+  cleanup statements before rolling back (A52, H3R2-02).
+- Ingest: `INGEST_MAX_DOWNLOAD_BYTES` also applies to a cached copy reused on 304. A copy
+  over the current cap is not revalidated (full fetch, streaming cap applies), and the
+  cache integrity hash stops when the run is cancelled (A53, A65, H3R2-03).
 - `packageManager` pins pnpm 11.13.1. pnpm marked 11.13.0 a broken release, and
   `pnpm/action-setup` refuses to install it, so every CI job failed at setup.
 - The db CLIs and the web server agree on the default PGlite directory: both use

@@ -71,9 +71,10 @@ type RunRow = Parameters<typeof toReceipt>[0];
  * 1. upsert the source's metadata row, take the per-source lock or refuse with
  *    `conflict: run_in_progress`;
  * 2. write the ledger row (`running`) before any fetch, so every attempt leaves a receipt;
- * 3. fetch or hash the snapshot; a key that already succeeded and is still the current
- *    run of this scope returns the original run (`deduplicated: true`); a superseded key
- *    is refused unless `forceReplay` (DECISIONS A54);
+ * 3. fetch or hash the snapshot; a key equal to the current generation (the latest
+ *    successful run of this scope, forced replays included) returns that run
+ *    (`deduplicated: true`); a key that succeeded earlier but was superseded is refused
+ *    unless `forceReplay` (DECISIONS A54);
  * 4. ONE transaction (DECISIONS A50): load (adapter batches are savepoints), shrink guard,
  *    refresh both read models, write the `succeeded` receipt. Facts, read models and
  *    receipt commit together or not at all; the commit is the only irrevocable step;
@@ -134,21 +135,26 @@ export async function runIngest(rawInput: unknown, rt: IngestRuntime): Promise<I
         },
         'snapshot ready',
       );
-      const original = await findSucceededRun(db, {
+      const key = {
         sourceId: input.source,
         adapterVersion: adapter.version,
         snapshotChecksum: snapshot.checksum,
-      });
-      if (original && !input.forceReplay) {
-        const current = await latestSucceededRun(db, input.source, run.scope);
-        if (!current || current.id === original.id) {
+      };
+      // The current generation decides idempotency (DECISIONS A54, H3R2-01): a key equal to
+      // the latest successful run of this scope returns that run, even when it was a
+      // forced replay; the earliest run of the key is only the replay lineage (`replayOf`).
+      const current = await latestSucceededRun(db, input.source, run.scope);
+      const original = await findSucceededRun(db, key);
+      if (!input.forceReplay) {
+        // With no success in this scope yet, an earlier run of the key is returned as before.
+        const loaded = current ? (sameSnapshot(current, key) ? current : null) : original;
+        if (loaded) {
           await deleteRun(db, run.id);
-          log.info(
-            { originalRunId: original.id },
-            'snapshot already loaded; returning original run',
-          );
-          return toReceipt(original, true);
+          log.info({ currentRunId: loaded.id }, 'snapshot already loaded; returning current run');
+          return toReceipt(loaded, true);
         }
+      }
+      if (original && current && !input.forceReplay) {
         const refused = await finishRun(db, run.id, {
           status: 'failed',
           finishedAt: new Date(),
@@ -270,6 +276,7 @@ async function loadAndPublish(tx: Db, a: PublishArgs): Promise<RunRow> {
       scope: input.scope,
       logger: a.log,
       signal: control.signal,
+      checkpoint: () => control.checkpoint(),
     }),
   );
   control.checkpoint();
@@ -310,6 +317,18 @@ async function loadAndPublish(tx: Db, a: PublishArgs): Promise<RunRow> {
   // Last chance to cancel: past this line the commit makes the run irrevocable.
   control.checkpoint();
   return done;
+}
+
+/** True when `run` loaded exactly this idempotency key (same adapter version and snapshot). */
+function sameSnapshot(
+  run: RunRow,
+  key: { sourceId: SourceId; adapterVersion: string; snapshotChecksum: string },
+): boolean {
+  return (
+    run.sourceId === key.sourceId &&
+    run.adapterVersion === key.adapterVersion &&
+    run.snapshotChecksum === key.snapshotChecksum
+  );
 }
 
 function integerCounts(counts: Record<string, number>): Record<string, number> {

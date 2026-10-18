@@ -2,8 +2,10 @@ import type { IngestLimits } from '../adapter';
 
 /**
  * Raw-input byte caps (DECISIONS A53). Defaults sit far above the largest 2026 files
- * (BILLSTATUS zips 54 MB in total, FEC pas2 tens of MB) and far below what would exhaust
- * a small host's disk or memory; a breach fails the run with a receipt.
+ * (BILLSTATUS zips 54 MB in total, FEC pas2 tens of MB); they are proposed values, not
+ * sized against a chosen host. A breach fails the run with a receipt. The download cap
+ * covers fetched bodies and cached copies reused on 304 (A65); operator-supplied files
+ * (`--snapshot` directories, repository curated files) are not download-capped.
  */
 export const DEFAULT_LIMITS: IngestLimits = {
   maxDownloadBytes: 1024 ** 3,

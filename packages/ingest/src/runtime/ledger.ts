@@ -43,7 +43,10 @@ export async function startRun(
   return row;
 }
 
-/** The original successful run for an idempotency key, if any. */
+/**
+ * The earliest successful run for an idempotency key, if any: the origin a forced replay
+ * names in `replayOf`. Whether a repeat deduplicates is decided by `latestSucceededRun`.
+ */
 export async function findSucceededRun(
   db: Db,
   key: { sourceId: SourceId; adapterVersion: string; snapshotChecksum: string },
@@ -65,8 +68,9 @@ export async function findSucceededRun(
 }
 
 /**
- * The latest successful run of a source and scope: the current generation. A snapshot key
- * that succeeded earlier but is not this run was superseded (DECISIONS A54).
+ * The latest successful run of a source and scope: the current generation. A repeat of its
+ * key deduplicates to it; a key that succeeded earlier but differs from it was superseded
+ * (DECISIONS A54).
  */
 export async function latestSucceededRun(
   db: Db,

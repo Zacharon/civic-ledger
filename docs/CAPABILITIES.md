@@ -45,10 +45,11 @@ for public reads; it does not need to.
 
 - Input: `{ source, scope (cycle|congress|all), snapshotPath?, forceReplay? }`;
   idempotency = `(source, adapterVersion, snapshotChecksum)`.
-- Same key, still the latest successful run of that scope → returns the original
-  `ingest_run` (`deduplicated: true`, no second load). Same key but superseded by a later
-  run → refused (`failed`, `snapshot_superseded: ...`) unless `forceReplay`, which loads it
-  as a new run with `replayOf` (DECISIONS A54). Same source running → refused with
+- Same key as the current generation (the latest successful run of that scope, a forced
+  replay included) → returns that `ingest_run` (`deduplicated: true`, no second load), so
+  a retry after a lost response is safe. Same key but superseded by a later run → refused
+  (`failed`, `snapshot_superseded: ...`) unless `forceReplay`, which always loads it as a
+  new run whose `replayOf` names the key's earliest run (DECISIONS A54). Same source running → refused with
   `conflict: run_in_progress` (advisory lock).
 - Receipt = the `ingest_run` row: actor (`operator`), operation, target source and
   scope, counts, checksum, before/after read-model refresh time, outcome
