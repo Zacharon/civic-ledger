@@ -135,3 +135,13 @@ Historical evidence files under `docs/evidence/` were not edited.
 `pnpm lint` (Biome) covers the TypeScript changes; Biome does not process Markdown or
 YAML in this repository (`files.ignoreUnknown`), so the documents were checked by reading
 and by a relative-link check over the changed files.
+
+## Follow-up: first full-history scan on GitHub (orchestrator, 2026-10-18)
+
+CI run 39159281652 at `51f6695`: the new job scanned **42 commits** (49 on all fetched
+refs) and failed with **2 findings**, both rule `generic-api-key` at
+`apps/web/src/lib/explore-columns.ts:168,179` in `dab15bf`: the values are
+`sortKey: 'dwNominateDim1'` and `'dwNominateDim2'`, column sort identifiers matched
+because the property name ends in "Key". Not credentials. They are suppressed by exact
+fingerprint in `.gitleaksignore` (read by default from the scanned directory); the rule
+itself stays on. Green confirmation is the next CI run on the integration branch.

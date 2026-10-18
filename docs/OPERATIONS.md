@@ -39,7 +39,9 @@ Related: [API.md](API.md) (contract), [ARCHITECTURE.md](ARCHITECTURE.md) section
 | `HEALTH_MAX_INGEST_AGE_HOURS` | 336 | Staleness limit for sources without a built-in limit |
 
 Secrets are environment-only; `.env*` is gitignored and CI runs a full-history secret scan
-(`secret-scan` job: pinned gitleaks CLI over every fetched commit).
+(`secret-scan` job: pinned gitleaks CLI over every fetched commit). A finding that review
+shows is not a credential goes in `.gitleaksignore` by its exact fingerprint (commit, file,
+rule, line) with a comment saying why; never allowlist a whole rule or path.
 Invalid numeric values for the `DB_*` / `INGEST_*` variables stop the process at start
 with a message naming the variable; empty means "use the default".
 
