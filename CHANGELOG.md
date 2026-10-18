@@ -39,6 +39,8 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 
 ### Fixed
 
+- `packageManager` pins pnpm 11.13.1. pnpm marked 11.13.0 a broken release, and
+  `pnpm/action-setup` refuses to install it, so every CI job failed at setup.
 - Documentation that over-claimed: cache invalidation by `revalidateTag` (there is none;
   freshness is time-based, A46), `GET /` as a liveness probe (A47), the stale CSP
   comment, and the agent-native evidence counts (13 capabilities, 39 parity tests).
