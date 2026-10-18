@@ -1,0 +1,12 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/h3r2-ingest-20261018
+
+ ✓ packages/ingest/test/download-cache-cap.test.ts > cached 304 reuse and the download cap (H3R2-03) > refuses to reuse a cached copy larger than a lowered cap 140ms
+ ✓ packages/ingest/test/download-cache-cap.test.ts > cached 304 reuse and the download cap (H3R2-03) > still reuses an intact cached copy within the cap 32ms
+ ✓ packages/ingest/test/download-cache-cap.test.ts > cached 304 reuse and the download cap (H3R2-03) > stops validating the cached copy when the run is cancelled 438ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  15:42:40
+   Duration  1.43s (tests 81%, import 10%, transform 6%, worker 2%)
+
