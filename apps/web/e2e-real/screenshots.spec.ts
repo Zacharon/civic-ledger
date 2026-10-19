@@ -29,6 +29,7 @@ interface Row {
 async function api<T>(request: APIRequestContext, name: string, input: unknown): Promise<T> {
   const res = await request.get(
     `/api/v1/${name}?input=${encodeURIComponent(JSON.stringify(input))}`,
+    { headers: { connection: 'close' } },
   );
   expect(res.ok(), `${name} ${res.status()}`).toBe(true);
   return (await res.json()) as T;
@@ -101,7 +102,10 @@ test('real-data screenshots and page timings', async ({ page, request }) => {
     let bytes = 0;
     for (let i = 0; i <= WARM_RUNS; i++) {
       const started = performance.now();
-      const res = await request.get(path);
+      // Screenshot work can idle this separate API client across the server's
+      // keep-alive close boundary. Use a fresh connection rather than retrying
+      // and concealing a failed request. Browser navigation remains unchanged.
+      const res = await request.get(path, { headers: { connection: 'close' } });
       const body = await res.body();
       runs.push(Math.round(performance.now() - started));
       bytes = body.length;
