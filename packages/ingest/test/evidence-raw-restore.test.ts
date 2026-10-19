@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { IngestRunReceipt } from '@civic-ledger/core';
@@ -46,6 +46,11 @@ describe('raw archive and restore keep evidence access (R7)', () => {
       true,
     ]);
 
+    // A staged download left by a dead process is not evidence and is not archived.
+    const leftover = join(rt.rawRoot, id, '.staging', '999-deadbeef');
+    await mkdir(leftover, { recursive: true });
+    await writeFile(join(leftover, 'legislators-current.json.part'), 'partial');
+
     const work = await mkdtemp(join(tmpdir(), 'civic-evidence-restore-'));
     temp.push(work);
     const store = await createStore({ BACKUP_LOCAL_DIR: join(work, 'archive') });
@@ -61,5 +66,10 @@ describe('raw archive and restore keep evidence access (R7)', () => {
       execute: true,
     });
     for (const receipt of [first, second]) await expectEvidenceIntact(target, receipt);
+    // The conditional-request cache is archived too. Its entries hold absolute paths, so a
+    // 304 reuses them only when the restored tree takes the original raw-root path;
+    // elsewhere the next fetch downloads in full (never a wrong reuse: sizes and hashes
+    // are checked first).
+    expect(archive.files.some((f) => f.path === `${id}/http-cache.json`)).toBe(true);
   });
 });
