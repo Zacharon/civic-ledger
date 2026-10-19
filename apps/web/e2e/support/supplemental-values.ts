@@ -48,6 +48,15 @@ export async function checkSupplementalProfile(
   slug: string,
 ) {
   await page.goto(`${baseUrl}/people/${slug}`);
+  // React streams completed sections into hidden containers before replacing the
+  // same-id fallback. Raw descendants can already be read there. Require the
+  // actual visible handoff before making any profile business observations.
+  for (const id of ['money', 'scores', 'promises', 'platform', 'career']) {
+    await expect(page.locator(`#${id}[aria-busy="true"]`)).toHaveCount(0);
+    const section = page.locator(`#${id}`);
+    await expect(section).toHaveCount(1);
+    await expect(section).toBeVisible();
+  }
   const profile = await agreed<CapabilityOutput<'people.get'>>('people.get', { slug });
   const scores = await agreed<CapabilityOutput<'scores.list'>>('scores.list', { slug });
   const promises = await agreed<CapabilityOutput<'promises.list'>>('promises.list', { slug });

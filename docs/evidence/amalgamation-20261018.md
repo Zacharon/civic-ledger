@@ -176,3 +176,26 @@ capability names; H3NEW-03 raw background pool diagnostics, with committed red/g
 tests and an independent canary recheck. The reviewer found no remaining implementation
 objection in this scope. A documentation-only successor records the verdict and
 clarifies hosted configuration and draft-only alerts; upstream CI remains required.
+
+## Upstream streamed-section regression
+
+CI on `2d1d261` passed check, PostgreSQL, rollback, audit, full-history secret scan
+and the separate Agent parity workflow, but failed the expanded-profile browser
+case on both attempts (53 passed, one failed, seven not run). The Scores locator
+matched both the busy loading fallback and completed markup in React's hidden
+streamed segment. Main promotion was held; this failure was not treated as green
+because earlier local checks passed.
+
+A controlled browser reveal barrier reproduced the same visible fallback/hidden
+completed section. The old helper began business observations before handoff;
+the strengthened helper observes nothing until the real reveal completes, then
+passes the original assertions (controlled regression 1/1, zero retries). Before
+any profile observations it now requires each compared section's busy fallback
+to be removed, its id to be unique and the section to be visible. No application
+runtime, business assertion, test budget, retry policy or coverage was changed.
+The focused PostgreSQL/UI/API/MCP parity and restart suite passed 7/7 in 2.4
+minutes with zero retries, including the originally failed case and actual ingest
+and all-process restart. Scoped Biome, TypeScript and whitespace checks passed.
+Fresh exact-revision upstream CI remains required for promotion. Original CI logs/traces and
+controlled red/green evidence are retained locally under
+`.pglite/evidence/ci-39184774823/`.
