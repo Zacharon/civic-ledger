@@ -1,0 +1,161 @@
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/fix/vote-membership-20261019
+
+ ❯ packages/core/test/vote-membership.test.ts (6 tests | 6 failed) 5763ms
+   ❯ vote-time membership (T-C) (6)
+     × 1: a serving member with no stored record reads "unavailable", not non-membership 44ms
+     × 2: a House -> Senate mover keeps historical House votes on the vote-time basis 14ms
+     × 3: a party changer is grouped by the party held on the vote date 30ms
+     × 4: two overlapping terms and one yea count one yea and flag the ambiguity 15ms
+     × 5: reconstructed tallies are reported beside the source totals 18ms
+     × 6: every state value the API can return is one documented enum 85ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/core/test/vote-membership.test.ts > vote-time membership (T-C) > 1: a serving member with no stored record reads "unavailable", not non-membership
+AssertionError: expected undefined to deeply equal [ 'yea', 'unavailable' ]
+
+- Expected:
+[
+  "yea",
+  "unavailable",
+]
+
++ Received:
+undefined
+
+ ❯ packages/core/test/vote-membership.test.ts:153:58
+    151|   it('1: a serving member with no stored record reads "unavailable", n…
+    152|     const result = await evaluate({ slugs: Object.values(PEOPLE) });
+    153|     expect(statesOf(result, 'sam')?.map((s) => s.state)).toEqual(['yea…
+       |                                                          ^
+    154|     // Lee's only term starts after R9001: confirmed not serving in th…
+    155|     expect(statesOf(result, 'lee')?.map((s) => s.state)).toEqual(['not…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  packages/core/test/vote-membership.test.ts > vote-time membership (T-C) > 2: a House -> Senate mover keeps historical House votes on the vote-time basis
+CapabilityError: Input failed validation
+ ❯ invalidInput packages/core/src/errors.ts:74:10
+     72|   message = 'Input failed validation',
+     73| ): CapabilityError {
+     74|   return new CapabilityError('invalid_input', message, {
+       |          ^
+     75|     issues: error.issues.map((issue) => ({
+     76|       path: issue.path.map(String).join('.'),
+ ❯ run packages/core/src/dispatch.ts:46:35
+ ❯ dispatch packages/core/src/dispatch.ts:25:24
+ ❯ evaluate packages/core/test/vote-membership.test.ts:126:3
+ ❯ packages/core/test/vote-membership.test.ts:163:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  packages/core/test/vote-membership.test.ts > vote-time membership (T-C) > 3: a party changer is grouped by the party held on the vote date
+AssertionError: expected [ { yea: 3, nay: +0, …(3) }, …(1) ] to deeply equal [ Array(2) ]
+
+- Expected
++ Received
+
+@@ -2,11 +2,11 @@
+    {
+      "nay": 0,
+      "notVoting": 0,
+      "party": "Alpha Party",
+      "present": 0,
+-     "yea": 2,
++     "yea": 3,
+    },
+    {
+      "nay": 0,
+      "notVoting": 0,
+      "party": "Beta Party",
+
+ ❯ packages/core/test/vote-membership.test.ts:174:33
+    172|   it('3: a party changer is grouped by the party held on the vote date…
+    173|     const item = await houseVotes();
+    174|     expect(item(97001).byParty).toEqual([
+       |                                 ^
+    175|       { party: 'Alpha Party', yea: 2, nay: 0, present: 0, notVoting: 0…
+    176|       { party: 'Beta Party', yea: 2, nay: 0, present: 0, notVoting: 0 …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  packages/core/test/vote-membership.test.ts > vote-time membership (T-C) > 4: two overlapping terms and one yea count one yea and flag the ambiguity
+AssertionError: expected { yea: 5, nay: +0, present: +0, …(1) } to deeply equal { yea: 4, nay: +0, present: +0, …(1) }
+
+- Expected
++ Received
+
+  {
+    "nay": 0,
+    "notVoting": 0,
+    "present": 0,
+-   "yea": 4,
++   "yea": 5,
+  }
+
+ ❯ packages/core/test/vote-membership.test.ts:198:31
+    196|   it('4: two overlapping terms and one yea count one yea and flag the …
+    197|     const item = await houseVotes();
+    198|     expect(item(97001).tally).toEqual({ yea: 4, nay: 0, present: 0, no…
+       |                               ^
+    199|     expect(item(97001).ambiguousTermPositions).toBe(1);
+    200|     expect(item(97002).ambiguousTermPositions).toBe(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  packages/core/test/vote-membership.test.ts > vote-time membership (T-C) > 5: reconstructed tallies are reported beside the source totals
+AssertionError: expected undefined to deeply equal { yea: 4, nay: +0 }
+
+- Expected:
+{
+  "nay": 0,
+  "yea": 4,
+}
+
++ Received:
+undefined
+
+ ❯ packages/core/test/vote-membership.test.ts:212:37
+    210|   it('5: reconstructed tallies are reported beside the source totals',…
+    211|     const item = await houseVotes();
+    212|     expect(item(97001).sourceTally).toEqual({ yea: 4, nay: 0 });
+       |                                     ^
+    213|     expect(item(97001).tallyCheck).toEqual({
+    214|       status: 'matches_source',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  packages/core/test/vote-membership.test.ts > vote-time membership (T-C) > 6: every state value the API can return is one documented enum
+AssertionError: expected undefined to deeply equal [ 'yea', 'nay', 'present', …(3) ]
+
+- Expected:
+[
+  "yea",
+  "nay",
+  "present",
+  "not_voting",
+  "not_serving",
+  "unavailable",
+]
+
++ Received:
+undefined
+
+ ❯ packages/core/test/vote-membership.test.ts:229:37
+    227|   it('6: every state value the API can return is one documented enum',…
+    228|     const core = (await import('../src/index')) as Record<string, unkn…
+    229|     expect(core.MEMBER_VOTE_STATES).toEqual([
+       |                                     ^
+    230|       'yea',
+    231|       'nay',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed (6)
+   Start at  01:51:42
+   Duration  8.59s (tests 72%, import 23%, transform 5%)
+
+exit=1
