@@ -330,7 +330,8 @@ the actual storage, credentials and network before VC-084 can be closed for laun
    `people.get`, `money.summary`, `votes.list`, `explore.table` and `frameworks.evaluate`
    for recorded inputs; pass `scope: 'all'` wherever the input has a member scope).
 1. Create an empty Postgres (new instance; never restore over production).
-2. `pnpm db:migrate` against it, so the schema and `drizzle` journal are current.
+2. Leave it empty. Do not pre-migrate: the full archive contains the source schema
+   and migration journal, and the guarded restore refuses a populated target.
 3. Use the guarded restore CLI in DEPLOY_RENDER against that empty target. It
    refuses the source database and populated targets; it never drops a live schema.
 4. **Content integrity.** Verify the exact restored target (`$RESTORE_URL`) before any
