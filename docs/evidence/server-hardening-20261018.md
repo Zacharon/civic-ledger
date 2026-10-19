@@ -48,3 +48,15 @@ Operational logging target: retain ordinary logs seven days; extend selected
 incident metadata to 30 days when needed for an investigation. Host access and
 retention settings must be verified during provisioning. These local sink tests
 do not prove hosted event delivery, reverse-proxy behavior or log retention.
+
+## Independent-review background sink finding
+
+H3 found the pre-existing default database pool listener still printed raw driver
+messages. `packages/db/test/pool-diagnostics.test.ts` reproduced the final stderr
+canary leak and a throwing error getter before changing runtime code (2/2 FAIL).
+The listener now emits the fixed pool event plus only a plain own SQLSTATE value
+matching five uppercase letters/digits. It never reads error messages, stacks or
+getters, and a broken stderr sink cannot crash the caller. The same 2/2 tests PASS
+on a lazy pool without opening a socket. Local original logs:
+`civic-pool-diagnostics-red-20261018.txt` and
+`civic-pool-diagnostics-green-20261018.txt` in the operator temporary directory.

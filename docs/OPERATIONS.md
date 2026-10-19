@@ -173,6 +173,8 @@ Structured JSON, one object per line, on stdout (web) and stderr (MCP), via pino
   Headers, query strings, inputs and client addresses are not emitted. Logger
   redaction remains defense in depth; a failed diagnostic sink cannot replace the
   intended business response.
+* Background database-pool errors have no HTTP request context. They emit a fixed
+  event and an allowed SQLSTATE only; raw driver text is suppressed there too.
 * MCP logs only startup and tool failures (stderr; stdout is the protocol).
 * Retention target: seven days ordinary logs, 30 days selected incident metadata.
   Configure and verify host capture, access and retention during provisioning;

@@ -68,9 +68,24 @@ export const BATCH_POOL_DEFAULTS: PgPoolSettings = {
 
 /** An idle pool client can fail after a database restart; unhandled, Node would exit. */
 function logPoolError(error: Error): void {
-  process.stderr.write(
-    `${JSON.stringify({ level: 'error', msg: 'database pool error', err: error.message })}\n`,
-  );
+  let code: string | undefined;
+  try {
+    // Read a plain own value only. Driver messages/SQL and arbitrary getters must
+    // never reach the diagnostic sink, including errors outside an HTTP request.
+    const descriptor = Object.getOwnPropertyDescriptor(error, 'code');
+    if (typeof descriptor?.value === 'string' && /^[A-Z0-9]{5}$/.test(descriptor.value)) {
+      code = descriptor.value;
+    }
+  } catch {
+    // A hostile Proxy can throw even during descriptor inspection.
+  }
+  try {
+    process.stderr.write(
+      `${JSON.stringify({ level: 'error', msg: 'database pool error', ...(code ? { code } : {}) })}\n`,
+    );
+  } catch {
+    // Diagnostics must not turn a recoverable idle connection failure into a crash.
+  }
 }
 
 /** PGlite without `dataDir` is in-memory (tests). PGlite is a single in-process connection. */
