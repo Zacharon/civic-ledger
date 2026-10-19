@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   assess,
+  expectedScopesFromEnv,
   normalizeSources,
   type Observation,
   SOURCE_POLICY,
@@ -48,6 +49,43 @@ async function age(source: string, hours: number): Promise<void> {
     sql`update ingest_run set started_at = started_at - ${shift}, finished_at = finished_at - ${shift} where source_id = ${source}`,
   );
 }
+
+describe('monitor inputs', () => {
+  it('derives expected scopes from the scheduled-ingest variables and ignores invalid ones', () => {
+    expect(expectedScopesFromEnv({ CIVIC_CONGRESS: '119', CIVIC_CYCLE: '2026' })).toEqual({
+      'congress-legislators': 'all',
+      voteview: 'congress:119',
+      'govinfo-billstatus': 'congress:119',
+      'fec-bulk': 'cycle:2026',
+    });
+    expect(expectedScopesFromEnv({ CIVIC_CONGRESS: 'x', CIVIC_CYCLE: '2025' })).toEqual({
+      'congress-legislators': 'all',
+    });
+  });
+
+  it('projects freshness without coverage text and rejects malformed freshness', () => {
+    const base = { id: 'voteview', lastRun: null, lastSuccess: null };
+    const freshness = {
+      lastAttemptAt: '2026-10-18T00:00:00.000Z',
+      lastAttemptOutcome: 'unchanged',
+      lastSuccessfulCheckAt: '2026-10-18T00:01:00.000Z',
+      lastChangedAt: null,
+      coverageThrough: '2026-02-12',
+      coverageBasis: 'private text token=secret',
+    };
+    const [projected] = normalizeSources([
+      { ...base, freshness, scopes: [{ scope: 'congress:119', ...freshness }] },
+    ]);
+    expect(JSON.stringify(projected)).not.toContain('secret');
+    expect(projected?.freshness?.lastAttemptOutcome).toBe('unchanged');
+    expect(() =>
+      normalizeSources([{ ...base, freshness: { ...freshness, lastAttemptOutcome: 'gone' } }]),
+    ).toThrow('malformed');
+    expect(() =>
+      normalizeSources([{ ...base, freshness, scopes: [{ scope: '../x', ...freshness }] }]),
+    ).toThrow('malformed');
+  });
+});
 
 describe('monitor over a real ledger (R5)', () => {
   it('a failed fetch, then a successful unchanged validation, clears the failed and missed findings', async () => {
