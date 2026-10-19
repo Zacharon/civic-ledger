@@ -87,6 +87,16 @@ describe('assessSources', () => {
     description: 'x',
     lastRun: lastSuccess,
     lastSuccess,
+    // sources.status freshness fields (evidence trust T-A); health does not read them yet.
+    freshness: {
+      lastAttemptAt: null,
+      lastAttemptOutcome: null,
+      lastSuccessfulCheckAt: null,
+      lastChangedAt: null,
+      coverageThrough: null,
+      coverageBasis: null,
+    },
+    scopes: [],
   });
 
   it('applies per-source thresholds and flags sources that never succeeded', () => {
