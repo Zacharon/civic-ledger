@@ -23,13 +23,26 @@ export const voteviewAdapter: SourceAdapter<VoteviewRecord> = {
     description:
       'Every House and Senate rollcall, each member position, and DW-NOMINATE ideology estimates (academic, roll-call based).',
   },
-  version: 'voteview@1',
+  // @2: completeness checks, reconciliation of withdrawn assertions, provisional flag (F3).
+  version: 'voteview@2',
   dependsOn: ['congress-legislators'],
   scopes: ['congress'],
+  // Rollcalls are never swept (BILLSTATUS links them); positions and scores of the congress
+  // are, so the shrink guard judges their sweeps per congress (positions via their rollcall).
   shrinkDatasets: [
     { table: 'rollcall', loaded: 'rollcalls', scopeColumn: 'congress' },
-    { table: 'vote_position', loaded: 'vote_positions' },
-    { table: 'ideology_score', loaded: 'ideology_scores', scopeColumn: 'congress' },
+    {
+      table: 'vote_position',
+      loaded: 'vote_positions',
+      swept: 'stale_vote_positions_deleted',
+      scopeVia: { column: 'rollcall_id', table: 'rollcall', scopeColumn: 'congress' },
+    },
+    {
+      table: 'ideology_score',
+      loaded: 'ideology_scores',
+      swept: 'stale_ideology_scores_deleted',
+      scopeColumn: 'congress',
+    },
   ],
   async plan(scope) {
     const files = voteviewFiles(congressOf(scope));

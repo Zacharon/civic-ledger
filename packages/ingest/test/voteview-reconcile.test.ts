@@ -365,7 +365,7 @@ describe('Voteview reconciliation (F3)', () => {
     expect(await congressFacts(119)).toEqual(factsBefore);
     expect(await tableCounts(handle.db)).toEqual({
       ...countsBefore,
-      ingest_run: countsBefore.ingest_run + 1,
+      ingest_run: (countsBefore.ingest_run ?? 0) + 1,
     });
     expect(
       await q(
@@ -375,7 +375,7 @@ describe('Voteview reconciliation (F3)', () => {
     const [latest] = await q<{ id: number }>(sql`
       select id from ingest_run where source_id = 'voteview' and status = 'succeeded'
       order by id desc limit 1`);
-    expect(latest?.id).toBe(first.id);
+    expect(latest?.id).toBe(first.runId);
   });
 });
 

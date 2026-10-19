@@ -91,6 +91,7 @@ re-codes new committees and re-resolves framework targets even when the YAML is 
 | receipt `status: failed`, `error: GET … HTTP 404` | File moved or not published yet (new cycle/congress). | Check the URL in DATA_SOURCES.md; nothing was loaded. |
 | `failed` after retries on 5xx / timeout | Source down or slow. | Rerun later; nothing was loaded. |
 | `failed`, `error: shrink guard: …` | The upstream file looks truncated or empty (see below). Nothing was changed. | Check the upstream file (size, row count). If the source really shrank, rerun with `--allow-shrink`. |
+| `failed`, `error: voteview snapshot incomplete: …` or `… line N: congress X is outside the run scope` | The Voteview files are inconsistent or partial (see "Voteview completeness and reconciliation"). Nothing was changed. | Rerun later (a fresh download); if it persists, inspect the named file and line. Rerun congress-legislators first when the error says members match no person. |
 | `failed` with a parse error (`line N`, `Unexpected BILLSTATUS shape`, `Unknown Voteview cast_code`) | Source format changed. | Fix the parser with a fixture cut from the new file, bump the adapter `version`, rerun. |
 | `Curated data is invalid: file:line …` | A merged YAML file fails the schema. | Fix the file; nothing from the curated run was loaded. |
 | Voteview TLS error | Their certificate chain; never disable verification. | Retry later; report upstream if it persists. |
@@ -132,6 +133,51 @@ load of a source and the `curated` source (git-reviewed, where removing a file i
 intended change) are not guarded. Thresholds are the agent's defaults pending owner input
 (readiness audit, owner item 8); tune them with the environment variables above.
 
+## Voteview completeness and reconciliation
+
+A Voteview snapshot (`HS<congress>_members/rollcalls/votes.csv`, both chambers) is the
+complete record of its congress. After loading it, inside the same transaction, the
+loader withdraws what it no longer asserts: Voteview `vote_position` rows of that
+congress's rollcalls (both chambers) and `dw-nominate` `ideology_score` rows of that
+congress that this run did not write. That covers a vote changed to cast code 0 or
+removed, a score whose `nominate_dim1` is now empty, and a vote or score left under the
+person an icpsr used to map to (votes are keyed by the person the snapshot's members file
+gives the icpsr, by Bioguide id, never by name; `source_key` stays `<rollKey>:<icpsr>`).
+A Voteview-owned `icpsr` identifier follows a corrected mapping (`icpsr_reassigned`);
+one owned by congress-legislators is never moved (`icpsr_held_by_other_person`).
+Rollcall rows are never deleted (BILLSTATUS links them); a rollcall missing from the
+snapshot keeps its row, loses its withdrawn positions and is counted in
+`rollcalls_absent_from_snapshot`. Receipt counters: `stale_vote_positions_deleted`,
+`stale_ideology_scores_deleted`, `stale_rows_deleted` (their sum); the shrink guard judges
+both per congress (positions through their rollcall).
+
+Before anything is withdrawn the snapshot must pass these checks; any failure refuses the
+run (`voteview snapshot incomplete: …`, rolled back, nothing changed):
+
+| Rule | Refused when | Why |
+|---|---|---|
+| C1 one congress | any row of the three files has a `congress` other than the run's scope (file and line named) | it would be loaded and reconciled under the wrong congress |
+| C2 members present | the members file has no member rows | votes cannot be attributed |
+| C3 rollcalls present | the rollcalls file is empty while the congress already has rollcalls loaded | an empty file would withdraw the congress |
+| C4 votes reference rollcalls | any vote row's rollcall is missing from the rollcalls file | files from different moments (or a truncated rollcalls file) |
+| C5 rollcalls have votes | any rollcall has no vote rows at all (any cast code) | a truncated votes file would withdraw those positions |
+| C6 one Bioguide per icpsr | the members file gives one icpsr two Bioguide ids | one source vote would belong to two people |
+| C7 one position per person and rollcall | two icpsrs map to the same person with a position on the same rollcall | one source vote would silently replace another |
+| C8a members resolve | more than 10% of member rows match no person, judged from 20 member rows | congress-legislators is behind; rerun it first |
+| C8b votes name listed members | more than 1% of vote rows name an icpsr the members file lacks, judged from 1,000 vote rows | members file truncated or from another moment |
+
+Thresholds live in `VOTEVIEW_COMPLETENESS` (`adapters/voteview/load.ts`). The shrink
+guard still bounds what a passing snapshot may delete (10% of a dataset per congress by
+default; `--allow-shrink` for a genuine large correction).
+
+The source's provisional flag (`conditional = 1`) is stored on every loaded score
+(`ideology_score.provisional`: true provisional, false final, null = loaded before
+migration 0006 and not reprocessed since) and returned by `scores.list@1`; a later final
+estimate overwrites it. **History:** facts are current state. A withdrawn assertion is
+traced through the earlier run: its receipt (`ingest_run` counts, `snapshot_locator`) and
+its raw snapshot files still hold the old vote, score or mapping; the reconciling run's
+receipt counts what was withdrawn.
+
 ## How to rerun
 
 - Same files again → deduplicated, no writes (by design). This also holds right after a
@@ -160,6 +206,9 @@ sharply between runs.
 | Counter / metric | Expected (2026-10-16) | If it moves |
 |---|---|---|
 | `voteview.members_bioguide_not_in_legislators`, `votes_unmatched_member` | 0 | c-l is behind Voteview: rerun c-l, then voteview. |
+| `voteview.stale_vote_positions_deleted`, `stale_ideology_scores_deleted` | small (corrections) | A jump means Voteview withdrew or re-attributed many assertions: compare with the previous run's snapshot before trusting it. |
+| `voteview.rollcalls_absent_from_snapshot`, `icpsr_reassigned` | 0 | Voteview dropped a rollcall or corrected an icpsr mapping: check the previous snapshot. |
+| `voteview.votes_icpsr_not_in_members` | 0 | Vote rows for members the members file lacks (refused above 1%). |
 | `voteview.ideology_missing_dim1` | 2 (new members) | Normal for members with few votes. |
 | `fec-bulk.pas2_amendment_superseded`, `pas2_duplicate_reports` | 2, 10 | A jump means FEC changed how amendments appear: review A13. |
 | `fec-bulk.ie_implausible_amount_dropped` | 15 | New bogus filings; check none is a real buy. |
