@@ -243,3 +243,44 @@ function slugKey(slug: string): Who {
   if (!entry) throw new Error(`unknown slug ${slug}`);
   return entry[0] as Who;
 }
+
+describe('v1 compatibility on the seed (T-C)', () => {
+  it('without filters both bases score the same people and votes; states agree with votes', async () => {
+    const list = await dispatch('frameworks.list', {}, db.ctx());
+    for (const f of list.items) {
+      const run = (people: Record<string, unknown>) =>
+        dispatch('frameworks.evaluate', { framework: f.spec, people, limit: 600 }, db.ctx());
+      const [current, atVote] = await Promise.all([run({}), run({ basis: 'at_vote' })]);
+      expect(current.peopleBasis).toBe('current');
+      expect(atVote.peopleBasis).toBe('at_vote');
+      const strip = (r: typeof current) =>
+        r.results.map(({ person, aligned, considered, notCounted, votes }) => ({
+          slug: person.slug,
+          aligned,
+          considered,
+          notCounted,
+          votes,
+        }));
+      expect(strip(atVote)).toEqual(strip(current));
+      for (const r of current.results) {
+        const recorded = r.rollcallStates.filter(
+          (s) => s.state !== 'not_serving' && s.state !== 'unavailable',
+        );
+        expect(recorded.map((s) => [s.ruleIndex, s.rollcall, s.state])).toEqual(
+          r.votes.map((v) => [v.ruleIndex, v.rollcall, v.position]),
+        );
+      }
+    }
+  });
+
+  it('seed tallies reconcile with the seeded source totals', async () => {
+    const result = await dispatch('votes.list', { limit: 100 }, db.ctx());
+    const seed = result.items.filter((i) => i.policyArea?.id !== AREA);
+    expect(seed.length).toBeGreaterThan(0);
+    for (const item of seed) {
+      expect(item.tallyCheck.status).toBe('matches_source');
+      expect(item.sourceTally).toEqual({ yea: item.tally.yea, nay: item.tally.nay });
+      expect(item.ambiguousTermPositions).toBe(0);
+    }
+  });
+});
