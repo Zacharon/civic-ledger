@@ -1,0 +1,61 @@
+$ pnpm vitest run packages/core/test/bills.test.ts --maxWorkers=2   (exit 1)
+     × resolves "H.R. 1" in every congress separately, newest congress first 9ms
+     × parses Senate numbers and falls back to title text 1ms
+     × pages deterministically over every bill when no query is given 1ms
+     × rejects unknown keys and over-long queries 1ms
+     × keeps the same number in two congresses apart 1ms
+     × states an unknown sponsor and latest action explicitly 0ms
+     × keeps two different motions with the same question apart, with their source wording 1ms
+     × is not_found for a bill that does not exist and rejects unknown bill types 0ms
+     × counts each stored position once and shows the source totals beside it 1ms
+     × lists every member once with the vote-time state, including serving members without a record 1ms
+     × links the bill with its final-passage flag 1ms
+     × agrees with votes.list on every seeded roll call 43ms
+     × is not_found for an unknown roll call and rejects bad keys 1ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  packages/core/test/bills.test.ts > bills.search@1 > resolves "H.R. 1" in every congress separately, newest congress first
+TypeError: Cannot read properties of undefined (reading 'input')
+ FAIL  packages/core/test/bills.test.ts > bills.search@1 > parses Senate numbers and falls back to title text
+TypeError: Cannot read properties of undefined (reading 'input')
+ FAIL  packages/core/test/bills.test.ts > bills.search@1 > pages deterministically over every bill when no query is given
+TypeError: Cannot read properties of undefined (reading 'input')
+ FAIL  packages/core/test/bills.test.ts > bills.search@1 > rejects unknown keys and over-long queries
+Error: Expected CapabilityError(invalid_input), got TypeError: Cannot read properties of undefined (reading 'input')
+     32|   if (!(error instanceof CapabilityError)) {
+     33|     throw new Error(`Expected CapabilityError(${code}), got ${String(e…
+ FAIL  packages/core/test/bills.test.ts > bills.get@1 > keeps the same number in two congresses apart
+TypeError: Cannot read properties of undefined (reading 'input')
+ FAIL  packages/core/test/bills.test.ts > bills.get@1 > states an unknown sponsor and latest action explicitly
+TypeError: Cannot read properties of undefined (reading 'input')
+ FAIL  packages/core/test/bills.test.ts > bills.get@1 > keeps two different motions with the same question apart, with their source wording
+TypeError: Cannot read properties of undefined (reading 'input')
+ FAIL  packages/core/test/bills.test.ts > bills.get@1 > is not_found for a bill that does not exist and rejects unknown bill types
+Error: Expected CapabilityError(not_found), got TypeError: Cannot read properties of undefined (reading 'input')
+     32|   if (!(error instanceof CapabilityError)) {
+     33|     throw new Error(`Expected CapabilityError(${code}), got ${String(e…
+ FAIL  packages/core/test/bills.test.ts > rollcalls.get@1 > counts each stored position once and shows the source totals beside it
+TypeError: Cannot read properties of undefined (reading 'input')
+ FAIL  packages/core/test/bills.test.ts > rollcalls.get@1 > lists every member once with the vote-time state, including serving members without a record
+TypeError: Cannot read properties of undefined (reading 'input')
+ FAIL  packages/core/test/bills.test.ts > rollcalls.get@1 > links the bill with its final-passage flag
+TypeError: Cannot read properties of undefined (reading 'input')
+ FAIL  packages/core/test/bills.test.ts > rollcalls.get@1 > agrees with votes.list on every seeded roll call
+TypeError: Cannot read properties of undefined (reading 'input')
+ FAIL  packages/core/test/bills.test.ts > rollcalls.get@1 > is not_found for an unknown roll call and rejects bad keys
+Error: Expected CapabilityError(not_found), got TypeError: Cannot read properties of undefined (reading 'input')
+     32|   if (!(error instanceof CapabilityError)) {
+     33|     throw new Error(`Expected CapabilityError(${code}), got ${String(e…
+ Test Files  1 failed (1)
+      Tests  13 failed (13)
+
+$ pnpm vitest run apps/web/test/parity.test.ts packages/core/test/dispatch.test.ts --maxWorkers=2   (exit 1)
+     × has representative inputs for every public capability 18ms
+     × bills.search {"q":"x…(201 chars)"} -> invalid_input 3ms
+     × bills.get {"congress":119,"billType":"HR","number":1} -> invalid_input 1ms
+     × bills.get {"congress":119,"billType":"hr","number":1} -> not_found 4ms
+     × rollcalls.get {"congress":119,"chamber":"house"} -> invalid_input 1ms
+     × rollcalls.get {"congress":119,"chamber":"house","number":1} -> not_found 1ms
+     × exposes only public reads to adapters (no write or operator capability) 12ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  2 failed (2)
+      Tests  7 failed | 51 passed (58)

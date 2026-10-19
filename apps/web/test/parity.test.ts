@@ -82,6 +82,15 @@ beforeAll(async () => {
     ],
     'sources.status': [{}],
     'explore.facets': [{}, { scope: 'all' }],
+    'bills.search': [{}, { q: 'H.R. 99001' }, { q: 'fictional', congress: 119, limit: 3, offset: 1 }],
+    'bills.get': [
+      { congress: 119, billType: 'hr', number: 99001 },
+      { congress: 119, billType: 's', number: 99002 },
+    ],
+    'rollcalls.get': [
+      { congress: 119, chamber: 'house', number: 9001 },
+      { congress: 119, chamber: 'senate', number: 9001, memberState: 'yea', limit: 5, offset: 1 },
+    ],
   };
 });
 
@@ -138,6 +147,11 @@ const INVALID: Array<[string, Record<string, unknown>, 'invalid_input' | 'not_fo
   ['frameworks.evaluate', { framework: { title: '', rules: [] } }, 'invalid_input'],
   ['frameworks.evaluate', { framework: { title: 'x', rules: [{ bogus: true }] } }, 'invalid_input'],
   ['sources.status', { verbose: true }, 'invalid_input'],
+  ['bills.search', { q: 'x'.repeat(201) }, 'invalid_input'],
+  ['bills.get', { congress: 119, billType: 'HR', number: 1 }, 'invalid_input'],
+  ['bills.get', { congress: 119, billType: 'hr', number: 1 }, 'not_found'],
+  ['rollcalls.get', { congress: 119, chamber: 'house' }, 'invalid_input'],
+  ['rollcalls.get', { congress: 119, chamber: 'house', number: 1 }, 'not_found'],
 ];
 
 describe('the same invalid input fails the same way through dispatch, HTTP and MCP', () => {
