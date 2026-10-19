@@ -26,7 +26,10 @@ export type Freshness = 'fresh' | 'stale' | 'never_succeeded';
 export interface SourceHealth {
   id: string;
   freshness: Freshness;
+  /** Latest successful upstream check: a changed publication or an unchanged recheck. */
   lastSuccessAt: string | null;
+  /** Latest changed publication (the last successful ingest run). */
+  lastChangedAt: string | null;
   ageSeconds: number | null;
   maxAgeSeconds: number;
   lastRunStatus: string | null;
@@ -47,7 +50,12 @@ export interface HealthReport {
   };
 }
 
-/** Pure: how fresh is each source's latest successful run, given `now`. */
+/**
+ * Pure: how fresh is each source, given `now`. Freshness follows the latest successful
+ * upstream check (`freshness.lastSuccessfulCheckAt`, which includes unchanged rechecks), so a
+ * source that keeps validating unchanged data stays fresh. Servers without the field fall back
+ * to the latest successful run.
+ */
 export function assessSources(
   sources: SourcesStatus['sources'],
   now: Date,
@@ -55,7 +63,8 @@ export function assessSources(
 ): SourceHealth[] {
   return sources.map((source) => {
     const maxAgeSeconds = (SOURCE_MAX_AGE_HOURS[source.id] ?? defaultMaxAgeHours) * 3600;
-    const lastSuccessAt = source.lastSuccess?.finishedAt ?? source.lastSuccess?.startedAt ?? null;
+    const lastChangedAt = source.lastSuccess?.finishedAt ?? source.lastSuccess?.startedAt ?? null;
+    const lastSuccessAt = source.freshness?.lastSuccessfulCheckAt ?? lastChangedAt;
     const ageSeconds = lastSuccessAt
       ? Math.max(0, Math.round((now.getTime() - Date.parse(lastSuccessAt)) / 1000))
       : null;
@@ -65,6 +74,7 @@ export function assessSources(
       id: source.id,
       freshness,
       lastSuccessAt,
+      lastChangedAt,
       ageSeconds,
       maxAgeSeconds,
       lastRunStatus: source.lastRun?.status ?? null,

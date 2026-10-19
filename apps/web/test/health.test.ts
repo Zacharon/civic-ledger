@@ -87,7 +87,7 @@ describe('assessSources', () => {
     description: 'x',
     lastRun: lastSuccess,
     lastSuccess,
-    // sources.status freshness fields (evidence trust T-A); health does not read them yet.
+    // sources.status freshness fields (evidence trust T-A).
     freshness: {
       lastAttemptAt: null,
       lastAttemptOutcome: null,
@@ -116,5 +116,28 @@ describe('assessSources', () => {
       ['mystery', 'never_succeeded'],
     ]);
     expect(result[0]?.ageSeconds).toBe(4 * 24 * 3600);
+  });
+
+  it('judges freshness by the latest successful check, not only the last changed publication', () => {
+    const now = new Date('2026-10-05T00:00:00.000Z');
+    const published = run('2026-10-01T00:00:00.000Z'); // 96h old: stale for a 48h source
+    const rechecked = {
+      ...source('congress-legislators', published),
+      freshness: {
+        lastAttemptAt: '2026-10-04T23:00:00.000Z',
+        lastAttemptOutcome: 'unchanged' as const,
+        lastSuccessfulCheckAt: '2026-10-04T23:00:00.000Z', // an unchanged recheck 1h ago
+        lastChangedAt: '2026-10-01T00:00:00.000Z',
+        coverageThrough: null,
+        coverageBasis: null,
+      },
+    };
+    const [result] = assessSources([rechecked], now, 24 * 14);
+    expect(result?.freshness).toBe('fresh');
+    expect(result?.lastSuccessAt).toBe('2026-10-04T23:00:00.000Z');
+    expect(result?.lastChangedAt).toBe('2026-10-01T00:00:00.000Z');
+    // A server without the freshness fields still assesses from lastSuccess.
+    const legacy = { ...source('congress-legislators', published), freshness: undefined };
+    expect(assessSources([legacy as never], now, 24 * 14)[0]?.freshness).toBe('stale');
   });
 });
