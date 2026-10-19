@@ -264,6 +264,25 @@ an owner decision). Prepared monitoring produces GitHub incident drafts and a
 success digest only. Independent uptime monitoring, actual notification delivery
 and owner receipt remain NOT RUN; see DEPLOY_RENDER before activation.
 
+**What the monitor counts as fresh (evidence trust, 2026-10-19).** `sources.status`
+reports, per source and per scope, `freshness` / `scopes[]`: the latest attempt
+(`lastAttemptAt`, `lastAttemptOutcome`: `published`, `unchanged`, `failed`, `running`),
+`lastSuccessfulCheckAt` (latest successful run **or** unchanged check), `lastChangedAt`
+(latest successful run) and `coverageThrough` (the period the data itself covers, e.g.
+the latest Voteview roll-call date; never the check time). A scheduled fetch that finds
+upstream unchanged no longer leaves an `ingest_run` row; it is an `ingest_check`. The
+monitor therefore judges `stale` by `lastSuccessfulCheckAt`, `missed` by `lastAttemptAt`
+and `failed` by `lastAttemptOutcome`, so a successful unchanged check clears an earlier
+failure. `lastRun` / `lastSuccess` keep their v1 meaning (runs only) and are the
+fallback against a server without `freshness`. When `CIVIC_CONGRESS` / `CIVIC_CYCLE` are
+set for the monitor, each scheduled source is judged on its expected scope only
+(`voteview` and `govinfo-billstatus`: `congress:<N>`, `fec-bulk`: `cycle:<N>`,
+`congress-legislators`: `all`): a check of a historical Congress does not make the
+current one fresh, and a failure in a historical scope does not raise a finding. Without
+them the source-level values (any scope) are used. `/api/health` freshness still uses
+`lastSuccess` only (see Health above); an unchanged source can read `degraded` there
+while the monitor reports it current.
+
 ### First 15 minutes
 
 1. **Confirm and classify (0-3 min).** Open `/api/health?strict=1`. Note the time and
@@ -304,7 +323,12 @@ What exists regardless of host:
 
 * Curated data (`data/curated/**`) and code are in git: that is their backup.
 * All database content is derived: sources are public and re-fetchable, raw snapshots
-  are checksummed in `ingest_run`, and loads are idempotent upserts. A total loss can be
+  are checksummed in `ingest_run`, and loads are idempotent upserts. Since migration
+  0006 each run also records `snapshot_locator`, the raw-root-relative directory that
+  holds exactly its snapshot (`<source>/<YYYY-MM-DD>/<runId>-<checksum 12>`); the raw
+  archive (`scripts/backup/raw.ts`) carries those directories and the conditional-request
+  cache, skips in-flight `<source>/.staging/`, and a restore keeps every locator readable
+  with matching checksums (`packages/ingest/test/evidence-raw-restore.test.ts`). A total loss can be
   rebuilt by `pnpm db:migrate` then re-running every ingest, then refreshing the read
   model. That costs hours and depends on upstream availability, so it is the
   fallback, not the plan.
