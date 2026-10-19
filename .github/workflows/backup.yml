@@ -1,0 +1,43 @@
+name: Off-provider backup
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 3,15 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: civic-ledger-production-ops
+  cancel-in-progress: false
+jobs:
+  backup:
+    # A merge alone cannot start production work.
+    if: vars.CIVIC_DEPLOYMENT_ENABLED == 'true' && vars.CIVIC_BACKUPS_ENABLED == 'true'
+    environment: civic-ledger-operations
+    runs-on: [self-hosted, civic-ledger-ops]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Backup and preview retention
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_S3_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}
+          BACKUP_S3_PREFIX: civic-ledger
+          AWS_ENDPOINT_URL: ${{ vars.AWS_ENDPOINT_URL }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          PG_DUMP: ${{ vars.PG_DUMP }}
+          CIVIC_RAW_ROOT: ${{ vars.CIVIC_RAW_ROOT }}
+        run: |
+          pnpm exec tsx scripts/backup/raw.ts backup > "$RUNNER_TEMP/raw-manifest.json"
+          pnpm exec tsx scripts/backup/cli.ts backup > "$RUNNER_TEMP/backup-manifest.json"
+          pnpm exec tsx scripts/backup/cli.ts retention > "$RUNNER_TEMP/retention-preview.json"
+          echo 'Authenticated off-provider archive completed. Retention is preview-only.' >> "$GITHUB_STEP_SUMMARY"
+      # Execute retention separately after reviewing its exact scoped key list.

@@ -1,0 +1,13 @@
+# Build context for scripts/backup/Dockerfile (repository root).
+.git
+node_modules
+**/node_modules
+.next
+**/.next
+.pglite
+data/raw
+apps/web/test-results
+apps/web/screenshots
+.env*
+coverage
+docs/evidence
