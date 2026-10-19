@@ -1,0 +1,54 @@
+name: Operations monitor drafts
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+permissions:
+  contents: read
+  actions: read
+  issues: read
+concurrency:
+  group: civic-ledger-monitor
+  cancel-in-progress: false
+jobs:
+  monitor:
+    if: vars.CIVIC_DEPLOYMENT_ENABLED == 'true' && vars.CIVIC_MONITOR_ENABLED == 'true'
+    environment: civic-ledger-operations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Read current incidents and backup receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api --paginate --slurp 'repos/{owner}/{repo}/issues?state=open&labels=civic-ops&per_page=100' > "$RUNNER_TEMP/open-issues.json"
+          gh api 'repos/{owner}/{repo}/actions/workflows/backup.yml/runs?status=completed&per_page=1' --jq '.workflow_runs[0] | {conclusion}' > "$RUNNER_TEMP/backup-workflow.json"
+      - name: Prepare deduplicated drafts and success digest
+        env:
+          CIVIC_SITE_URL: ${{ vars.CIVIC_SITE_URL }}
+          CIVIC_ALERT_ASSIGNEE: ${{ vars.CIVIC_ALERT_ASSIGNEE }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_S3_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}
+          BACKUP_S3_PREFIX: civic-ledger
+          AWS_ENDPOINT_URL: ${{ vars.AWS_ENDPOINT_URL }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_MONITOR_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_MONITOR_SECRET_ACCESS_KEY }}
+        run: |
+          pnpm exec tsx scripts/monitor/cli.ts --out "$RUNNER_TEMP/ops-drafts" --existing-issues "$RUNNER_TEMP/open-issues.json" --backup-workflow "$RUNNER_TEMP/backup-workflow.json"
+          cat "$RUNNER_TEMP/ops-drafts/digest.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: civic-ledger-ops-drafts
+          path: ${{ runner.temp }}/ops-drafts
+          retention-days: 14
+  # issues:read only; cannot create/comment/close incidents. Delivery and owner
+  # notification receipt require a separate human-approved activation check.

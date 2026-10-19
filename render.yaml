@@ -1,0 +1,49 @@
+# Prepared configuration only. Creating/syncing provisions paid services.
+# Owner must approve the reviewed commit, plans, budget and public name first.
+services:
+  - type: web
+    name: civic-ledger-web
+    runtime: node
+    region: virginia
+    plan: 1c-2g
+    numInstances: 1
+    autoDeployTrigger: off
+    buildCommand: npm install --global pnpm@11.13.1 && pnpm install --frozen-lockfile --prod=false && pnpm --filter @civic-ledger/web build
+    startCommand: pnpm --filter @civic-ledger/web start
+    healthCheckPath: /api/health
+    maxShutdownDelaySeconds: 60
+    envVars:
+      - key: NODE_VERSION
+        value: "24.21.0"
+      - key: NODE_ENV
+        value: production
+      - key: HOSTNAME
+        value: 0.0.0.0
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      # Only civic_web after manual migrations + roles.sql. A fromDatabase
+      # connectionString would inject the schema-owner credential into the web.
+      - key: DATABASE_URL_READONLY
+        sync: false
+      - key: DB_POOL_MAX
+        value: "5"
+      # Initial single bucket; verify actual proxy/header chain before per-client mode.
+      - key: RATE_LIMIT_SINGLE_BUCKET
+        value: "1"
+      - key: DB_STATEMENT_TIMEOUT_MS
+        value: "15000"
+      - key: DB_LOCK_TIMEOUT_MS
+        value: "30000"
+databases:
+  - name: civic-ledger-db
+    region: virginia
+    plan: 0.5c-1g
+    databaseName: civic_ledger
+    user: civic_owner
+    postgresMajorVersion: "17"
+    diskSizeGB: 20
+    connectionPool: none
+    # Closed externally. Allow only the owner's/runner's fixed egress in approved setup.
+    ipAllowList: []
+previews:
+  generation: off
