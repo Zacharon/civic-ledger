@@ -85,9 +85,17 @@ export function verifyRawManifest(value: unknown, secret: string): RawManifest {
     throw new Error('raw manifest authentication failed');
   return m;
 }
+/**
+ * Per-source in-flight download directories (`<source>/.staging/`, packages/ingest
+ * runtime/snapshot.ts): never evidence, so never archived. Retained evidence lives in
+ * `<source>/<YYYY-MM-DD>/<run>-<checksum>/` (or legacy `<source>/<YYYY-MM-DD>/`), and the
+ * conditional-request cache in `<source>/http-cache.json` and `<source>/.http-cache/`.
+ */
+const STAGING_DIR = '.staging';
 async function filesIn(root: string, path = ''): Promise<string[]> {
   const output: string[] = [];
   for (const entry of await readdir(join(root, path), { withFileTypes: true })) {
+    if (path && !path.includes('/') && entry.name === STAGING_DIR && entry.isDirectory()) continue;
     const relative = path ? `${path}/${entry.name}` : entry.name;
     checkRelative(relative);
     if (entry.isSymbolicLink())

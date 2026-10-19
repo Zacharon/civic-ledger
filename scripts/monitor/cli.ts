@@ -9,6 +9,7 @@ import {
   assess,
   digest,
   type ExistingIssue,
+  expectedScopesFromEnv,
   issueDrafts,
   normalizeSources,
   type Observation,
@@ -126,6 +127,7 @@ async function main() {
       backupAuthenticated,
       rawBackupTakenAt,
       rawBackupAuthenticated,
+      expectedScopes: expectedScopesFromEnv(process.env),
     };
   }
   if (values['backup-workflow']) {

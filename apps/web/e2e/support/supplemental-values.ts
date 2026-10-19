@@ -377,6 +377,17 @@ export async function checkSources(page: Page, baseUrl: string, agreed: Agreed) 
     const item = page.locator(`[data-source="${source.id}"]`);
     await expect(item.getByRole('heading')).toHaveText(source.name);
     await text(item, source.license);
+    // Check time, change time and data coverage are distinct values, each shown as given.
+    const f = source.freshness;
+    expect(await raw(item.locator('[data-checked]'))).toEqual(f.lastSuccessfulCheckAt);
+    await text(
+      item.locator('[data-checked]'),
+      formatDate(f.lastSuccessfulCheckAt) ?? 'Not yet checked',
+    );
+    expect(await raw(item.locator('[data-changed]'))).toEqual(f.lastChangedAt);
+    await text(item.locator('[data-changed]'), formatDate(f.lastChangedAt) ?? 'Never');
+    expect(await raw(item.locator('[data-covers]'))).toEqual(f.coverageThrough);
+    await text(item.locator('[data-covers]'), formatDate(f.coverageThrough) ?? 'No date');
     const counts = source.lastRun?.counts ?? {};
     const observed = await keyed(item.locator('[data-count]'), 'data-count');
     expect(Object.fromEntries(observed as [string, unknown][])).toEqual(counts);

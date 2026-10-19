@@ -30,7 +30,7 @@ pnpm ingest all --db .pglite/live --migrate          # local PGlite, applies mig
 DATABASE_URL=postgres://... pnpm db:migrate && pnpm ingest all   # Postgres
 pnpm ingest voteview --allow-shrink                  # commit a load the shrink guard refused
 pnpm ingest voteview --congress 119                  # one source
-pnpm ingest fec-bulk --snapshot data/raw/fec-bulk/2026-10-16   # reload files already on disk
+pnpm ingest fec-bulk --snapshot data/raw/fec-bulk/2026-10-19/42-0123456789ab   # reload a retained snapshot (receipt snapshotLocator)
 pnpm ingest:report --db .pglite/live                 # data-quality report (read-only)
 pnpm curate:validate                                 # check curated YAML before a PR
 ```
@@ -45,24 +45,38 @@ with `runId`, `source` and `scope` on every line (`LOG_LEVEL=debug` for more). E
    in-process). A second run of the same source is refused with
    `conflict: run_in_progress`. Rows left `running` by a dead process are marked failed.
 2. Writes the `ingest_run` row (`running`) before fetching anything.
-3. Downloads into `data/raw/<source>/<YYYY-MM-DD>/` (gitignored) with a `manifest.json`
-   (sha256 per file, upstream run ids, snapshot checksum). Requests use a timeout,
-   at most 3 retries with full-jitter backoff on 429/5xx/network errors only, follow
-   redirects (FEC → S3) and send `If-None-Match` / `If-Modified-Since` from
-   `data/raw/<source>/http-cache.json`. A cached copy is offered for that 304 reuse only
-   if it still matches its recorded size and sha256 and is within the current
-   `INGEST_MAX_DOWNLOAD_BYTES`; otherwise the file is fetched in full (A65).
+3. Downloads into a staging directory `data/raw/<source>/.staging/<runId>-<random>/`
+   (gitignored) and writes its `manifest.json` there (sha256 per file, upstream run ids,
+   snapshot checksum, plus `run_id` and `scope`). Requests use a timeout, at most 3
+   retries with full-jitter backoff on 429/5xx/network errors only, follow redirects
+   (FEC → S3) and send `If-None-Match` / `If-Modified-Since` from
+   `data/raw/<source>/http-cache.json`; the body a 304 reuses is a separate copy in
+   `data/raw/<source>/.http-cache/`, never a retained snapshot. A cached copy is offered
+   for that 304 reuse only if it still matches its recorded size and sha256 and is within
+   the current `INGEST_MAX_DOWNLOAD_BYTES`; otherwise the file is fetched in full (A65).
+   A failed or cancelled download removes its staging directory.
 4. If (source, adapter version, snapshot checksum) is the key of the latest successful
    run of the scope (also when that run was a `--force-replay`), the provisional row is
-   dropped and that run's receipt is returned with `"deduplicated": true`. If the key
-   succeeded earlier but a later run superseded it, the run is refused with
-   `snapshot_superseded` (see "How to rerun").
-5. Opens **one transaction** (DECISIONS A50) and, inside it: streams, parses and upserts
+   dropped and that run's receipt is returned with `"deduplicated": true`. A fetched
+   repeat also records an `ingest_check` (`outcome: unchanged`, the publication run, the
+   attempt's start and check time), returned as the receipt's `check`, and discards the
+   duplicate staged files (the publication's own evidence is already retained). If the
+   publication has no retained evidence (it predates migration 0006), the copy is kept as
+   `data/raw/<source>/<YYYY-MM-DD>/check-<checkId>-<checksum 12>/` instead. A `--snapshot`
+   repeat records no check (it is not an upstream check). If the key succeeded earlier but
+   a later run superseded it, the run is refused with `snapshot_superseded` (see "How to
+   rerun").
+5. Otherwise renames the staging directory, in one step, to the run's immutable evidence
+   directory `data/raw/<source>/<YYYY-MM-DD>/<runId>-<checksum first 12>/` and stores that
+   path (relative to the raw root) as the run's `snapshot_locator`, returned as the
+   receipt's `snapshotLocator`, before anything is loaded. Nothing writes into a retained
+   directory again. `--snapshot <dir>` runs record the absolute directory instead.
+6. Opens **one transaction** (DECISIONS A50) and, inside it: streams, parses and upserts
    in batches (each a savepoint), stages FEC pas2/IE rows and dedupes them in SQL
    (A53), deletes rows the source no longer asserts (A18), runs the shrink guard (below),
    refreshes `person_card` and `person_card_scorecard` (`CONCURRENTLY`: readers keep the
    old rows), and writes the `succeeded` receipt with counts and refresh times.
-6. Commits. Facts, both read models and the receipt become visible together. Any error,
+7. Commits. Facts, both read models and the receipt become visible together. Any error,
    refusal, Ctrl-C or deadline before this point rolls all of it back; the receipt then
    says `failed` or `cancelled`. Written before the transaction (and kept on failure):
    the `source` metadata row and the `running` receipt with its snapshot checksum.
@@ -186,7 +200,8 @@ receipt counts what was withdrawn.
 - **Replaying an older snapshot is not a restore.** If snapshot A succeeded, then B, then
   A is offered again, the run is refused (`snapshot_superseded`) and B's data stays. To
   load A again as a new run (receipt `replayOf` = A's run), pass `--force-replay`:
-  `pnpm ingest <source> --snapshot data/raw/<source>/<date> --force-replay`. It is a new
+  `pnpm ingest <source> --snapshot data/raw/<source>/<date>/<runId>-<checksum> --force-replay`
+  (the run's `snapshotLocator`). It is a new
   load under the shrink guard, not a rewind of other sources or of curated data.
 - Reload a saved snapshot after restoring a database: `--snapshot` as above (add
   `--force-replay` if the restored ledger already lists it as superseded). Snapshot
@@ -194,9 +209,18 @@ receipt counts what was withdrawn.
 - Re-parse unchanged files after a parser/loader fix: bump `version` in the adapter's
   `index.ts` (it is part of the idempotency key), then run the source and every source
   after it in the order above.
-- Raw snapshots are one directory per source and UTC day; a second download on the same
-  day with changed content replaces that day's files (the earlier run keeps its checksum
-  in the ledger).
+- Every fetched snapshot is kept in its own directory, named by the receipt's
+  `snapshotLocator` (`<source>/<YYYY-MM-DD>/<runId>-<checksum 12>`), so two changed
+  downloads on one day, or two scopes on one day, never share or overwrite files. A run
+  that later failed to parse, was cancelled or failed to publish keeps its directory for
+  diagnosis; it never touches another run's. Cleanup is manual and is not done by any
+  command: a directory whose run is `failed` or `cancelled` may be deleted once diagnosed;
+  a directory named by a `succeeded` run is that receipt's evidence. Leftovers under
+  `<source>/.staging/` belong to a process that died mid-download and may be deleted while
+  no ingest is running (they are never archived). Directories written before migration
+  0006 (`<source>/<YYYY-MM-DD>/` with files directly inside) still load with `--snapshot`;
+  their runs have `snapshot_locator` null, and a later same-day run may have overwritten
+  them.
 
 ## Data-quality checks after a load
 
