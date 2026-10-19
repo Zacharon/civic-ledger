@@ -44,6 +44,18 @@ export function createLogger({ level, destination }: LoggerOptions = {}): Logger
   );
 }
 
+/**
+ * Runs one diagnostic write. A failing sink (a throwing destination or logger) must never
+ * replace the response the caller was about to give, and its error is not re-logged anywhere.
+ */
+export function logSafely(write: () => void): void {
+  try {
+    write();
+  } catch {
+    // Diagnostics are best effort; the HTTP outcome is not.
+  }
+}
+
 export function safeErrorFields(error: unknown): { type: string; code?: string } {
   const codes = new Set(['invalid_input', 'not_found', 'conflict', 'rate_limited', 'internal']);
   const types = new Set(['Error', 'TypeError', 'RangeError', 'SyntaxError', 'CapabilityError']);
