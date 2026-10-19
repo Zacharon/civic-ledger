@@ -67,6 +67,8 @@ beforeAll(async () => {
       { party: 'Harbor Party', limit: 3 },
     ],
     'people.get': [{ slug: a }, { slug: b }],
+    'people.glance': [{ slug: a }, { slug: b }],
+    'explainers.list': [{}, { id: 'pac' }],
     'people.compare': [{ slugs: [a, b] }, { slugs: [a, b, c] }],
     'explore.table': [
       {},

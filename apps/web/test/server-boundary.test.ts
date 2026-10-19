@@ -2,7 +2,7 @@ import { once } from 'node:events';
 import type { Server } from 'node:http';
 import { connect } from 'node:net';
 import { describe, expect, it } from 'vitest';
-import { createBoundedServer, loadServerTimeouts } from '../server.mjs';
+import { createBoundedServer, loadServerAddress, loadServerTimeouts } from '../server.mjs';
 
 async function listening(server: Server): Promise<number> {
   server.listen(0, '127.0.0.1');
@@ -18,6 +18,14 @@ async function close(server: Server) {
 }
 
 describe('production HTTP server budgets', () => {
+  it('preserves explicit port and hostname flags over environment defaults', () => {
+    expect(loadServerAddress(['-p', '3400', '-H', '127.0.0.1'], { PORT: '3000' })).toEqual({
+      port: 3400,
+      hostname: '127.0.0.1',
+    });
+    expect(loadServerAddress([], {})).toEqual({ port: 3000, hostname: '0.0.0.0' });
+    expect(() => loadServerAddress(['-p', '0'], {})).toThrow();
+  });
   it('refuses invalid and disabled budgets', () => {
     expect(loadServerTimeouts({}).requestTimeout).toBe(30_000);
     for (const value of ['0', '-1', 'NaN', '100ms', '1000000']) {

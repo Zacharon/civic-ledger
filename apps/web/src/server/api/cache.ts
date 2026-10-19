@@ -22,6 +22,8 @@ const TIMES: Record<Exclude<CacheClass, 'none'>, CacheTimes> = {
 export const CACHE_CLASS: Partial<Record<CapabilityName, CacheClass>> = {
   'people.search': 'data',
   'people.get': 'data',
+  'people.glance': 'data',
+  'explainers.list': 'reference',
   'people.compare': 'data',
   'explore.table': 'data',
   'explore.facets': 'data',

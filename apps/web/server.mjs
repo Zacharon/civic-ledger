@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { parseArgs } from 'node:util';
 import { requestIdFrom } from './src/server/api/request-id.ts';
 
 function integer(env, name, fallback) {
@@ -22,6 +23,19 @@ export function loadServerTimeouts(env = process.env) {
     throw new Error('HTTP_HEADERS_TIMEOUT_MS must not exceed HTTP_REQUEST_TIMEOUT_MS');
   }
   return config;
+}
+
+export function loadServerAddress(args = process.argv.slice(2), env = process.env) {
+  const { values } = parseArgs({
+    args,
+    options: {
+      port: { type: 'string', short: 'p' },
+      hostname: { type: 'string', short: 'H' },
+    },
+  });
+  const port = Number(values.port ?? env.PORT ?? 3000);
+  if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error('Invalid PORT');
+  return { port, hostname: values.hostname ?? env.HOSTNAME ?? '0.0.0.0' };
 }
 
 /** A small native Node boundary; Next continues to own routing and all application rules. */
@@ -78,9 +92,7 @@ export function createBoundedServer(handler, env = process.env) {
 
 async function main() {
   process.env.NODE_ENV ??= 'production';
-  const port = Number(process.env.PORT ?? 3000);
-  if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error('Invalid PORT');
-  const hostname = process.env.HOSTNAME || '0.0.0.0';
+  const { port, hostname } = loadServerAddress();
   const { default: next } = await import('next');
   const app = next({
     dev: false,
