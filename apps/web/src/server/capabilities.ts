@@ -7,10 +7,14 @@ import {
   dispatch,
   registry,
 } from '@civic-ledger/core';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { cache } from 'react';
+import { requestIdFrom } from './api/request-id';
+import { apiLogger } from './api/runtime';
 import { webContext } from './db';
+import { observedRead } from './observed-read';
 
 /**
  * The web UI's only path to data: core capabilities through the registry.
@@ -24,7 +28,13 @@ const cachedRead = cache(async (name: CapabilityName, inputJson: string) => {
   if (capability.audience !== 'public') {
     throw new CapabilityError('not_found', `Capability "${name}" is not public`);
   }
-  return dispatch(name, JSON.parse(inputJson), webContext());
+  const requestId = requestIdFrom(new Headers(await headers()));
+  return observedRead(
+    name,
+    requestId,
+    () => dispatch(name, JSON.parse(inputJson), webContext()),
+    apiLogger(),
+  );
 });
 
 /** Runs a public read capability for the current request (always dynamic: data changes). */

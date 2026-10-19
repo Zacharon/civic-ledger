@@ -23,7 +23,9 @@ export function createLogger({ level, destination }: LoggerOptions = {}): Logger
       base: { service: 'civic-ledger-web' },
       timestamp: pino.stdTimeFunctions.isoTime,
       formatters: { level: (label) => ({ level: label }) },
-      serializers: { err: pino.stdSerializers.err },
+      // Driver errors can embed connection URLs, SQL and parameters in both message
+      // and stack. Keep a category and SQLSTATE, never serialize the raw exception.
+      serializers: { err: safeErrorFields },
       redact: {
         paths: [
           'headers.authorization',
@@ -40,4 +42,22 @@ export function createLogger({ level, destination }: LoggerOptions = {}): Logger
     },
     destination,
   );
+}
+
+export function safeErrorFields(error: unknown): { type: string; code?: string } {
+  const codes = new Set(['invalid_input', 'not_found', 'conflict', 'rate_limited', 'internal']);
+  const types = new Set(['Error', 'TypeError', 'RangeError', 'SyntaxError', 'CapabilityError']);
+  try {
+    const entry = error as { name?: unknown; code?: unknown } | null;
+    const type = typeof entry?.name === 'string' && types.has(entry.name) ? entry.name : 'Error';
+    const code = entry?.code;
+    return {
+      type,
+      ...(typeof code === 'string' && (codes.has(code) || /^[0-9A-Z]{5}$/.test(code))
+        ? { code }
+        : {}),
+    };
+  } catch {
+    return { type: 'Error' };
+  }
 }

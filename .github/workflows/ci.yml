@@ -146,3 +146,45 @@ jobs:
           name: playwright-test-results
           path: apps/web/test-results
           retention-days: 7
+
+  # Run the previous real app against today's migrated DB, and parse today's legacy
+  # API payloads using the previous app's actual output schemas. New capabilities
+  # naturally disappear on rollback; that is not transparent to clients using them.
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      PG_TEST_URL: postgres://postgres:postgres@localhost:5432/postgres
+      ROLLBACK_BASELINE_ROOT: ${{ github.workspace }}/rollback-baseline
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          ref: 8ff55923e486271130557791a457f1c1a13e71a0
+          path: rollback-baseline
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
+        working-directory: rollback-baseline
+      - run: pnpm --filter @civic-ledger/web build
+      - run: pnpm --filter @civic-ledger/web build
+        working-directory: rollback-baseline
+      - run: pnpm --filter @civic-ledger/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @civic-ledger/web exec playwright test --config playwright.rollback.config.ts

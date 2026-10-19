@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node server.mjs",
     "typecheck": "next typegen && tsc --noEmit",
     "test:e2e": "next build && playwright test --project=desktop --project=performance",
     "screenshots": "next build && playwright test --project=screenshots",

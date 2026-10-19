@@ -44,7 +44,7 @@ jobs:
           pnpm exec tsx ../../packages/db/src/cli/migrate.ts
           pnpm exec tsx ../../packages/db/src/cli/seed.ts
           pnpm build
-          nohup pnpm exec next start -p "$PORT" > "$RUNNER_TEMP/next.log" 2>&1 &
+          nohup pnpm start > "$RUNNER_TEMP/next.log" 2>&1 &
           for i in $(seq 1 30); do
             curl -fsS "http://localhost:$PORT/api/health" > /dev/null && exit 0
             sleep 1

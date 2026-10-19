@@ -6,6 +6,7 @@ import {
   publicCapabilities,
 } from '@civic-ledger/core';
 import { z } from 'zod';
+import { BodyDeadlineError, bodyReadTimeoutMs, readJsonBody } from './body';
 import { cacheControlFor, etagOf, matchesEtag } from './cache';
 import { baseHeaders, CORS_PREFLIGHT_HEADERS, errorResponse, toCapabilityError } from './http';
 import type { Logger } from './logger';
@@ -14,7 +15,8 @@ import { requestIdFrom } from './request-id';
 
 /** Capabilities whose input is a document rather than a handful of scalars are POSTed as JSON. */
 const POST_CAPABILITIES: ReadonlySet<string> = new Set(['frameworks.evaluate']);
-export const MAX_BODY_BYTES = 256 * 1024;
+
+export { MAX_BODY_BYTES } from './body';
 
 const inputSchemas = new WeakMap<Capability, z.core.JSONSchema.JSONSchema>();
 
@@ -31,45 +33,19 @@ export function allowedMethodFor(capabilityName: string): 'GET' | 'POST' {
   return POST_CAPABILITIES.has(capabilityName) ? 'POST' : 'GET';
 }
 
-function invalidBody(message: string): CapabilityError {
-  return new CapabilityError('invalid_input', message, { issues: [{ path: '', message }] });
-}
-
-async function readJsonBody(request: Request): Promise<unknown> {
-  if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) {
-    throw invalidBody('Content-Type must be application/json');
-  }
-  const declared = Number(request.headers.get('content-length') ?? 0);
-  if (declared > MAX_BODY_BYTES) throw invalidBody(`Body exceeds ${MAX_BODY_BYTES} bytes`);
-
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  const reader = request.body?.getReader();
-  while (reader) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > MAX_BODY_BYTES) {
-      await reader.cancel();
-      throw invalidBody(`Body exceeds ${MAX_BODY_BYTES} bytes`);
-    }
-    chunks.push(value);
-  }
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
-  } catch {
-    throw invalidBody('Body must be valid JSON');
-  }
-}
-
-async function readInput(request: Request, capability: Capability): Promise<unknown> {
-  if (allowedMethodFor(capability.name) === 'POST') return readJsonBody(request);
+async function readInput(
+  request: Request,
+  capability: Capability,
+  timeoutMs: number,
+): Promise<unknown> {
+  if (allowedMethodFor(capability.name) === 'POST') return readJsonBody(request, timeoutMs);
   return coerceQuery(inputJsonSchema(capability), new URL(request.url).searchParams);
 }
 
 export interface HandlerDeps {
   context: () => CapabilityContext | Promise<CapabilityContext>;
   logger: Logger;
+  bodyReadTimeoutMs?: number;
 }
 
 export type CapabilityHandler = (request: Request, capabilityName: string) => Promise<Response>;
@@ -80,7 +56,13 @@ export type CapabilityHandler = (request: Request, capabilityName: string) => Pr
  * `dispatchByName` and maps the result or CapabilityError to HTTP. Output is whatever the
  * capability's output schema let through.
  */
-export function createCapabilityHandler({ context, logger }: HandlerDeps): CapabilityHandler {
+export function createCapabilityHandler({
+  context,
+  logger,
+  bodyReadTimeoutMs: timeout,
+}: HandlerDeps): CapabilityHandler {
+  const timeoutMs = timeout ?? bodyReadTimeoutMs();
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw new Error('Invalid body deadline');
   const publicByName = new Map(publicCapabilities().map((c) => [c.name, c]));
 
   async function respond(
@@ -103,7 +85,7 @@ export function createCapabilityHandler({ context, logger }: HandlerDeps): Capab
       );
     }
 
-    const input = await readInput(request, capability);
+    const input = await readInput(request, capability, timeoutMs);
     const result = await dispatchByName(capability.name, input, await context());
 
     const body = JSON.stringify(result);
@@ -128,19 +110,28 @@ export function createCapabilityHandler({ context, logger }: HandlerDeps): Capab
       response = await respond(request, capabilityName, requestId);
     } catch (error) {
       failure = toCapabilityError(error);
-      response = errorResponse(failure, requestId);
+      response = errorResponse(
+        failure,
+        requestId,
+        {},
+        error instanceof BodyDeadlineError ? 408 : undefined,
+      );
     }
     const fields = {
       requestId,
-      capability: capabilityName,
+      capability: publicByName.has(capabilityName) ? capabilityName : 'unknown',
       method: request.method,
       status: response.status,
       durationMs: Math.round(performance.now() - started),
     };
-    if (failure?.code === 'internal') {
-      logger.error({ ...fields, err: failure.cause ?? failure }, 'request failed');
-    } else {
-      logger.info(fields, 'request');
+    try {
+      if (failure?.code === 'internal') {
+        logger.error({ ...fields, err: failure.cause ?? failure }, 'request failed');
+      } else {
+        logger.info(fields, 'request');
+      }
+    } catch {
+      // Keep the HTTP outcome if the diagnostic sink fails; never dump a raw fallback.
     }
     return response;
   };
