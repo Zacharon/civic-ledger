@@ -37,7 +37,11 @@ export async function evidenceServer(fixtureDir: string): Promise<EvidenceServer
         const name = String(input).split('/').at(-1) ?? '';
         const headers = (init?.headers ?? {}) as Record<string, string>;
         const conditional = Boolean(headers['if-none-match']);
-        const answer = (status: number, body: BodyInit | null, h: Record<string, string> = {}) => {
+        const answer = (
+          status: number,
+          body: string | Uint8Array<ArrayBuffer> | null,
+          h: Record<string, string> = {},
+        ) => {
           server.requests.push({ name, conditional, status });
           return new Response(body, { status, headers: h });
         };

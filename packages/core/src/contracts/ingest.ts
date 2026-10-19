@@ -59,7 +59,9 @@ export type IngestRunInput = z.infer<typeof IngestRunInputSchema>;
  * snapshotChecksum): a repeat of the key of the current generation (the latest successful
  * run of the scope, a forced replay included) returns that run with `deduplicated: true`;
  * a key that succeeded earlier but was superseded by a later successful run of the same
- * scope is refused (`snapshot_superseded`) unless `forceReplay` is set.
+ * scope is refused (`snapshot_superseded`) unless `forceReplay` is set. A deduplicated
+ * fetch also records an `ingest_check` (returned in `check`); the publication row is
+ * never rewritten.
  */
 export const IngestRunReceiptSchema = z.object({
   runId: z.int(),
@@ -81,6 +83,18 @@ export const IngestRunReceiptSchema = z.object({
   note: z.string().nullable(),
   /** `forceReplay`: the earlier successful run whose snapshot this run reloaded. */
   replayOf: z.int().nullable(),
+  /**
+   * Where the run's raw evidence is retained (migration 0006): relative to the raw root
+   * for a fetched snapshot (`<source>/<YYYY-MM-DD>/<runId>-<checksum first 12>`), or the
+   * absolute `--snapshot` directory. Null for runs that predate 0006 or failed before
+   * their snapshot was complete.
+   */
+  snapshotLocator: z.string().nullable(),
+  /**
+   * Set on a deduplicated fetch: the `ingest_check` that recorded this successful
+   * upstream check against the (unchanged) publication this receipt describes.
+   */
+  check: z.object({ id: z.int(), checkedAt: IsoDateTimeSchema }).nullable(),
 });
 export type IngestRunReceipt = z.infer<typeof IngestRunReceiptSchema>;
 

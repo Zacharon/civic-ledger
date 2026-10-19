@@ -1,5 +1,5 @@
-import { readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { copyFile, mkdir, readdir, writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { dispatch, type IngestRunReceipt, type IngestScope } from '@civic-ledger/core';
 import type { DbHandle } from '@civic-ledger/db';
 import { sql } from 'drizzle-orm';
@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { SourceAdapter } from '../src/adapter';
 import { ADAPTERS } from '../src/adapters/registry';
 import { type IngestRuntime, runIngest } from '../src/runtime/run';
+import { MANIFEST_FILE } from '../src/runtime/snapshot';
 import { freshDb, ingestFixture, rows, SCOPES, tableCounts, testRuntime } from './helpers';
 import {
   type EvidenceServer,
@@ -99,12 +100,14 @@ describe('raw evidence retention (F1)', () => {
     await expectEvidenceIntact(rt.rawRoot, good);
 
     // 1. Parse failure: upstream publishes malformed JSON.
+    const pristine = server.files.get(CURRENT) as Buffer;
     server.files.set(CURRENT, Buffer.from('[{"id": '));
     const parseFailure = await fetchRun(rt, 'congress-legislators');
     expect(parseFailure.status).toBe('failed');
     await expectEvidenceIntact(rt.rawRoot, good);
 
     // 2. Cancelled load: a changed file, aborted part-way through the load.
+    server.files.set(CURRENT, pristine);
     publish(server, 'Evidence Marker Cancelled');
     const abort = new AbortController();
     const cancelled = (await runIngest(
@@ -162,6 +165,58 @@ describe('raw evidence retention (F1)', () => {
       'HS119_rollcalls.csv',
       'HS119_votes.csv',
     ]);
+  });
+});
+
+describe('staging cleanup', () => {
+  it('a failed fetch leaves no staged files and records no locator', async () => {
+    const server = await legislatorsServer();
+    server.failWith = 503;
+    const rt = await testRuntime(handle, { http: server.deps });
+    const failed = await fetchRun(rt, 'congress-legislators');
+    expect(failed).toMatchObject({ status: 'failed', snapshotLocator: null, check: null });
+    expect(await readdir(join(rt.rawRoot, 'congress-legislators', '.staging'))).toEqual([]);
+  });
+});
+
+describe('compatibility (A55)', () => {
+  it('a legacy <source>/<date> directory and a retained locator directory both load with --snapshot', async () => {
+    const server = await legislatorsServer();
+    const rt = await testRuntime(handle, { http: server.deps });
+    const fetched = await fetchRun(rt, 'congress-legislators');
+    const locator = join(rt.rawRoot, ...(fetched.snapshotLocator ?? '').split('/'));
+
+    // Legacy layout: files and an unversioned manifest directly in <source>/<date>.
+    const legacy = join(rt.rawRoot, 'congress-legislators', '2026-10-01');
+    await mkdir(legacy, { recursive: true });
+    for (const name of await readdir(locator)) {
+      if (name !== MANIFEST_FILE) await copyFile(join(locator, name), join(legacy, name));
+    }
+    await writeFile(
+      join(legacy, MANIFEST_FILE),
+      JSON.stringify({ source: 'congress-legislators', files: [] }),
+    );
+    const fromLegacy = (await ingestFixture(rt, 'congress-legislators', legacy)) as Receipt;
+    // Same bytes as the publication: deduplicated, and not recorded as an upstream check.
+    expect(fromLegacy).toMatchObject({ runId: fetched.runId, deduplicated: true, check: null });
+
+    // A new-layout directory (manifest with additive v1 fields) replays as a new run.
+    const replay = (await runIngest(
+      {
+        source: 'congress-legislators',
+        scope: SCOPES['congress-legislators'],
+        snapshotPath: locator,
+        forceReplay: true,
+      },
+      rt,
+    )) as Receipt;
+    expect(replay).toMatchObject({ status: 'succeeded', replayOf: fetched.runId });
+    expect(replay.snapshotLocator).toBe(resolve(locator));
+    expect(await rows(handle.db, sql`select count(*)::int as n from ingest_check`)).toEqual([
+      { n: 0 },
+    ]);
+    // Replaying from the retained directory did not write into it.
+    await expectEvidenceIntact(rt.rawRoot, fetched);
   });
 });
 

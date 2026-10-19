@@ -25,6 +25,7 @@ import {
   latestSucceededRunIds,
   readModelRefreshedAt,
   reapAbandonedRuns,
+  recordUnchangedCheck,
   startRun,
   toReceipt,
   updateRun,
@@ -40,7 +41,13 @@ import {
   type ShrinkGuardConfig,
   ShrinkGuardError,
 } from './shrink-guard';
-import { fetchSnapshot, snapshotFromDirectory } from './snapshot';
+import {
+  discardStagedSnapshot,
+  finalizeSnapshot,
+  retainedEvidenceMatches,
+  snapshotFromDirectory,
+  stageSnapshot,
+} from './snapshot';
 
 export type AdapterRegistry = Partial<Record<SourceId, SourceAdapter<unknown>>>;
 
@@ -71,10 +78,13 @@ type RunRow = Parameters<typeof toReceipt>[0];
  * 1. upsert the source's metadata row, take the per-source lock or refuse with
  *    `conflict: run_in_progress`;
  * 2. write the ledger row (`running`) before any fetch, so every attempt leaves a receipt;
- * 3. fetch or hash the snapshot; a key equal to the current generation (the latest
- *    successful run of this scope, forced replays included) returns that run
- *    (`deduplicated: true`); a key that succeeded earlier but was superseded is refused
- *    unless `forceReplay` (DECISIONS A54);
+ * 3. fetch into a staging directory (or hash a `--snapshot` directory); a key equal to
+ *    the current generation (the latest successful run of this scope, forced replays
+ *    included) returns that run (`deduplicated: true`) and, for a fetch, records an
+ *    `ingest_check` instead of a run; a key that succeeded earlier but was superseded is
+ *    refused unless `forceReplay` (DECISIONS A54). Otherwise the staged snapshot is
+ *    renamed to its immutable evidence directory and its locator stored on the run before
+ *    any load (evidence trust, T-A);
  * 4. ONE transaction (DECISIONS A50): load (adapter batches are savepoints), shrink guard,
  *    refresh both read models, write the `succeeded` receipt. Facts, read models and
  *    receipt commit together or not at all; the commit is the only irrevocable step;
@@ -125,20 +135,23 @@ export async function runIngest(rawInput: unknown, rt: IngestRuntime): Promise<I
     log.info({ adapterVersion: adapter.version }, 'ingest run started');
     const started = performance.now();
 
+    // A fetched snapshot still in staging: finalized or discarded below, or on failure.
+    let staged: RawSnapshot | null = null;
     try {
-      const snapshot = await takeSnapshot(adapter, input, rt, control, log, db);
+      const taken = await takeSnapshot(adapter, input, rt, control, log, db, run.id);
+      if (!input.snapshotPath) staged = taken;
       log.info(
         {
-          checksum: snapshot.checksum,
-          directory: snapshot.directory,
-          files: snapshot.files.length,
+          checksum: taken.checksum,
+          directory: taken.directory,
+          files: taken.files.length,
         },
         'snapshot ready',
       );
       const key = {
         sourceId: input.source,
         adapterVersion: adapter.version,
-        snapshotChecksum: snapshot.checksum,
+        snapshotChecksum: taken.checksum,
       };
       // The current generation decides idempotency (DECISIONS A54, H3R2-01): a key equal to
       // the latest successful run of this scope returns that run, even when it was a
@@ -149,16 +162,60 @@ export async function runIngest(rawInput: unknown, rt: IngestRuntime): Promise<I
         // With no success in this scope yet, an earlier run of the key is returned as before.
         const loaded = current ? (sameSnapshot(current, key) ? current : null) : original;
         if (loaded) {
-          await deleteRun(db, run.id);
-          log.info({ currentRunId: loaded.id }, 'snapshot already loaded; returning current run');
-          return toReceipt(loaded, true);
+          if (!staged) {
+            // A `--snapshot` reload is not an upstream check: nothing is recorded.
+            await deleteRun(db, run.id);
+            log.info({ currentRunId: loaded.id }, 'snapshot already loaded; returning current run');
+            return toReceipt(loaded, true);
+          }
+          const check = await recordUnchangedCheck(db, {
+            provisionalRunId: run.id,
+            publication: loaded,
+            scope: run.scope,
+            adapterVersion: adapter.version,
+            snapshotChecksum: taken.checksum,
+            startedAt: run.startedAt,
+          });
+          const retained = await retainedEvidenceMatches(
+            rt.rawRoot,
+            loaded.snapshotLocator,
+            taken.checksum,
+          );
+          const pending = staged;
+          staged = null;
+          if (retained) {
+            // Same bytes are already retained under the publication's locator.
+            await discardStagedSnapshot(rt.rawRoot, pending);
+          } else {
+            // The publication predates 0006 (or lost its evidence): keep this copy.
+            const kept = await finalizeSnapshot(rt.rawRoot, pending, `check-${check.id}`);
+            log.warn(
+              { checkId: check.id, locator: kept.locator },
+              'publication has no retained evidence; kept the unchanged copy',
+            );
+          }
+          log.info(
+            { currentRunId: loaded.id, checkId: check.id },
+            'snapshot unchanged; recorded a check and returned the current run',
+          );
+          return toReceipt(loaded, true, check);
         }
+      }
+      let snapshot = taken;
+      let snapshotLocator = taken.directory;
+      if (staged) {
+        const pending = staged;
+        staged = null;
+        const kept = await finalizeSnapshot(rt.rawRoot, pending, String(run.id));
+        snapshot = kept.snapshot;
+        snapshotLocator = kept.locator;
       }
       if (original && current && !input.forceReplay) {
         const refused = await finishRun(db, run.id, {
           status: 'failed',
           finishedAt: new Date(),
           snapshotChecksum: snapshot.checksum,
+          snapshotLocator,
           error:
             `${SNAPSHOT_SUPERSEDED}: this snapshot was loaded by run ${original.id}, but run ${current.id} ` +
             `has loaded other data for ${run.scope} since. Replaying it is not a restore; nothing was ` +
@@ -171,7 +228,7 @@ export async function runIngest(rawInput: unknown, rt: IngestRuntime): Promise<I
         return toReceipt(refused, false);
       }
 
-      await updateRun(db, run.id, { snapshotChecksum: snapshot.checksum });
+      await updateRun(db, run.id, { snapshotChecksum: snapshot.checksum, snapshotLocator });
       control.checkpoint();
       const done = await db.transaction((tx) =>
         loadAndPublish(tx, {
@@ -191,6 +248,11 @@ export async function runIngest(rawInput: unknown, rt: IngestRuntime): Promise<I
       );
       return toReceipt(done, false);
     } catch (error) {
+      if (staged) {
+        await discardStagedSnapshot(rt.rawRoot, staged).catch((cleanup: unknown) =>
+          log.warn({ err: cleanup }, 'could not remove the staged snapshot'),
+        );
+      }
       const cancelled = control.cancellationReason();
       const message = cancelled
         ? `cancelled: ${cancelled}. Rolled back; nothing was committed.`
@@ -221,6 +283,7 @@ async function takeSnapshot(
   control: RunControl,
   log: Logger,
   db: Db,
+  runId: number,
 ): Promise<RawSnapshot> {
   control.checkpoint();
   const plan = await adapter.plan(input.scope, {
@@ -232,7 +295,7 @@ async function takeSnapshot(
   const upstream = await latestSucceededRunIds(db, adapter.dependsOn);
   const snapshot = input.snapshotPath
     ? await snapshotFromDirectory(plan, resolve(input.snapshotPath), upstream, control.signal)
-    : await fetchSnapshot(
+    : await stageSnapshot(
         plan,
         {
           rawDir: rt.rawRoot,
@@ -241,9 +304,15 @@ async function takeSnapshot(
           maxDownloadBytes: rt.limits?.maxDownloadBytes ?? DEFAULT_LIMITS.maxDownloadBytes,
         },
         upstream,
+        runId,
         rt.http,
       );
-  control.checkpoint();
+  try {
+    control.checkpoint();
+  } catch (error) {
+    if (!input.snapshotPath) await discardStagedSnapshot(rt.rawRoot, snapshot);
+    throw error;
+  }
   return snapshot;
 }
 

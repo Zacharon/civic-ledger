@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream, createWriteStream } from 'node:fs';
+import { createReadStream, createWriteStream, constants as fsConstants } from 'node:fs';
 import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { Readable, Transform } from 'node:stream';
@@ -22,6 +22,13 @@ export interface DownloadOptions {
   targetPath: string;
   /** Per-source JSON file remembering validators (ETag/Last-Modified) per URL. */
   cachePath: string;
+  /**
+   * Directory for the conditional-request body copies (one per URL). When set, the cache
+   * entry points at that copy instead of `targetPath`, so retained run evidence is never
+   * the file a later 304 reuses or a later download replaces (evidence trust, T-A). When
+   * unset, the cache points at `targetPath` (the original behaviour).
+   */
+  cacheBodyDir?: string;
   timeoutMs?: number;
   browserLike?: boolean;
   headers?: Record<string, string>;
@@ -91,7 +98,14 @@ export async function downloadToFile(
       await copyFile(reusable.path, options.targetPath);
     }
     options.logger?.info({ url: options.url }, 'not modified; reusing cached copy');
-    await updateCache(options.cachePath, options.url, { ...reusable, path: options.targetPath });
+    const cacheCopy = cacheBodyPath(options);
+    if (!cacheCopy) {
+      await updateCache(options.cachePath, options.url, { ...reusable, path: options.targetPath });
+    } else if (resolve(reusable.path) !== resolve(cacheCopy)) {
+      // A legacy entry pointing into a snapshot directory moves to its own cache copy.
+      await storeCacheBody(options.targetPath, cacheCopy);
+      await updateCache(options.cachePath, options.url, { ...reusable, path: cacheCopy });
+    }
     return { fileName, sha256: reusable.sha256, bytes: reusable.bytes, notModified: true };
   }
   if (response.status === 304) {
@@ -137,7 +151,9 @@ export async function downloadToFile(
     throw error;
   }
   const sha256 = hash.digest('hex');
-  const entry: CacheEntry = { path: options.targetPath, sha256, bytes };
+  const cacheCopy = cacheBodyPath(options);
+  if (cacheCopy) await storeCacheBody(options.targetPath, cacheCopy);
+  const entry: CacheEntry = { path: cacheCopy ?? options.targetPath, sha256, bytes };
   const etag = response.headers.get('etag');
   const lastModified = response.headers.get('last-modified');
   if (etag) entry.etag = etag;
@@ -145,6 +161,26 @@ export async function downloadToFile(
   await updateCache(options.cachePath, options.url, entry);
   options.logger?.info({ url: options.url, bytes, sha256 }, 'downloaded');
   return { fileName, sha256, bytes, notModified: false };
+}
+
+/** The cache copy of a URL's body: `<cacheBodyDir>/<sha256(url) prefix>`, or null. */
+function cacheBodyPath(options: DownloadOptions): string | null {
+  if (!options.cacheBodyDir) return null;
+  const name = createHash('sha256').update(options.url).digest('hex').slice(0, 32);
+  return join(options.cacheBodyDir, name);
+}
+
+/** Replaces the cache copy atomically (temp + rename); a reflink where the OS offers one. */
+async function storeCacheBody(from: string, body: string): Promise<void> {
+  await mkdir(dirname(body), { recursive: true });
+  const temp = `${body}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    await copyFile(from, temp, fsConstants.COPYFILE_FICLONE);
+    await rename(temp, body);
+  } catch (error) {
+    await rm(temp, { force: true });
+    throw error;
+  }
 }
 
 /** sha256 + size of a file on disk, streamed; stops between chunks when `signal` aborts. */
