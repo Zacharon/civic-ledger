@@ -1,6 +1,7 @@
 # Civic Ledger public understanding and reliability program
 
-Status: independent H3 VERIFIED for the bounded local candidate; upstream CI pending.
+Independent H3 VERIFIED the bounded local candidate. Main integration requires
+upstream CI; consult the checks for the exact revision being integrated.
 No launch claim.
 
 ## Scope and before state
