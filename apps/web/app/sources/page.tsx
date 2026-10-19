@@ -6,7 +6,8 @@ import { read } from '@/server/capabilities';
 
 export const metadata: Metadata = {
   title: 'Sources',
-  description: 'Every data source with its terms, last run and coverage.',
+  description:
+    'Every data source with its terms, when it was last checked and last changed, and the period its data covers.',
 };
 
 const STATUS_LABEL = {
@@ -111,6 +112,31 @@ export default async function SourcesPage() {
                       <a className="link" href={license} rel="noreferrer">
                         Read the terms
                       </a>
+                    ) : null}
+                  </dd>
+                  <dt className="text-ink-2">Last checked</dt>
+                  <dd
+                    data-checked
+                    data-value={JSON.stringify(source.freshness.lastSuccessfulCheckAt)}
+                  >
+                    {formatDate(source.freshness.lastSuccessfulCheckAt) ?? 'Not yet checked'}
+                    <span className="block text-ink-2">
+                      When the source was last fetched successfully, whether or not anything had
+                      changed
+                    </span>
+                  </dd>
+                  <dt className="text-ink-2">Last changed</dt>
+                  <dd data-changed data-value={JSON.stringify(source.freshness.lastChangedAt)}>
+                    {formatDate(source.freshness.lastChangedAt) ?? 'Never'}
+                    <span className="block text-ink-2">
+                      When new data from this source was last published here
+                    </span>
+                  </dd>
+                  <dt className="text-ink-2">Data covers through</dt>
+                  <dd data-covers data-value={JSON.stringify(source.freshness.coverageThrough)}>
+                    {formatDate(source.freshness.coverageThrough) ?? 'No date'}
+                    {source.freshness.coverageBasis ? (
+                      <span className="block text-ink-2">{source.freshness.coverageBasis}</span>
                     ) : null}
                   </dd>
                   <dt className="text-ink-2">Last successful load</dt>
