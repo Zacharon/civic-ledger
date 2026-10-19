@@ -1,8 +1,10 @@
 import type { Capability } from '../capability';
 import { curatedValidate } from './curated';
+import { explainersList } from './explainers';
 import { exploreTable } from './explore';
 import { exploreFacets } from './facets';
 import { frameworksEvaluate, frameworksList } from './frameworks';
+import { peopleGlance } from './glance';
 import { moneySummary } from './money';
 import { peopleCompare, peopleGet, peopleSearch } from './people';
 import { policyAreas } from './policy';
@@ -20,6 +22,7 @@ export const registry = {
   'people.search': peopleSearch,
   'people.get': peopleGet,
   'people.compare': peopleCompare,
+  'people.glance': peopleGlance,
   'explore.table': exploreTable,
   'explore.facets': exploreFacets,
   'money.summary': moneySummary,
@@ -30,6 +33,7 @@ export const registry = {
   'frameworks.list': frameworksList,
   'frameworks.evaluate': frameworksEvaluate,
   'sources.status': sourcesStatus,
+  'explainers.list': explainersList,
   'curated.validate': curatedValidate,
 } as const;
 

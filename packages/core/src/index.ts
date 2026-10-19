@@ -9,9 +9,11 @@ export {
 } from '@civic-ledger/db';
 
 export * from './capabilities/curated';
+export * from './capabilities/explainers';
 export * from './capabilities/explore';
 export * from './capabilities/facets';
 export * from './capabilities/frameworks';
+export * from './capabilities/glance';
 export * from './capabilities/money';
 export * from './capabilities/people';
 export {
@@ -31,5 +33,7 @@ export * from './curated/schemas';
 export * from './curated/validate';
 export * from './dispatch';
 export * from './errors';
+export { EXPLAINERS, type Explainer, explainerById } from './explainers/content';
 export * from './frameworks/spec';
+export * from './glance/text';
 export * from './schemas/common';

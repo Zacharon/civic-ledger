@@ -4,6 +4,7 @@ import { type ReactNode, Suspense } from 'react';
 import { CareerTimeline } from '@/components/charts/career-timeline';
 import { PositionStrip } from '@/components/charts/position-strip';
 import { PartyChip } from '@/components/party-chip';
+import { GlanceSection } from '@/components/profile/glance';
 import { MoneySection } from '@/components/profile/money-section';
 import { PlatformSection } from '@/components/profile/platform-section';
 import { PromisesSection } from '@/components/profile/promises-section';
@@ -41,6 +42,7 @@ const IDENTIFIER_LINKS: Record<string, { label: string; href: (id: string) => st
 };
 
 const SECTIONS = [
+  { id: 'glance', label: 'At a glance' },
   { id: 'money', label: 'Money' },
   { id: 'votes', label: 'Votes' },
   { id: 'scores', label: 'Scores' },
@@ -213,6 +215,9 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
         </nav>
 
         <div className="min-w-0 space-y-16">
+          <Suspense fallback={<SectionFallback id="glance" title="At a glance" />}>
+            <GlanceSection slug={slug} />
+          </Suspense>
           <Suspense fallback={<SectionFallback id="money" title="Money" />}>
             <MoneySection slug={slug} cycle={Number.isInteger(cycle) ? cycle : null} />
           </Suspense>

@@ -21,12 +21,21 @@ export interface ExploreFacets {
   chambers: Facet<'house' | 'senate'>[];
   states: Facet[];
   parties: Facet[];
+  districts?: { state: string; district: number; count: number }[];
 }
 
 const CHAMBER_LABEL = { house: 'House', senate: 'Senate' } as const;
 const SEARCH_DELAY_MS = 350;
 /** "Clear filters" resets what is filtered and keeps how it is viewed (sort, columns, rows). */
-const NO_FILTERS = { q: null, scope: null, chamber: null, state: null, party: null, page: null };
+const NO_FILTERS = {
+  q: null,
+  scope: null,
+  chamber: null,
+  state: null,
+  district: null,
+  party: null,
+  page: null,
+};
 
 /** Filters, sort, page size and columns. Every change is a URL change (shareable). */
 export function ExploreControls({
@@ -47,6 +56,7 @@ export function ExploreControls({
     form: useId(),
     q: useId(),
     state: useId(),
+    district: useId(),
     party: useId(),
     sort: useId(),
     size: useId(),
@@ -91,11 +101,22 @@ export function ExploreControls({
   const scope = scopeOf(state);
   const sortValue = state.sort?.[0] ? `${state.sort[0].id}.${state.sort[0].direction}` : '';
   const sortable = columns.filter((c) => c.sortKey !== undefined);
+  const districts = (facets.districts ?? []).filter((seat) => seat.state === state.state);
+  const hasDistrict = state.district !== null;
   const active = [
     scope === 'all' ? { key: 'scope', label: 'Including former members' } : null,
     state.q ? { key: 'q', label: `Name contains “${state.q}”` } : null,
     state.chamber ? { key: 'chamber', label: CHAMBER_LABEL[state.chamber] } : null,
     state.state ? { key: 'state', label: `State: ${state.state}` } : null,
+    hasDistrict
+      ? {
+          key: 'district',
+          label:
+            state.district === 0
+              ? 'House: at-large + senators'
+              : `House district ${state.district} + senators`,
+        }
+      : null,
     state.party ? { key: 'party', label: `Party: ${state.party}` } : null,
   ].filter((f) => f !== null);
 
@@ -107,7 +128,7 @@ export function ExploreControls({
           id={ids.form}
           action="/explore"
           onSubmit={onSubmit}
-          className="grid grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-[minmax(12rem,1.4fr)_auto_auto_minmax(7rem,0.5fr)_minmax(9rem,0.8fr)] lg:gap-x-4"
+          className="grid grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-3 lg:gap-x-4 xl:grid-cols-[minmax(10rem,1.2fr)_auto_auto_minmax(6rem,0.5fr)_minmax(8rem,0.7fr)_minmax(8rem,0.7fr)]"
         >
           <div className="col-span-2 flex flex-col gap-1.5 lg:col-span-1">
             <label htmlFor={ids.q} className="text-sm font-semibold">
@@ -198,7 +219,9 @@ export function ExploreControls({
               id={ids.state}
               name="state"
               value={state.state ?? ''}
-              onChange={(e) => void setState({ state: e.target.value || null, page: null })}
+              onChange={(e) =>
+                void setState({ state: e.target.value || null, district: null, page: null })
+              }
               className="field w-full min-w-0"
             >
               <option value="">All states</option>
@@ -208,6 +231,43 @@ export function ExploreControls({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <label htmlFor={ids.district} className="text-sm font-semibold">
+              House district
+            </label>
+            <select
+              id={ids.district}
+              name="district"
+              className="field w-full min-w-0"
+              disabled={!state.state}
+              value={state.district ?? ''}
+              onChange={(event) =>
+                void setState({
+                  district: event.target.value === '' ? null : Number(event.target.value),
+                  page: null,
+                })
+              }
+            >
+              <option value="">All districts</option>
+              {hasDistrict && !districts.some((seat) => seat.district === state.district) ? (
+                <option value={state.district ?? ''}>
+                  {state.district === 0 ? 'At-large' : `District ${state.district}`} (no seat
+                  loaded)
+                </option>
+              ) : null}
+              {districts.map((seat) => (
+                <option key={seat.district} value={seat.district}>
+                  {seat.district === 0 ? 'At-large' : `District ${seat.district}`}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-ink-3">
+              {state.state
+                ? 'Includes senators when both chambers are shown.'
+                : 'Choose a state to select a district.'}
+            </p>
           </div>
 
           <div className="flex min-w-0 flex-col gap-1.5">
@@ -246,8 +306,19 @@ export function ExploreControls({
               {active.map((f) => (
                 <li key={f.key}>
                   <UrlActionButton
-                    href={serializeExplore('/explore', { ...state, [f.key]: null, page: null })}
-                    onActivate={() => void setState({ [f.key]: null, page: null })}
+                    href={serializeExplore('/explore', {
+                      ...state,
+                      [f.key]: null,
+                      ...(f.key === 'state' ? { district: null } : {}),
+                      page: null,
+                    })}
+                    onActivate={() =>
+                      void setState({
+                        [f.key]: null,
+                        ...(f.key === 'state' ? { district: null } : {}),
+                        page: null,
+                      })
+                    }
                     className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-control bg-accent-wash px-2.5 text-sm hover:border-ink-2"
                   >
                     {f.label}

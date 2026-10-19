@@ -1,5 +1,5 @@
 import { personCard, scorecardPublisher } from '@civic-ledger/db';
-import { and, eq, ilike, type SQL, sql } from 'drizzle-orm';
+import { and, eq, ilike, or, type SQL, sql } from 'drizzle-orm';
 import type { PgColumn } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { defineCapability } from '../capability';
@@ -89,10 +89,22 @@ export const ExploreTableInput = z.strictObject({
       scope: MemberScopeSchema.default('current'),
       chamber: ChamberSchema.optional(),
       state: StateCodeSchema.optional(),
+      district: z
+        .int()
+        .min(0)
+        .max(99)
+        .optional()
+        .describe(
+          "House district number within `state` (0 = at-large). Matches that district's representative and the state's senators: the members who represent an address. Requires `state`.",
+        ),
       party: PartySchema.optional(),
       q: z.string().trim().min(1).max(100).optional().describe('Name contains'),
     })
-    .default({ scope: 'current' }),
+    .default({ scope: 'current' })
+    .refine((f) => f.district === undefined || f.state !== undefined, {
+      message: 'district needs state',
+      path: ['district'],
+    }),
   sort: z
     .array(SortSchema)
     .max(3)
@@ -148,11 +160,14 @@ export const exploreTable = defineCapability({
       sql`${personCard.personId} asc`,
     ];
 
-    const { scope, chamber, state, party, q } = input.filters;
+    const { scope, chamber, state, district, party, q } = input.filters;
     const where = and(
       scopeWhere(scope),
       chamber ? eq(personCard.chamber, chamber) : undefined,
       state ? eq(personCard.state, state) : undefined,
+      district === undefined
+        ? undefined
+        : or(eq(personCard.district, district), eq(personCard.chamber, 'senate')),
       party ? eq(personCard.party, party) : undefined,
       q ? ilike(personCard.fullName, containsPattern(q)) : undefined,
     );

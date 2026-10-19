@@ -1,5 +1,5 @@
 import { type Db, personCard } from '@civic-ledger/db';
-import { and, asc, count, isNotNull, type SQL, sql } from 'drizzle-orm';
+import { and, asc, count, eq, isNotNull, type SQL, sql } from 'drizzle-orm';
 import type { PgColumn } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { defineCapability } from '../capability';
@@ -45,6 +45,9 @@ export const ExploreFacetsOutput = z.object({
   chambers: z.array(countOf(ChamberSchema)),
   states: z.array(countOf(StateCodeSchema)),
   parties: z.array(countOf(PartySchema)),
+  districts: z
+    .array(z.object({ state: StateCodeSchema, district: z.int().min(0), count: z.int().min(1) }))
+    .describe('House seats present in the scope, by state then district (0 = at-large)'),
   total: z.int().min(0).describe('People in the requested scope'),
   withData: WithDataSchema,
 });
@@ -65,10 +68,27 @@ export const exploreFacets = defineCapability({
   output: ExploreFacetsOutput,
   async handler({ db }, { scope }) {
     const where = scopeWhere(scope);
-    const [chambers, states, parties, [withData], [counts]] = await Promise.all([
+    const [chambers, states, parties, districts, [withData], [counts]] = await Promise.all([
       distinctCounts(db, personCard.chamber, where),
       distinctCounts(db, personCard.state, where),
       distinctCounts(db, personCard.party, where),
+      db
+        .select({
+          state: personCard.state,
+          district: personCard.district,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(personCard)
+        .where(
+          and(
+            eq(personCard.chamber, 'house'),
+            isNotNull(personCard.state),
+            isNotNull(personCard.district),
+            where,
+          ),
+        )
+        .groupBy(personCard.state, personCard.district)
+        .orderBy(asc(personCard.state), asc(personCard.district)),
       db.select(coverageCounts).from(personCard).where(where),
       db
         .select({
@@ -87,6 +107,11 @@ export const exploreFacets = defineCapability({
       }),
       states,
       parties,
+      districts: districts.flatMap((d) =>
+        d.state === null || d.district === null
+          ? []
+          : [{ state: d.state, district: d.district, count: d.count }],
+      ),
       total: scopes[scope],
       withData: withData ?? emptyCoverage(),
     };

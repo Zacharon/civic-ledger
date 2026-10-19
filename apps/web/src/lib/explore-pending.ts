@@ -1,7 +1,14 @@
-import { CHAMBERS, type ExploreState, PAGE_SIZES, parseAsSort, scopeOf } from './explore-params';
+import {
+  CHAMBERS,
+  type ExploreState,
+  PAGE_SIZES,
+  parseAsDistrict,
+  parseAsSort,
+  scopeOf,
+} from './explore-params';
 
 export type ExplorePatch = Partial<
-  Pick<ExploreState, 'q' | 'scope' | 'chamber' | 'state' | 'party' | 'sort' | 'size'>
+  Pick<ExploreState, 'q' | 'scope' | 'chamber' | 'state' | 'district' | 'party' | 'sort' | 'size'>
 >;
 
 /** What the server drew in a select for `wanted`: that option, or the first one if absent. */
@@ -47,7 +54,12 @@ export function changesBeforeHydration(
   const chamber = changedRadio(form, 'chamber', state.chamber ?? '');
   if (chamber !== null) patch.chamber = CHAMBERS.find((c) => c === chamber) ?? null;
   const stateCode = changedSelect(form, 'state', state.state ?? '');
-  if (stateCode !== null) patch.state = stateCode || null;
+  if (stateCode !== null) {
+    patch.state = stateCode || null;
+    patch.district = null;
+  }
+  const district = changedSelect(form, 'district', String(state.district ?? ''));
+  if (district !== null && stateCode === null) patch.district = parseAsDistrict.parse(district);
   const party = changedSelect(form, 'party', state.party ?? '');
   if (party !== null) patch.party = party || null;
   const first = state.sort?.[0];
