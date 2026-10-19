@@ -450,3 +450,67 @@ describe('people.agreement@1 (T-S2a)', () => {
     await expectCapabilityError(agreement({ a: ANN, b: 'nobody-by-this-name' }), 'not_found');
   });
 });
+
+describe('people.compare@1 default equals v1 on the seed (T-S2a)', () => {
+  /** The v1 handler's agreement query, verbatim in SQL: both yea/nay on the same roll call. */
+  const v1Agreement = async (a: string, b: string) => {
+    const result = await exec(sql`
+      select count(*)::int as shared,
+        (count(*) filter (where va.position = vb.position))::int as agreed
+      from vote_position va
+      join vote_position vb on vb.rollcall_id = va.rollcall_id
+      join person pa on pa.id = va.person_id
+      join person pb on pb.id = vb.person_id
+      where pa.slug = ${a} and pb.slug = ${b}
+        and va.position in ('yea', 'nay') and vb.position in ('yea', 'nay')`);
+    const row = (result as unknown as { rows: Array<{ shared: number; agreed: number }> }).rows[0];
+    return { shared: row?.shared ?? 0, agreed: row?.agreed ?? 0 };
+  };
+
+  it('11 every seed pair: agreement and cards equal v1; period values equal the cards', async () => {
+    const search = await dispatch('people.search', { limit: 100 }, db.ctx());
+    const seed = search.items.map((p) => p.slug).filter((slug) => !slug.startsWith('s2-'));
+    expect(seed.length).toBeGreaterThanOrEqual(8);
+    for (let i = 0; i + 3 < seed.length; i += 4) {
+      const slugs = seed.slice(i, i + 4);
+      const result = await compare({ slugs });
+      for (const pair of result.voteAgreement) {
+        const v1 = await v1Agreement(pair.a, pair.b);
+        expect([pair.sharedVotes, pair.agreed], `${pair.a}/${pair.b}`).toEqual([
+          v1.shared,
+          v1.agreed,
+        ]);
+        expect(pair.rate).toBe(v1.shared > 0 ? v1.agreed / v1.shared : null);
+        expect(pair.disagreed).toBe(v1.shared - v1.agreed);
+      }
+      for (const card of result.people) {
+        const profile = await dispatch('people.get', { slug: card.slug }, db.ctx());
+        expect(card).toEqual(profile.card);
+        const values = valuesOf(result, card.slug);
+        expect(values.money).toMatchObject({
+          cycle: card.moneyCycle,
+          totalReceiptsCents: card.totalReceiptsCents,
+          pacShare: card.pacShare,
+          smallDollarShare: card.smallDollarShare,
+          topIndustries: card.moneyCycle === null ? null : card.topIndustries,
+          outsideSupportCents: card.outsideSupportCents,
+        });
+        expect(values.votes).toMatchObject({
+          votesEligible: card.votesEligible,
+          missedVoteRate: card.missedVoteRate,
+        });
+        expect(values.ideology).toMatchObject({
+          congress: card.ideologyCongress,
+          dim1: card.dwNominateDim1,
+        });
+        // The selected-cycle path (money.summary) reproduces the card at the card's own cycle.
+        if (typeof card.moneyCycle === 'number') {
+          const same = await compare({ slugs, cycle: card.moneyCycle });
+          const { coverageEndDate: _c, ...latest } = values.money;
+          const { coverageEndDate: _d, ...derived } = valuesOf(same, card.slug).money;
+          expect(derived).toEqual(latest);
+        }
+      }
+    }
+  });
+});

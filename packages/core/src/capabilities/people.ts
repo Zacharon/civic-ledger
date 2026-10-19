@@ -1,6 +1,8 @@
 import {
   candidacy,
+  candidateCycleTotals,
   type Db,
+  ideologyScore,
   office,
   person,
   personCard,
@@ -8,15 +10,15 @@ import {
   platformPosition,
   policyArea,
   term,
-  votePosition,
 } from '@civic-ledger/db';
-import { and, asc, desc, eq, ilike, inArray, lt, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
+import { and, asc, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { defineCapability } from '../capability';
+import { type CapabilityContext, defineCapability } from '../capability';
 import { notFound } from '../errors';
 import {
+  CentsSchema,
   ChamberSchema,
+  CongressSchema,
   CycleSchema,
   IsoDateSchema,
   PageSchema,
@@ -30,10 +32,25 @@ import {
 } from '../schemas/common';
 import { provenanceFields, withProvenance } from '../schemas/provenance';
 import {
+  agreementRate,
+  congressesWithVotes,
+  DenominatorRuleSchema,
+  ExclusionCountsSchema,
+  memberStates,
+  pairRows,
+  pairTotals,
+  type RollcallStates,
+  uniqueDesc,
+  VotesPeriodSchema,
+  votesPeriod,
+} from './agreement';
+import { moneySummary } from './money';
+import {
   containsPattern,
   countCards,
   findCard,
   MemberScopeSchema,
+  type PersonCardRow,
   PersonCardRowSchema,
   PersonSummarySchema,
   personSummaryColumns,
@@ -235,16 +252,107 @@ export const peopleGet = defineCapability({
 
 // people.compare@1 -----------------------------------------------------------
 
+const PeriodStatusSchema = z
+  .enum(['available', 'unavailable'])
+  .describe(
+    'unavailable = no data for this member in the period shown; values are null, never zero and never taken from another period',
+  );
+
+const MoneyPeriodValuesSchema = z
+  .object({
+    status: PeriodStatusSchema,
+    cycle: CycleSchema.nullable().describe(
+      'FEC cycle of these values: the selected cycle, or the member’s latest (null = none on record)',
+    ),
+    coverageEndDate: IsoDateSchema.nullable().describe(
+      'Coverage end of the FEC totals (weball) behind totalReceiptsCents and pacShare',
+    ),
+    totalReceiptsCents: CentsSchema.nullable(),
+    pacShare: ShareSchema.nullable(),
+    smallDollarShare: ShareSchema.nullable(),
+    smallDollarAsOf: IsoDateSchema.nullable().describe(
+      'Coverage end of the FEC candidate summary behind smallDollarShare (can trail coverageEndDate)',
+    ),
+    topIndustries: PersonCardRowSchema.shape.topIndustries.nullable(),
+    industryCodingCoverage: ShareSchema.nullable(),
+    outsideSupportCents: CentsSchema.nullable(),
+    outsideOpposeCents: CentsSchema.nullable(),
+  })
+  .describe('Same rules as the card and money.summary (DECISIONS A15, A29, A31)');
+
+const IdeologyPeriodValuesSchema = z.object({
+  status: PeriodStatusSchema,
+  congress: CongressSchema.nullable().describe(
+    'Congress of the DW-NOMINATE estimate: the selected one, or the member’s latest',
+  ),
+  dim1: z.number().nullable(),
+  dim2: z.number().nullable(),
+});
+
+const VotesPeriodValuesSchema = z.object({
+  status: PeriodStatusSchema,
+  congress: CongressSchema.nullable().describe(
+    'Congress of votesEligible / missedVoteRate: the selected one, or the member’s latest with stored positions',
+  ),
+  votesEligible: z.int().nullable().describe('Stored positions in that Congress'),
+  missedVoteRate: ShareSchema.nullable().describe('not_voting / votesEligible'),
+});
+
 export const PeopleCompareInput = z.strictObject({
   slugs: z
     .array(SlugSchema)
     .min(2)
     .max(4)
     .refine((slugs) => new Set(slugs).size === slugs.length, 'Slugs must be distinct'),
+  congress: CongressSchema.optional().describe(
+    'Compare votes (agreement, missed votes) and DW-NOMINATE for this Congress only. Omitted = all loaded roll calls and each member’s latest values (v1)',
+  ),
+  cycle: CycleSchema.optional().describe(
+    'Money values for this FEC cycle. Omitted = each member’s latest cycle (v1)',
+  ),
 });
 
 export const PeopleCompareOutput = z.object({
-  people: z.array(PersonCardRowSchema).describe('In input order'),
+  people: z
+    .array(PersonCardRowSchema)
+    .describe('In input order. Cards always carry each member’s latest values; see periodValues'),
+  period: z
+    .object({
+      votes: VotesPeriodSchema,
+      money: z.object({
+        basis: z
+          .enum(['latest_per_person', 'cycle'])
+          .describe('latest_per_person = each member’s own latest cycle, which can differ'),
+        cycle: CycleSchema.nullable(),
+      }),
+      ideology: z.object({
+        basis: z.enum(['latest_per_person', 'congress']),
+        congress: CongressSchema.nullable(),
+      }),
+    })
+    .describe('The period the comparison was computed for'),
+  availablePeriods: z
+    .object({
+      congresses: z
+        .array(CongressSchema)
+        .describe('Congresses where any compared member has a stored position, newest first'),
+      cycles: z
+        .array(CycleSchema)
+        .describe('FEC cycles with totals for any compared member, newest first'),
+    })
+    .describe('Choices for the congress / cycle inputs'),
+  periodValues: z
+    .array(
+      z.object({
+        slug: SlugSchema,
+        money: MoneyPeriodValuesSchema,
+        ideology: IdeologyPeriodValuesSchema,
+        votes: VotesPeriodValuesSchema,
+      }),
+    )
+    .describe(
+      'Per member, in input order: the values shown for the period, each with its own period',
+    ),
   voteAgreement: z
     .array(
       z.object({
@@ -253,9 +361,14 @@ export const PeopleCompareOutput = z.object({
         sharedVotes: z.int().describe('Rollcalls where both voted yea or nay'),
         agreed: z.int(),
         rate: ShareSchema.nullable(),
+        disagreed: z.int().describe('sharedVotes - agreed'),
+        denominatorRule: DenominatorRuleSchema,
+        excluded: ExclusionCountsSchema,
       }),
     )
-    .describe('Pairwise agreement on recorded yea/nay votes'),
+    .describe(
+      'Pairwise agreement on recorded yea/nay votes in period.votes; people.agreement lists the roll calls',
+    ),
 });
 
 export const peopleCompare = defineCapability({
@@ -263,31 +376,84 @@ export const peopleCompare = defineCapability({
   version: 1,
   kind: 'read',
   audience: 'public',
-  summary: 'Two to four people side by side, with pairwise yea/nay vote agreement.',
+  summary:
+    'Two to four people side by side, with pairwise yea/nay vote agreement; optionally for one Congress and one FEC cycle.',
   input: PeopleCompareInput,
   output: PeopleCompareOutput,
-  async handler({ db }, { slugs }) {
+  async handler(ctx, { slugs, congress: congressInput, cycle: cycleInput }) {
+    const { db } = ctx;
     const cards = await selectCards(db, { where: inArray(personCard.slug, slugs) });
     const missing = slugs.filter((slug) => !cards.some((c) => c.slug === slug));
     if (missing.length > 0) throw notFound(`No person with slug: ${missing.join(', ')}`);
 
     const ids = await personIdsBySlug(db, slugs);
-    const agreement = await pairwiseAgreement(db, [...ids.values()]);
+    const idOf = (slug: string) => ids.get(slug) ?? 0;
+    const personIds = slugs.map(idOf);
+    const congress = congressInput ?? null;
+    const cycle = cycleInput ?? null;
+    const [rollcalls, voteCongresses, totals, ideology] = await Promise.all([
+      memberStates(db, personIds, congress),
+      congressesWithVotes(db, personIds),
+      totalsByCycle(db, personIds),
+      congress === null ? null : ideologyFor(db, personIds, congress),
+    ]);
+
     const voteAgreement = slugs.flatMap((a, i) =>
       slugs.slice(i + 1).map((b) => {
-        const [low, high] = [ids.get(a) ?? 0, ids.get(b) ?? 0].sort((x, y) => x - y);
-        const pair = agreement.get(`${low}:${high}`) ?? { shared: 0, agreed: 0 };
+        const t = pairTotals(pairRows(rollcalls, idOf(a), idOf(b)));
         return {
           a,
           b,
-          sharedVotes: pair.shared,
-          agreed: pair.agreed,
-          rate: pair.shared > 0 ? pair.agreed / pair.shared : null,
+          sharedVotes: t.shared,
+          agreed: t.agreed,
+          rate: agreementRate(t),
+          disagreed: t.disagreed,
+          denominatorRule: 'both_recorded_yea_or_nay' as const,
+          excluded: t.excluded,
         };
       }),
     );
+
+    const people = slugs.flatMap((slug) => cards.filter((c) => c.slug === slug));
+    const periodValues = await Promise.all(
+      people.map(async (card) => {
+        const id = idOf(card.slug);
+        let money: MoneyPeriodValues;
+        if (cycle === null) {
+          money = latestMoney(card, totals.get(`${id}:${card.moneyCycle}`) ?? null);
+        } else if (totals.has(`${id}:${cycle}`)) {
+          money = await cycleMoney(ctx, card.slug, cycle);
+        } else {
+          money = unavailableMoney(cycle);
+        }
+        return {
+          slug: card.slug,
+          money,
+          ideology: ideology === null ? latestIdeology(card) : ideologyIn(ideology, id, congress),
+          votes:
+            congress === null
+              ? latestVotes(card, voteCongresses.find((v) => v.personId === id)?.congress ?? null)
+              : votesIn(rollcalls, id, congress),
+        };
+      }),
+    );
+
+    const moneyBasis: 'latest_per_person' | 'cycle' =
+      cycle === null ? 'latest_per_person' : 'cycle';
+    const ideologyBasis: 'latest_per_person' | 'congress' =
+      congress === null ? 'latest_per_person' : 'congress';
     return {
-      people: slugs.flatMap((slug) => cards.filter((c) => c.slug === slug)),
+      people,
+      period: {
+        votes: votesPeriod(congress, rollcalls),
+        money: { basis: moneyBasis, cycle },
+        ideology: { basis: ideologyBasis, congress },
+      },
+      availablePeriods: {
+        congresses: uniqueDesc(voteCongresses.map((v) => v.congress)),
+        cycles: uniqueDesc([...totals.values()].map((t) => t.cycle)),
+      },
+      periodValues,
       voteAgreement,
     };
   },
@@ -301,30 +467,160 @@ async function personIdsBySlug(db: Db, slugs: string[]): Promise<Map<string, num
   return new Map(rows.map((r) => [r.slug, r.id]));
 }
 
-async function pairwiseAgreement(
-  db: Db,
-  personIds: number[],
-): Promise<Map<string, { shared: number; agreed: number }>> {
-  const a = alias(votePosition, 'a');
-  const b = alias(votePosition, 'b');
-  const recorded = ['yea', 'nay'] as const;
+type MoneyPeriodValues = z.infer<typeof MoneyPeriodValuesSchema>;
+type IdeologyPeriodValues = z.infer<typeof IdeologyPeriodValuesSchema>;
+type VotesPeriodValues = z.infer<typeof VotesPeriodValuesSchema>;
+
+/** FEC totals rows per `personId:cycle` (the largest if several, as money.summary picks). */
+async function totalsByCycle(db: Db, personIds: number[]) {
+  const t = candidateCycleTotals;
   const rows = await db
-    .select({
-      a: a.personId,
-      b: b.personId,
-      shared: sql<number>`count(*)::int`,
-      agreed: sql<number>`(count(*) filter (where ${a.position} = ${b.position}))::int`,
-    })
-    .from(a)
-    .innerJoin(b, and(eq(a.rollcallId, b.rollcallId), lt(a.personId, b.personId)))
+    .select({ personId: t.personId, cycle: t.cycle, coverageEndDate: t.coverageEndDate })
+    .from(t)
+    .where(inArray(t.personId, personIds))
+    .orderBy(desc(t.cycle), desc(t.totalReceiptsCents));
+  const result = new Map<string, { cycle: number; coverageEndDate: string | null }>();
+  for (const row of rows) {
+    const key = `${row.personId}:${row.cycle}`;
+    if (!result.has(key)) {
+      result.set(key, { cycle: row.cycle, coverageEndDate: row.coverageEndDate });
+    }
+  }
+  return result;
+}
+
+/** v1 default: the card's own latest-cycle values, plus the totals' coverage end. */
+function latestMoney(
+  card: PersonCardRow,
+  totals: { coverageEndDate: string | null } | null,
+): MoneyPeriodValues {
+  if (card.moneyCycle === null) return unavailableMoney(null);
+  return {
+    status: 'available',
+    cycle: card.moneyCycle,
+    coverageEndDate: totals?.coverageEndDate ?? null,
+    totalReceiptsCents: card.totalReceiptsCents,
+    pacShare: card.pacShare,
+    smallDollarShare: card.smallDollarShare,
+    smallDollarAsOf: card.smallDollarAsOf,
+    topIndustries: card.topIndustries,
+    industryCodingCoverage: card.industryCodingCoverage,
+    outsideSupportCents: card.outsideSupportCents,
+    outsideOpposeCents: card.outsideOpposeCents,
+  };
+}
+
+/**
+ * One cycle's card money values, derived from money.summary itself so the rules (A15
+ * attribution, A29 gross-based coverage and net-positive top industries, A31 small-dollar
+ * share from the candidate summary) cannot drift from the profile's Money section.
+ */
+async function cycleMoney(
+  ctx: CapabilityContext,
+  slug: string,
+  cycle: number,
+): Promise<MoneyPeriodValues> {
+  const money = await moneySummary.handler(ctx, { slug, cycle });
+  if (!money.totals) return unavailableMoney(cycle);
+  return {
+    status: 'available',
+    cycle,
+    coverageEndDate: money.totals.coverageEndDate ?? null,
+    totalReceiptsCents: money.totals.totalReceiptsCents,
+    pacShare: money.totals.pacShare ?? null,
+    smallDollarShare: money.smallDollar?.share ?? null,
+    smallDollarAsOf: money.smallDollar?.coverageEndDate ?? null,
+    topIndustries: money.industries
+      .filter((i) => i.amountCents > 0)
+      .slice(0, 3)
+      .map((i) => ({ id: i.industry.id, name: i.industry.name, amountCents: i.amountCents })),
+    industryCodingCoverage: money.industryCoding.coverage ?? null,
+    outsideSupportCents: money.outsideSpending.supportCents,
+    outsideOpposeCents: money.outsideSpending.opposeCents,
+  };
+}
+
+function unavailableMoney(cycle: number | null): MoneyPeriodValues {
+  return {
+    status: 'unavailable',
+    cycle,
+    coverageEndDate: null,
+    totalReceiptsCents: null,
+    pacShare: null,
+    smallDollarShare: null,
+    smallDollarAsOf: null,
+    topIndustries: null,
+    industryCodingCoverage: null,
+    outsideSupportCents: null,
+    outsideOpposeCents: null,
+  };
+}
+
+function latestIdeology(card: PersonCardRow): IdeologyPeriodValues {
+  return {
+    status: card.ideologyCongress === null ? 'unavailable' : 'available',
+    congress: card.ideologyCongress,
+    dim1: card.dwNominateDim1,
+    dim2: card.dwNominateDim2,
+  };
+}
+
+async function ideologyFor(db: Db, personIds: number[], congress: number) {
+  const s = ideologyScore;
+  const rows = await db
+    .select({ personId: s.personId, dim1: s.dim1, dim2: s.dim2 })
+    .from(s)
     .where(
-      and(
-        inArray(a.personId, personIds),
-        inArray(b.personId, personIds),
-        inArray(a.position, recorded),
-        inArray(b.position, recorded),
-      ),
-    )
-    .groupBy(a.personId, b.personId);
-  return new Map(rows.map((r) => [`${r.a}:${r.b}`, { shared: r.shared, agreed: r.agreed }]));
+      and(inArray(s.personId, personIds), eq(s.congress, congress), eq(s.method, 'dw-nominate')),
+    );
+  return new Map(rows.map((r) => [r.personId, r]));
+}
+
+function ideologyIn(
+  scores: Map<number, { dim1: number; dim2: number | null }>,
+  personId: number,
+  congress: number | null,
+): IdeologyPeriodValues {
+  const score = scores.get(personId);
+  return {
+    status: score ? 'available' : 'unavailable',
+    congress,
+    dim1: score?.dim1 ?? null,
+    dim2: score?.dim2 ?? null,
+  };
+}
+
+function latestVotes(card: PersonCardRow, congress: number | null): VotesPeriodValues {
+  return {
+    status: card.votesEligible === null ? 'unavailable' : 'available',
+    congress,
+    votesEligible: card.votesEligible,
+    missedVoteRate: card.missedVoteRate,
+  };
+}
+
+/** The card's vote rule (stored positions; missed = not_voting) for one Congress. */
+function votesIn(
+  rollcalls: readonly RollcallStates[],
+  personId: number,
+  congress: number,
+): VotesPeriodValues {
+  let eligible = 0;
+  let missed = 0;
+  for (const rc of rollcalls) {
+    const state = rc.states.get(personId);
+    if (state === 'yea' || state === 'nay' || state === 'present' || state === 'not_voting') {
+      eligible++;
+      if (state === 'not_voting') missed++;
+    }
+  }
+  if (eligible === 0) {
+    return { status: 'unavailable', congress, votesEligible: null, missedVoteRate: null };
+  }
+  return {
+    status: 'available',
+    congress,
+    votesEligible: eligible,
+    missedVoteRate: missed / eligible,
+  };
 }

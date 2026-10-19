@@ -1,4 +1,5 @@
 import type { Capability } from '../capability';
+import { peopleAgreement } from './agreement';
 import { curatedValidate } from './curated';
 import { explainersList } from './explainers';
 import { exploreTable } from './explore';
@@ -22,6 +23,7 @@ export const registry = {
   'people.search': peopleSearch,
   'people.get': peopleGet,
   'people.compare': peopleCompare,
+  'people.agreement': peopleAgreement,
   'people.glance': peopleGlance,
   'explore.table': exploreTable,
   'explore.facets': exploreFacets,

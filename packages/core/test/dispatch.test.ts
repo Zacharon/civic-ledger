@@ -23,6 +23,7 @@ describe('registry', () => {
       'frameworks.evaluate',
       'frameworks.list',
       'money.summary',
+      'people.agreement',
       'people.compare',
       'people.get',
       'people.glance',
