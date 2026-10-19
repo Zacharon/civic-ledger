@@ -12,6 +12,7 @@ export interface ExploreTableInput {
     scope: MemberScope;
     chamber?: 'house' | 'senate';
     state?: string;
+    district?: number;
     party?: string;
     q?: string;
   };
@@ -48,6 +49,9 @@ export function exploreTableInput(state: ExploreState): ExploreTableInput {
       scope: scopeOf(state),
       ...(state.chamber ? { chamber: state.chamber } : {}),
       ...(state.state ? { state: state.state } : {}),
+      ...(state.district !== null && state.district !== undefined
+        ? { district: state.district }
+        : {}),
       ...(state.party ? { party: state.party.slice(0, 80) } : {}),
       ...(q ? { q } : {}),
     },

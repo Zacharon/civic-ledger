@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { safeHref } from '@/lib/format';
+import { read } from '@/server/capabilities';
 
 export const metadata: Metadata = {
   title: 'Methodology',
@@ -9,6 +11,8 @@ export const metadata: Metadata = {
 
 const SECTIONS = [
   { id: 'principles', title: 'Principles' },
+  { id: 'at-a-glance', title: 'At a glance' },
+  { id: 'plain-language', title: 'Terms explained' },
   { id: 'money', title: 'Money' },
   { id: 'industry-coding', title: 'Industry coding' },
   { id: 'members', title: 'Current and former members' },
@@ -20,7 +24,8 @@ const SECTIONS = [
   { id: 'missing-data', title: 'Missing data' },
 ] as const;
 
-export default function MethodologyPage() {
+export default async function MethodologyPage() {
+  const explainers = await read('explainers.list', {});
   return (
     <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10 [&>*]:max-w-5xl">
       <header className="max-w-3xl">
@@ -55,6 +60,61 @@ export default function MethodologyPage() {
               the scale and a link to its method. Every fact carries its source, the source’s record
               key, the ingest run that loaded it and when it was retrieved.
             </p>
+          </Part>
+          <Part id="at-a-glance" title="At a glance">
+            <p>
+              The profile overview uses fixed sentence templates over the same sourced records as
+              the detailed sections. It does not generate a political verdict or infer motives.
+              Campaign receipts are campaign finances, not personal pay, and contributions do not
+              establish why a member voted a particular way.
+            </p>
+            <p>
+              Money uses the latest loaded cycle. The PAC share and individual contribution shares
+              retain their own FEC filing periods and should not be added across files.
+              Participation uses the latest Congress with recorded votes; a DW-NOMINATE estimate can
+              cover a different Congress. Platform counts cover all loaded campaigns, with up to
+              three of the newest reviewed entries shown. Missing records are coverage gaps.
+            </p>
+            <p>
+              Each overview links to its full profile records. Source notes identify individual
+              records; a vote-count source note is an example, with all underlying roll calls in
+              Votes. The JSON API and agent tools receive the same facts, sentences and links.
+            </p>
+          </Part>
+          <Part id="plain-language" title="Terms explained">
+            <p>Definitions used beside the figures, with their sources.</p>
+            <div className="mt-5 space-y-6">
+              {explainers.items.map((explainer) => (
+                <section
+                  key={explainer.id}
+                  id={`explainer-${explainer.id}`}
+                  aria-labelledby={`explainer-${explainer.id}-title`}
+                  className="scroll-mt-24 border-t border-rule pt-4"
+                >
+                  <h3 id={`explainer-${explainer.id}-title`} className="font-semibold text-ink">
+                    {explainer.question}
+                  </h3>
+                  {explainer.answer.map((answer) => (
+                    <p key={answer}>{answer}</p>
+                  ))}
+                  <p className="text-sm">
+                    Source:{' '}
+                    {safeHref(explainer.source.url) ? (
+                      <a
+                        className="link"
+                        href={safeHref(explainer.source.url) ?? undefined}
+                        rel="noreferrer"
+                      >
+                        {explainer.source.name}
+                      </a>
+                    ) : (
+                      explainer.source.name
+                    )}
+                    .
+                  </p>
+                </section>
+              ))}
+            </div>
           </Part>
           <Part id="money" title="Money">
             <p>

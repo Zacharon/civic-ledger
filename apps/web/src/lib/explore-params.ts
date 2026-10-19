@@ -45,6 +45,11 @@ export const parseAsStateCode = createParser<string>({
   serialize: (value) => value,
 });
 
+export const parseAsDistrict = createParser<number>({
+  parse: (value) => (/^(0|[1-9][0-9]?)$/.test(value) ? Number(value) : null),
+  serialize: String,
+});
+
 export const PAGE_SIZES = [25, 50, 100] as const;
 export const CHAMBERS = ['house', 'senate'] as const;
 /** Absent = current members (the default); `scope=all` includes former members. */
@@ -56,6 +61,7 @@ export const exploreParsers = {
   scope: parseAsStringLiteral(MEMBER_SCOPES),
   chamber: parseAsStringLiteral(CHAMBERS),
   state: parseAsStateCode,
+  district: parseAsDistrict,
   party: parseAsString,
   sort: parseAsSort,
   cols: parseAsArrayOf(parseAsString, ','),
@@ -70,6 +76,7 @@ export type ExploreState = {
   scope: MemberScope | null;
   chamber: (typeof CHAMBERS)[number] | null;
   state: string | null;
+  district?: number | null;
   party: string | null;
   sort: SortTerm[] | null;
   cols: string[] | null;
