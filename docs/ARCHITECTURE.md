@@ -47,7 +47,16 @@ vault's `03_STANDARDS/Engineering/production-readiness-audit.md`.
 One language (TypeScript, Node 24), one package manager (pnpm workspaces), one
 database (Postgres). Locally and in tests the database is **PGlite** (embedded
 Postgres, no Docker); in production it is a managed or self-hosted Postgres
-(owner decision D1). Drizzle schema and migrations are identical for both.
+(owner selected Render web plus managed Postgres, D1; provisioning remains gated).
+Drizzle schema and migrations are identical for both. The production start command
+uses a bounded native Node HTTP server around the Next handler; it keeps the same
+core/API/MCP boundaries. See OPERATIONS for deadlines and safe diagnostic fields.
+
+Profiles also expose `people.glance`, a deterministic overview assembled in core,
+and Methodology exposes `explainers.list`. Both use the public registry. The Home
+member finder leads to the existing state/district/chamber Explore filters.
+Research crawlers, if trialed later, can collect review evidence; they cannot
+approve curated claims or bypass source-adapter validation.
 
 ### Repository layout
 

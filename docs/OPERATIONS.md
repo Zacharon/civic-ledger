@@ -1,8 +1,9 @@
 # Operations
 
-Runbook for the public API and MCP server (readiness profile W). Hosting is not
-decided (owner decision D1), so everything here is host-neutral; host-specific steps
-are marked **pending D1**. Nothing in this repo has been deployed.
+Runbook for the public API and MCP server (readiness profile W). The owner selected
+Render web plus managed Postgres. [DEPLOY_RENDER.md](DEPLOY_RENDER.md) is the
+provisioning and recovery runbook; account setup, deployment and hosted verification
+remain pending. Nothing in this repo has been deployed.
 
 Related: [API.md](API.md) (contract), [ARCHITECTURE.md](ARCHITECTURE.md) section 7
 (cross-cutting rules), [DECISIONS.md](DECISIONS.md).
@@ -37,6 +38,13 @@ Related: [API.md](API.md) (contract), [ARCHITECTURE.md](ARCHITECTURE.md) section
 | `API_RATE_LIMIT_HEALTH_PER_MINUTE` | 30 | `/api/health` |
 | `HEALTH_DB_TIMEOUT_MS` | 2000 | Database round-trip budget for health |
 | `HEALTH_MAX_INGEST_AGE_HOURS` | 336 | Staleness limit for sources without a built-in limit |
+| `API_BODY_TIMEOUT_MS` | 10000 | Absolute JSON body deadline; interrupted/stalled bodies answer uncached 408 |
+| `WEB_READ_TIMEOUT_MS` | 20000 | Page capability response deadline; does not itself cancel database work |
+| `HTTP_HEADERS_TIMEOUT_MS` | 10000 | Production native-server header deadline |
+| `HTTP_REQUEST_TIMEOUT_MS` | 30000 | Production native-server request deadline; must be at least the header deadline |
+| `HTTP_INACTIVITY_TIMEOUT_MS` | 30000 | Close an inactive socket |
+| `HTTP_KEEP_ALIVE_TIMEOUT_MS` | 5000 | Idle keep-alive budget |
+| `HTTP_RESPONSE_TIMEOUT_MS` | 25000 | Absolute response deadline: 503 before headers, otherwise close the stream |
 
 Secrets are environment-only; `.env*` is gitignored and CI runs a full-history secret scan
 (`secret-scan` job: pinned gitleaks CLI over every fetched commit). A finding that review
@@ -44,6 +52,12 @@ shows is not a credential goes in `.gitleaksignore` by its exact fingerprint (co
 rule, line) with a comment saying why; never allowlist a whole rule or path.
 Invalid numeric values for the `DB_*` / `INGEST_*` variables stop the process at start
 with a message naming the variable; empty means "use the default".
+The new `API_BODY_TIMEOUT_MS`, `WEB_READ_TIMEOUT_MS` and `HTTP_*_TIMEOUT_MS`
+budgets accept only positive integers up to 120000; zero or empty is invalid.
+`pnpm --filter web start` runs `server.mjs` and accepts `-p/--port` and
+`-H/--hostname`, with `PORT`/`HOSTNAME` fallbacks. Development still uses `next dev`.
+The request and response limits apply to the native production start boundary;
+the existing database statement timeout independently bounds database work.
 
 ## Database roles and connections
 
@@ -152,14 +166,17 @@ Structured JSON, one object per line, on stdout (web) and stderr (MCP), via pino
 
 * Every API request logs `requestId`, `capability`, `method`, `status`, `durationMs`.
   The `X-Request-Id` response header is the same id: ask reporters for it.
-* `status >= 500` logs at `error` with the underlying cause under `err`. Rate-limited
-  requests log at `warn` (`msg: "rate limited"`, with `rule`).
-* Request headers, query strings and client addresses are **not** logged; the only
-  data in logs is public-official data and the capability name. The logger also
-  redacts `authorization` and `cookie` fields if a future change logs them.
+* API failures log at `error`; rate-limited requests log at `warn`
+  (`msg: "rate limited"`, with `rule`). Exceptions retain only allowed categories
+  and safe codes, never raw messages, stacks, SQL or URLs.
+* Page core reads log the same request id, capability, outcome and duration.
+  Headers, query strings, inputs and client addresses are not emitted. Logger
+  redaction remains defense in depth; a failed diagnostic sink cannot replace the
+  intended business response.
 * MCP logs only startup and tool failures (stderr; stdout is the protocol).
-* Retention and shipping are host decisions (pending D1). Until then: platform log
-  capture of stdout, 14 days.
+* Retention target: seven days ordinary logs, 30 days selected incident metadata.
+  Configure and verify host capture, access and retention during provisioning;
+  local sink tests do not prove shipping or retention.
 
 ## Rate limits
 
@@ -199,7 +216,7 @@ supply end to end:
 | Cloudflare | `cf-connecting-ip` | Overwritten by Cloudflare |
 | One reverse proxy that appends to `x-forwarded-for` | `x-forwarded-for` + `TRUSTED_PROXY_HOPS=1` | Takes the last entry, which the proxy added |
 | CDN then reverse proxy | `x-forwarded-for` + `TRUSTED_PROXY_HOPS=2` | Counts from the right |
-| Vercel / other managed host | pending D1 | Check the host's documented client-IP header |
+| Render | pending hosted verification | Verify the edge-overwritten header before selecting it; explicit single-bucket mode is the initial blueprint acknowledgment |
 
 **Limits of the in-memory limiter.** State lives in the process: it resets on restart,
 and with N instances (or serverless invocations) the effective limit is up to N times
@@ -272,11 +289,12 @@ below within a week of the incident.
 |---|---|---|---|
 | none yet | | | |
 
-## Backup and restore (VC-083, VC-084): pending D1
+## Backup and restore (VC-083, VC-084)
 
-Status: **PENDING D1 (owner decision on the production Postgres host).** Not
-implemented, not rehearsed. Do not call the system production-ready on these two items
-until the checklist below is done.
+Status: local backup/restore tooling and a synthetic PostgreSQL drill are implemented.
+Hosted backup storage, credentials, schedules, retention and recovery verification
+remain **NOT RUN**. Use [DEPLOY_RENDER.md](DEPLOY_RENDER.md) for the executable
+commands and [ops evidence](evidence/ops-launch-20261018.md) for measured results.
 
 What exists regardless of host:
 
@@ -287,17 +305,19 @@ What exists regardless of host:
   model. That costs hours and depends on upstream availability, so it is the
   fallback, not the plan.
 
-Proposed approach, to confirm with D1 (targets are proposals for the owner):
+Owner-selected recovery targets (not achieved service guarantees):
 
-| Item | Managed Postgres (Supabase or similar) | Self-hosted |
+| Item | Managed Postgres (Render) | Operator-managed supplement |
 |---|---|---|
 | Backups | Provider daily backups + point-in-time recovery if the plan has it | `pg_dump -Fc` nightly from cron, encrypted, copied off the host (object storage) |
 | RPO | 24 h (a day of ingest can be re-run) | 24 h |
 | RTO | 4 h | 4 h |
 | Retention | 14 daily, 8 weekly | same |
 
-Restore procedure to rehearse once the host exists (VC-084 needs an actual restore).
-**This drill has never been run**; no script implements the record or the comparison yet.
+The operator tooling records an authenticated manifest and checks content, receipts
+and representative capability answers after restoration into an empty target.
+The following comparison policy still governs the drill. A hosted drill must use
+the actual storage, credentials and network before VC-084 can be closed for launch.
 
 0. When each backup is taken, record from the source database, in the same transaction
    snapshot as the dump if possible, and store the record beside the backup: the record
@@ -311,7 +331,8 @@ Restore procedure to rehearse once the host exists (VC-084 needs an actual resto
    for recorded inputs; pass `scope: 'all'` wherever the input has a member scope).
 1. Create an empty Postgres (new instance; never restore over production).
 2. `pnpm db:migrate` against it, so the schema and `drizzle` journal are current.
-3. `pg_restore --clean --if-exists --no-owner -d "$RESTORE_URL" backup.dump`.
+3. Use the guarded restore CLI in DEPLOY_RENDER against that empty target. It
+   refuses the source database and populated targets; it never drops a live schema.
 4. **Content integrity.** Verify the exact restored target (`$RESTORE_URL`) before any
    ingest touches it, against the record from step 0, under the comparison policy
    below. Every compared item must match; any difference fails the drill:
@@ -370,24 +391,25 @@ Restore procedure to rehearse once the host exists (VC-084 needs an actual resto
 
 | Drill date | Backup age | Duration | Result |
 |---|---|---|---|
-| not yet performed | | | |
+| 2026-10-18 local synthetic PostgreSQL | Same run | 2.794 s backup; 5.992 s restore/compare | PASS: 30 tables, 2 views, 13 capability samples, zero mismatches; not hosted/full-size RTO proof |
 
 ## Rollback
 
 **Application release.** Redeploy the previous build: `git revert` the merge on `main`
-and redeploy, or promote the previous build in the host (instant rollback; pending D1).
+and redeploy, or promote the previous build in the host (hosted timing NOT RUN).
 Verify with `/api/health?strict=1` and one request per cache class. API paths are
 versioned (`/api/v1`). The design intent is that a rollback does not break a contract
 clients saw: v1 changes are meant to be additive, and a breaking change ships as
-`/api/v2` beside v1. This is intent, not demonstrated compatibility. A rollback also
-removes whatever additive fields or capabilities the bad release added, which clients
-may already use; nobody has run the previous app, or a previous client, against the
-current schema; and A63's structural check (no dropped or retyped column) is not such a
-run. Rollback compatibility stays unverified (VC-055).
+`/api/v2` beside v1. The local rollback test runs the actual previous app (`8ff5592`)
+against a database migrated and seeded by the candidate, compares 13 legacy public
+capabilities, parses current legacy answers with the old client's actual schemas,
+and opens the old profile, Explore and Sources. This is bounded compatibility proof;
+hosted promotion and newer clients using `people.glance` or `explainers.list` are
+not covered. Rolling back removes those new capabilities.
 
 **Database migration.** Migrations are forward-only. Each has a hand rollback note in
-`packages/db/migrations/README.md`. Roll the app back first (an older app works with a
-newer additive schema; this is a design claim, not yet tested), then apply the note only
+`packages/db/migrations/README.md`. Roll the app back first (the pinned previous app
+has local compatibility proof against this candidate's schema), then apply the note only
 if the migration itself is the problem and it states "no data loss". Anything else:
 restore from backup. Upgrading is tested: `test-pg/migrations.pgtest.ts` applies the
 latest migration over a populated database at the previous version on Postgres.

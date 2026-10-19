@@ -22,6 +22,8 @@ in `packages/core/src/capabilities`):
 | `explore.table` | `filters.scope`: `current` (default) or `all` | `current` = the person's latest term covers today (start <= today < end, open end counts), evaluated at query time; `all` adds former members |
 | `explore.facets` | input `scope` (default `current`); output `scope`, `scopes` `{current, all}`, `total`, `withData` | Counts for the requested scope; `scopes` always gives both; `withData` = people in the scope with a value (not "no data") per Explore field |
 | `people.search` | `scope` (default `all`) | Search finds former members too; every item says `isCurrent` |
+| `people.glance` | `slug`; output sections with sentences, facts, provenance and drilldowns | Deterministic profile overview; money, voting and statement coverage retain their separate periods and sources |
+| `explainers.list` | empty input | Shared plain-language definitions used by Methodology and agents |
 | `explore.table` rows, `people.get` `card`, `people.compare` people | `isCurrent`, `termEnd`, `serviceStart`, `tenureYears`, `smallDollarShare`, `smallDollarAsOf`, `topIndustries`, `industryCodingCoverage`, `scorecards` | `tenureYears` = years actually served; `smallDollarAsOf` = coverage date of the FEC candidate summary behind `smallDollarShare`; `topIndustries` are net-positive industries; `scorecards` only for publishers with cleared terms |
 | `money.summary` | `totals.pacShare`, `totals.smallDollarShare` | Shares guarded to [0, 1], else `null`; `totals.unitemizedIndividualCents` is always `null` (weball has no split) |
 | `money.summary` | `smallDollar` `{fecCandidateId, unitemizedIndividualCents, itemizedIndividualCents, totalReceiptsCents, share, coverageEndDate, provenance}` or `null` | FEC candidate summary for its own filing period; `share` is `null` outside [0, 1] or when receipts <= 0; its date can trail `totals.coverageEndDate` |
@@ -36,8 +38,8 @@ machine-readable contract is generated from the zod schemas at
 
 | Capability | Method | Cache class |
 |---|---|---|
-| `people.search`, `people.get`, `people.compare`, `explore.table`, `money.summary`, `votes.list`, `scores.list`, `promises.list` | GET | data: `s-maxage=300, stale-while-revalidate=3600` |
-| `policy.areas`, `frameworks.list` | GET | reference: `s-maxage=3600, stale-while-revalidate=86400` |
+| `people.search`, `people.get`, `people.glance`, `people.compare`, `explore.table`, `money.summary`, `votes.list`, `scores.list`, `promises.list` | GET | data: `s-maxage=300, stale-while-revalidate=3600` |
+| `policy.areas`, `frameworks.list`, `explainers.list` | GET | reference: `s-maxage=3600, stale-while-revalidate=86400` |
 | `sources.status` | GET | status: `s-maxage=60, stale-while-revalidate=300` |
 | `frameworks.evaluate` | POST (JSON body, max 256 KiB) | `no-store` |
 
@@ -85,6 +87,7 @@ POST /api/v1/frameworks.evaluate   {"framework": {"title": "...", "rules": [...]
 | `error.code` | HTTP | Meaning |
 |---|---|---|
 | `invalid_input` | 400 | validation failed; `issues[].path` is dotted (`filters.chamber`); `405` for a wrong method |
+| `invalid_input` | 408 | JSON body exceeded its absolute read deadline or was interrupted; uncached and safe to retry because this endpoint performs no write |
 | `not_found` | 404 | unknown capability, or no such person/record |
 | `conflict` | 409 | reserved (no read capability raises it) |
 | `rate_limited` | 429 | `Retry-After` header and `retryAfterSeconds` say when to retry |

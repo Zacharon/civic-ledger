@@ -1,5 +1,25 @@
 # Agent-native evidence: public read capabilities
 
+## Current candidate: public understanding and reliability
+
+The new program extends the public registry to 15 reads (`people.glance` and
+`explainers.list` added). Its current requirement-to-evidence record is
+[amalgamation-20261018.md](evidence/amalgamation-20261018.md), with the
+[expanded rendered parity and actual import/restart proof](evidence/parity-complete-20261018.md).
+The integrated desktop/performance suite passed 58 tests with zero retries,
+including both new reads, every previously uncovered UI section, an actual
+operator import and web/MCP/Postgres restarts. This supersedes the two specific
+missing scenarios described in the historical table below. Combined `pnpm check`,
+Postgres verification and independent H3 are recorded in the current report when
+complete; this paragraph does not claim hosted acceptance.
+
+The remainder of this file preserves the earlier review baseline and its limits.
+Its 13-capability inventory and PARTIAL ratings are historical, not a fresh
+assessment of the new program. The earlier H3 failures and repair receipts remain
+unchanged. Production start now uses `server.mjs` around the Next handler.
+
+## Historical baseline and review evidence
+
 Applies the owner's feature standard (vault `00_SYSTEM/AGENT_NATIVE_HUMAN_USABLE_STANDARD.md`)
 using the plan in [CAPABILITIES.md](CAPABILITIES.md). Scope: the 13 public read
 capabilities exposed by the web UI, the JSON API (`/api/v1`) and the MCP server

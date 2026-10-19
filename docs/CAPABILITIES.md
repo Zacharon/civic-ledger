@@ -24,6 +24,8 @@ for public reads; it does not need to.
 |---|---|---|---|
 | `people.search@1` | read | Search box, Explore filters | `GET /api/v1/people.search`, MCP `people_search` |
 | `people.get@1` | read | Profile page | `GET /api/v1/people.get`, MCP `people_get` |
+| `people.glance@1` | read | Profile overview and its evidence links | `GET /api/v1/people.glance`, MCP `people_glance` |
+| `explainers.list@1` | read | Methodology definitions and profile explanations | `GET /api/v1/explainers.list`, MCP `explainers_list` |
 | `people.compare@1` | read | Compare page | `GET /api/v1/people.compare`, MCP `people_compare` |
 | `explore.table@1` | read | Explore table (sort/filter/paginate; scope current by default, or all incl. former members) | `GET /api/v1/explore.table`, MCP `explore_table` |
 | `explore.facets@1` | read | Explore filter options (states, parties, chambers, scope counts, per-field data coverage) | `GET /api/v1/explore.facets`, MCP `explore_facets` |
@@ -37,9 +39,34 @@ for public reads; it does not need to.
 | `sources.status@1` | read | Sources page, footer freshness | `GET /api/v1/sources.status`, MCP `sources_status` |
 | `ingest.run@1` | write (operator) | `pnpm ingest <source>` | Same CLI; not exposed on public API/MCP |
 | `curated.validate@1` | read | `pnpm curate:validate` | Same CLI |
+| `ops.backup@1` | write (operator) | `pnpm exec tsx scripts/backup/cli.ts backup` | Same trusted-machine CLI |
+| `ops.restore@1` | write (operator; preview default) | Backup CLI `restore --manifest <key> --target-database <name>`, then reviewed `--execute` | Same CLI, never public |
+| `ops.retention@1` | write (operator; preview default) | Backup CLI `retention`, then reviewed `--execute` | Same CLI, authenticated archive keys only |
+| `ops.raw@1` | write (operator) | `pnpm exec tsx scripts/backup/raw.ts backup` or guarded restore | Same CLI, explicit persistent root |
+| `ops.assess@1` | local draft | `pnpm exec tsx scripts/monitor/cli.ts` | Same CLI; incident JSON/digest, no issue send |
 
 `frameworks.evaluate` is stateless: the framework spec travels in the request
 (or URL for the UI), so no stored user data exists.
+
+The Home member finder submits ordinary GET filters to Explore. State, district
+and chamber use `explore.table` and `explore.facets`; there is no location lookup,
+address collection or new private state. District zero means an at-large House
+seat. A state-and-district result includes that state's senators.
+
+`people.glance` accepts a person slug and returns deterministic sentences, typed
+facts, source provenance and drilldown links from the existing core capabilities.
+Each section retains its own FEC cycle, filing date or Congress. It describes
+campaign receipts rather than personal income, and never infers beliefs or motives
+from donations or votes. Missing coverage remains explicit. `explainers.list`
+returns the same definitions rendered on Methodology; these are editorial
+definitions, not stored claims about a person. Both are anonymous public reads,
+with strict schemas, no writes, no approval step and no idempotency key required.
+
+Operator backup, restore, retention and monitor commands are documented in
+[DEPLOY_RENDER.md](DEPLOY_RENDER.md). They are trusted-machine CLI capabilities;
+they are never registered as public HTTP or MCP tools. Their previews and receipts
+do not authenticate an operator or grant permission to send an alert or provision
+a service. Curated proposals outside `data/curated` are not loaded.
 
 ## Write semantics (`ingest.run@1`)
 
