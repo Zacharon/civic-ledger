@@ -35,6 +35,12 @@ export const ScoresListOutput = z.object({
       label: z.string(),
       dim1: z.number(),
       dim2: z.number().nullable(),
+      provisional: z
+        .boolean()
+        .nullable()
+        .describe(
+          "The source's own status for this estimate: true provisional (Voteview conditional), false final, null not stated (loaded before the flag was stored)",
+        ),
       provenance: ProvenanceSchema,
     }),
   ),
@@ -86,6 +92,7 @@ export const scoresList = defineCapability({
           method: ideologyScore.method,
           dim1: ideologyScore.dim1,
           dim2: ideologyScore.dim2,
+          provisional: ideologyScore.provisional,
           ...provenanceFields(ideologyScore),
         })
         .from(ideologyScore)
