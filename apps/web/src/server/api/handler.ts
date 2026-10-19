@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { BodyDeadlineError, bodyReadTimeoutMs, readJsonBody } from './body';
 import { cacheControlFor, etagOf, matchesEtag } from './cache';
 import { baseHeaders, CORS_PREFLIGHT_HEADERS, errorResponse, toCapabilityError } from './http';
-import type { Logger } from './logger';
+import { type Logger, logSafely } from './logger';
 import { coerceQuery } from './query';
 import { requestIdFrom } from './request-id';
 
@@ -124,15 +124,14 @@ export function createCapabilityHandler({
       status: response.status,
       durationMs: Math.round(performance.now() - started),
     };
-    try {
+    // Keep the HTTP outcome if the diagnostic sink fails; never dump a raw fallback.
+    logSafely(() => {
       if (failure?.code === 'internal') {
         logger.error({ ...fields, err: failure.cause ?? failure }, 'request failed');
       } else {
         logger.info(fields, 'request');
       }
-    } catch {
-      // Keep the HTTP outcome if the diagnostic sink fails; never dump a raw fallback.
-    }
+    });
     return response;
   };
 }

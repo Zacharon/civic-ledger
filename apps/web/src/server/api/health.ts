@@ -2,7 +2,7 @@ import { type CapabilityContext, type CapabilityOutput, dispatch } from '@civic-
 import { NO_STORE } from './cache';
 import type { ApiConfig } from './config';
 import { baseHeaders } from './http';
-import type { Logger } from './logger';
+import { type Logger, logSafely } from './logger';
 import {
   type RateLimitIdentityProblem,
   type RateLimitMode,
@@ -142,9 +142,11 @@ export function createHealthHandler({
       };
     } catch (error) {
       const latencyMs = Math.round(performance.now() - started);
-      logger.error(
-        { requestId, err: error instanceof Error && 'cause' in error ? error.cause : error },
-        'health check failed',
+      logSafely(() =>
+        logger.error(
+          { requestId, err: error instanceof Error && 'cause' in error ? error.cause : error },
+          'health check failed',
+        ),
       );
       report = {
         status: 'down',
