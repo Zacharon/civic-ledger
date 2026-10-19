@@ -236,9 +236,11 @@ async function answers(handle: DbHandle): Promise<Record<string, unknown>> {
       frameworks.items.map((f) => call('frameworks.evaluate', { framework: f.spec, limit: 100 })),
     ),
     'sources.status': await call('sources.status', {}),
+    'explainers.list': await call('explainers.list', {}),
   };
   for (const slug of slugs) {
     out[`people.get ${slug}`] = await call('people.get', { slug });
+    out[`people.glance ${slug}`] = await call('people.glance', { slug });
     out[`money.summary ${slug}`] = await call('money.summary', { slug });
     out[`scores.list ${slug}`] = await call('scores.list', { slug });
     out[`promises.list ${slug}`] = await call('promises.list', { slug });

@@ -77,6 +77,7 @@ describe('production read-only credentials on Postgres 17', () => {
       };
       const inputs: Record<string, unknown> = {
         'people.get': { slug },
+        'people.glance': { slug },
         'money.summary': { slug },
         'scores.list': { slug },
         'promises.list': { slug },
