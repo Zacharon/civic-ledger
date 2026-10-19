@@ -20,7 +20,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const webDir = resolve(here, '../..');
 const repoRoot = resolve(webDir, '../..');
 const tsx = join(repoRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs');
-const nextBin = join(webDir, 'node_modules', 'next', 'dist', 'bin', 'next');
+const webEntry = join(webDir, 'server.mjs');
 
 const DB_SETTINGS =
   /^(DATABASE_URL|DATABASE_URL_READONLY|PGLITE_DATA_DIR|DB_ALLOW_OWNER_CREDENTIALS)$/;
@@ -184,9 +184,9 @@ export async function startPgStack(options: { restartable?: boolean } = {}): Pro
   let client: Client | undefined;
 
   const spawnWeb = (env: Record<string, string>, onPort = port) =>
-    spawn(process.execPath, [nextBin, 'start', '-p', String(onPort)], {
+    spawn(process.execPath, [webEntry, '-p', String(onPort)], {
       cwd: webDir,
-      env: { ...cleanEnv(), ...LIMITS, ...env },
+      env: { ...cleanEnv(), ...LIMITS, HOSTNAME: '0.0.0.0', ...env },
       stdio: ['ignore', 'ignore', 'pipe'],
     });
 

@@ -2,6 +2,7 @@ import { ArrowRight, Search } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { MetricCell, metricValue } from '@/components/explore/cell';
+import { MemberFinder } from '@/components/home/member-finder';
 import { PartyChip } from '@/components/party-chip';
 import { columnById } from '@/lib/explore-columns';
 import { serializeExplore } from '@/lib/explore-params';
@@ -57,7 +58,7 @@ export default async function HomePage() {
             The public record of Congress, in one table.
           </h1>
           <p className="mt-5 max-w-xl text-lg text-ink-2">
-            Campaign money, roll-call votes, independent scores and promises for all{' '}
+            Explore campaign money, roll-call votes and sourced statements for{' '}
             <span
               className="num"
               data-facet="current"
@@ -65,7 +66,8 @@ export default async function HomePage() {
             >
               {formatNumber(facets.scopes.current)}
             </span>{' '}
-            current members, with former members one click away. Each number links to its source.
+            current members, with former members one click away. Each number links to its source;
+            coverage varies by section.
           </p>
 
           <search className="mt-8 block max-w-xl">
@@ -186,6 +188,8 @@ export default async function HomePage() {
           </p>
         </figure>
       </section>
+
+      <MemberFinder />
 
       <section aria-labelledby="freshness" className="border-y border-rule bg-surface">
         <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6">

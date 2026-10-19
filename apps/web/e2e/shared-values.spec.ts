@@ -369,6 +369,17 @@ test('actual ingest publication survives web, MCP and Postgres process restarts 
   expect(receipt.source).toBe('curated');
   expect(receipt.counts).toMatchObject({ promises: 2, promise_ratings: 1, platform_positions: 2 });
   const loaded = await checkSupplementalProfile(page, stack.baseUrl, agreed, slug);
+  const glance = await agreed<CapabilityOutput<'people.glance'>>('people.glance', { slug });
+  expect(glance.facts.say.promises).toBe(loaded.promises.summary.total);
+  expect(glance.facts.say.promisesKept).toBe(loaded.promises.summary.kept);
+  await page.goto(`${stack.baseUrl}/people/${slug}`);
+  for (const paragraph of glance.paragraphs) {
+    for (const sentence of paragraph.sentences) {
+      await expect(
+        page.locator(`#glance [data-sentence="${sentence.id}"] [data-sentence-text]`),
+      ).toHaveText(sentence.text);
+    }
+  }
   expect(loaded.promises.summary.total).toBe(previous.summary.total + 2);
   const publishedRows = await checkExplore(page);
   const publishedCard = publishedRows.find((row) => row.slug === slug);
@@ -404,6 +415,9 @@ test('actual ingest publication survives web, MCP and Postgres process restarts 
   await stack.startMcp();
   const restarted = await checkSupplementalProfile(page, stack.baseUrl, agreed, slug);
   expect(restarted).toEqual(loaded);
+  expect(await agreed<CapabilityOutput<'people.glance'>>('people.glance', { slug })).toEqual(
+    glance,
+  );
   expect(await checkExplore(page)).toEqual(publishedRows);
   await checkCompare(page, [slug, 'blair-brindlemoor']);
   const restartedStatus = await checkSources(page, stack.baseUrl, agreed);
@@ -421,6 +435,7 @@ test('actual ingest publication survives web, MCP and Postgres process restarts 
         status,
         publishedRows,
         loaded,
+        glance,
         unchangedAfterRestart: true,
       },
       null,

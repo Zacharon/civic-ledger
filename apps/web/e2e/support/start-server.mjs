@@ -11,6 +11,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const webDir = resolve(here, '../..');
 const repoRoot = resolve(webDir, '../..');
 const [port = '3300', extraPeople = '0'] = process.argv.slice(2);
+if (!/^\d{1,5}$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
+  throw new Error('Expected a TCP port from 1 to 65535');
+}
 const dataRoot = join(tmpdir(), `civic-ledger-e2e-${port}`);
 const tsx = join(repoRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs');
 
@@ -40,11 +43,12 @@ if (Number(extraPeople) > 0) {
   if (scale.status !== 0) process.exit(scale.status ?? 1);
 }
 
-const next = join(webDir, 'node_modules', 'next', 'dist', 'bin', 'next');
-const server = spawn(process.execPath, [next, 'start', '-p', port], {
+const server = spawn(process.execPath, [join(webDir, 'server.mjs'), '-p', port], {
   cwd: webDir,
   env: {
     ...env,
+    NODE_ENV: 'production',
+    HOSTNAME: '0.0.0.0',
     PGLITE_DATA_DIR: dataDir,
     // next start runs as production: a lone test client behind no proxy needs the explicit
     // single-bucket acknowledgement, and page loads must not trip the page limiter.
