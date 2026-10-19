@@ -13,6 +13,7 @@ import {
   type EvidenceServer,
   evidenceServer,
   expectEvidenceIntact,
+  publishVoteviewAs,
   renamedLegislators,
 } from './support/evidence';
 
@@ -148,13 +149,12 @@ describe('raw evidence retention (F1)', () => {
     const rt0 = await testRuntime(handle);
     await ingestFixture(rt0, 'congress-legislators');
     const server = await evidenceServer('voteview');
-    for (const [name, body] of [...server.files]) {
-      server.files.set(name.replace('HS119_', 'HS118_'), body);
-    }
+    publishVoteviewAs(server, 118);
     const rt = await testRuntime(handle, { http: server.deps, rawRoot: rt0.rawRoot });
     const c119 = await fetchRun(rt, 'voteview', { kind: 'congress', congress: 119 });
     const c118 = await fetchRun(rt, 'voteview', { kind: 'congress', congress: 118 });
     expect(c119.status).toBe('succeeded');
+    expect(c118.status).toBe('succeeded');
     expect(c118.scope).toBe('congress:118');
     const m119 = await expectEvidenceIntact(rt.rawRoot, c119);
     const m118 = await expectEvidenceIntact(rt.rawRoot, c118);

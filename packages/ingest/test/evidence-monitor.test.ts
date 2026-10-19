@@ -11,7 +11,7 @@ import {
 } from '../../../scripts/monitor/assess';
 import { runIngest } from '../src/runtime/run';
 import { freshDb, ingestFixture, SCOPES, testRuntime } from './helpers';
-import { evidenceServer } from './support/evidence';
+import { evidenceServer, publishVoteviewAs } from './support/evidence';
 
 /**
  * Evidence trust, T-A (F2): the monitor reads `sources.status` from a real PGlite ledger.
@@ -125,9 +125,7 @@ describe('monitor over a real ledger (R5)', () => {
     const legislators = await testRuntime(handle);
     await ingestFixture(legislators, 'congress-legislators');
     const server = await evidenceServer('voteview');
-    for (const [name, body] of [...server.files]) {
-      server.files.set(name.replace('HS119_', 'HS118_'), body);
-    }
+    publishVoteviewAs(server, 118);
     const rt = await testRuntime(handle, { http: server.deps });
     const c119 = (await runIngest(
       { source: 'voteview', scope: { kind: 'congress', congress: 119 } },
@@ -136,8 +134,17 @@ describe('monitor over a real ledger (R5)', () => {
     expect(c119.status).toBe('succeeded');
     await age('voteview', SOURCE_POLICY.voteview.freshHours + 1);
     // A historical Congress is fetched (and then rechecked) now.
-    await runIngest({ source: 'voteview', scope: { kind: 'congress', congress: 118 } }, rt);
-    await runIngest({ source: 'voteview', scope: { kind: 'congress', congress: 118 } }, rt);
+    const c118 = (await runIngest(
+      { source: 'voteview', scope: { kind: 'congress', congress: 118 } },
+      rt,
+    )) as IngestRunReceipt;
+    expect(c118.status).toBe('succeeded');
+    const recheck = (await runIngest(
+      { source: 'voteview', scope: { kind: 'congress', congress: 118 } },
+      rt,
+    )) as IngestRunReceipt;
+    expect(recheck.deduplicated).toBe(true);
+    expect(recheck.check).not.toBeNull();
 
     const scoped = assess(await observe(new Date(), { voteview: 'congress:119' }));
     expect(keysFor(scoped, 'voteview').sort()).toEqual([

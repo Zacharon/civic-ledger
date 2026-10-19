@@ -116,3 +116,17 @@ export async function expectEvidenceIntact(
   expect(snapshotChecksum(rehashed, manifest.upstream)).toBe(receipt.snapshotChecksum);
   return manifest as unknown as Record<string, unknown>;
 }
+
+/**
+ * Publishes the Voteview fixture's 119th-Congress files as another Congress: the file names
+ * AND every row's leading `congress` column, since the loader refuses a record whose
+ * congress differs from the run's scope (T-B).
+ */
+export function publishVoteviewAs(server: EvidenceServer, congress: number): void {
+  const prefix = `HS${String(congress).padStart(3, '0')}_`;
+  for (const [name, body] of [...server.files]) {
+    if (!name.startsWith('HS119_')) continue;
+    const text = body.toString('utf8').replace(/^119,/gm, `${congress},`);
+    server.files.set(name.replace('HS119_', prefix), Buffer.from(text));
+  }
+}
