@@ -39,7 +39,12 @@ export default async function PolicyIndexPage() {
           </thead>
           <tbody>
             {areas.items.map((a) => (
-              <tr key={a.id} className="border-b border-rule">
+              <tr
+                key={a.id}
+                data-area={a.id}
+                data-value={JSON.stringify([a.billCount, a.rollcallCount])}
+                className="border-b border-rule"
+              >
                 <th scope="row" className="py-3 pr-4 text-left font-normal">
                   {a.rollcallCount > 0 ? (
                     <Link href={`/policy/${a.id}`} className="link text-base">

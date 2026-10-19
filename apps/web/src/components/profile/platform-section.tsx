@@ -21,7 +21,7 @@ export async function PlatformSection({ slug, platform }: { slug: string; platfo
   if (platform.length === 0) {
     return (
       <ProfileSection id="platform" title="Platform and record">
-        <p className="text-ink-2">
+        <p className="text-ink-2" data-platform="none" data-value="[]">
           No stated platform positions have been curated for this member yet.
         </p>
       </ProfileSection>
@@ -58,6 +58,12 @@ export async function PlatformSection({ slug, platform }: { slug: string; platfo
           return (
             <li
               key={`${p.cycle}-${p.policyArea.id}`}
+              data-platform={`${p.cycle}:${p.policyArea.id}`}
+              data-value={JSON.stringify([
+                p.stance,
+                votes?.items.map((v) => v.position) ?? [],
+                votes?.total ?? 0,
+              ])}
               className="grid gap-3 py-5 md:grid-cols-[12rem_minmax(0,1fr)_minmax(0,1.2fr)] md:gap-6"
             >
               <div className="font-semibold">

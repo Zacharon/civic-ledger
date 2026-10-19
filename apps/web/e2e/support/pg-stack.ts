@@ -4,16 +4,16 @@
  * select-only login (DATABASE_URL_READONLY), plus owner connections for seed and changes.
  * Postgres is `PG_TEST_URL` (an admin URL, as in CI) or an embedded Postgres 17.
  */
-import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
+import { type ChildProcess, fork, spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { IngestRunReceipt } from '@civic-ledger/core';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import EmbeddedPostgres from 'embedded-postgres';
 import pg from 'pg';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -66,15 +66,17 @@ async function exec(url: string, statement: string): Promise<void> {
   }
 }
 
-function runTsx(script: string, args: string[], env: Record<string, string>): void {
+function runTsx(script: string, args: string[], env: Record<string, string>): string {
   const result = spawnSync(process.execPath, [tsx, script, ...args], {
     cwd: repoRoot,
     env: { ...cleanEnv(), ...env },
     encoding: 'utf8',
+    timeout: 120_000,
   });
   if (result.status !== 0) {
     throw new Error(`${script} failed (${result.status}): ${result.stderr || result.stdout}`);
   }
+  return result.stdout;
 }
 
 export interface ExitResult {
@@ -94,6 +96,10 @@ export interface PgStack {
   /** Starts `next start` with exactly `env` (plus the clean parent) and waits for its exit. */
   webExit(env: Record<string, string>, timeoutMs?: number): Promise<ExitResult>;
   changeData(slug: string, newName: string, addCents: number): void;
+  /** The actual operator CLI, restricted here to a test-owned curated snapshot. */
+  ingestCurated(snapshot: string): IngestRunReceipt;
+  /** Stops and starts only this fixture's Postgres server, retaining its data directory. */
+  restartDatabase(): Promise<{ beforePid: number; afterPid: number }>;
   close(): Promise<void>;
 }
 
@@ -104,34 +110,62 @@ const LIMITS = {
   API_RATE_LIMIT_EVALUATE_PER_MINUTE: '100000',
 };
 
-export async function startPgStack(): Promise<PgStack> {
-  let embedded: EmbeddedPostgres | undefined;
+export async function startPgStack(options: { restartable?: boolean } = {}): Promise<PgStack> {
+  let embedded: { child: ChildProcess; stop(): Promise<void> } | undefined;
   let embeddedDir: string | undefined;
-  let adminUrl = process.env.PG_TEST_URL?.trim() ?? '';
+  let embeddedPort = 0;
+  // Restart scenarios must own their server; never stop a shared PG_TEST_URL service.
+  let adminUrl = options.restartable ? '' : (process.env.PG_TEST_URL?.trim() ?? '');
+  const startEmbedded = async (reuse = false) => {
+    const child = fork(
+      join(here, 'postgres-server.ts'),
+      [embeddedDir ?? '', String(embeddedPort), reuse ? 'reuse' : 'initialise'],
+      { execArgv: [], stdio: ['ignore', 'ignore', 'pipe', 'ipc'] },
+    );
+    let stderr = '';
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+    const exited = new Promise<number | null>((resolve) => child.once('exit', resolve));
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error(`Postgres fixture startup timeout: ${stderr}`)),
+        60_000,
+      );
+      child.once('error', reject);
+      child.once('message', (message: { type: string; message?: string }) => {
+        clearTimeout(timer);
+        if (message.type === 'ready') resolve();
+        else reject(new Error(`Postgres fixture: ${message.message}`));
+      });
+      void exited.then((code) => {
+        clearTimeout(timer);
+        reject(new Error(`Postgres fixture exited (${code}): ${stderr}`));
+      });
+    });
+    return {
+      child,
+      async stop() {
+        if (child.connected) child.send({ type: 'stop' });
+        await exited;
+      },
+    };
+  };
   if (!adminUrl) {
     embeddedDir = await mkdtemp(join(tmpdir(), 'civic-e2e-pg-'));
-    const port = await freePort();
-    embedded = new EmbeddedPostgres({
-      databaseDir: embeddedDir,
-      port,
-      user: 'postgres',
-      password: 'postgres',
-      persistent: false,
-      postgresFlags: ['-c', 'fsync=off'],
-      onLog: () => {},
-      onError: () => {},
-    });
-    await embedded.initialise();
-    await embedded.start();
-    adminUrl = `postgres://postgres:postgres@127.0.0.1:${port}/postgres`;
+    embeddedPort = await freePort();
+    embedded = await startEmbedded();
+    adminUrl = `postgres://postgres:postgres@127.0.0.1:${embeddedPort}/postgres`;
   }
 
   const database = `civic_e2e_${randomBytes(5).toString('hex')}`;
+  const rawDir = await mkdtemp(join(tmpdir(), 'civic-e2e-ingest-raw-'));
   await exec(adminUrl, `create database "${database}"`);
   const ownerUrl = withDatabase(adminUrl, database);
   runTsx(join(repoRoot, 'packages/db/src/cli/seed.ts'), ['--allow-postgres'], {
     DATABASE_URL: ownerUrl,
   });
+  runTsx(join(here, 'seed-parity.ts'), [ownerUrl], {});
   await exec(ownerUrl, await readFile(join(repoRoot, 'scripts/db/roles.sql'), 'utf8'));
   await exec(
     ownerUrl,
@@ -229,6 +263,27 @@ export async function startPgStack(): Promise<PgStack> {
         {},
       );
     },
+    ingestCurated(snapshot) {
+      return JSON.parse(
+        runTsx(
+          join(repoRoot, 'packages/ingest/src/cli.ts'),
+          ['curated', '--snapshot', snapshot, '--raw-dir', rawDir],
+          { DATABASE_URL: ownerUrl },
+        ),
+      ) as IngestRunReceipt;
+    },
+    async restartDatabase() {
+      if (!embedded) throw new Error('Restart requires this fixture to own embedded Postgres');
+      if (web || client) throw new Error('Stop web and MCP before restarting Postgres');
+      const postgresPid = async () =>
+        Number((await readFile(join(embeddedDir ?? '', 'postmaster.pid'), 'utf8')).split('\n')[0]);
+      const beforePid = await postgresPid();
+      await embedded.stop();
+      embedded = await startEmbedded(true);
+      const afterPid = await postgresPid();
+      if (!beforePid || !afterPid) throw new Error('missing Postgres process id');
+      return { beforePid, afterPid };
+    },
     async close() {
       await stack.stopMcp().catch(() => undefined);
       await stack.stopWeb().catch(() => undefined);
@@ -237,6 +292,7 @@ export async function startPgStack(): Promise<PgStack> {
       );
       if (embedded) await embedded.stop();
       if (embeddedDir) await rm(embeddedDir, { recursive: true, force: true });
+      await rm(rawDir, { recursive: true, force: true });
     },
   };
   return stack;

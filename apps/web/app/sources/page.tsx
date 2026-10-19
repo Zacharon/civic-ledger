@@ -33,17 +33,31 @@ export default async function SourcesPage() {
       <dl className="mt-8 grid gap-x-10 gap-y-4 border-y border-ink py-5 sm:grid-cols-3">
         <div>
           <dt className="text-sm text-ink-2">Tables last rebuilt</dt>
-          <dd className="mt-1 text-lg font-semibold">
+          <dd
+            className="mt-1 text-lg font-semibold"
+            data-refreshed
+            data-value={JSON.stringify(status.readModelRefreshedAt)}
+          >
             {formatDate(status.readModelRefreshedAt) ?? 'Not yet'}
           </dd>
         </div>
         <div>
           <dt className="text-sm text-ink-2">Sources</dt>
-          <dd className="num mt-1 text-lg font-semibold">{status.sources.length}</dd>
+          <dd
+            className="num mt-1 text-lg font-semibold"
+            data-source-count
+            data-value={JSON.stringify(status.sources.length)}
+          >
+            {status.sources.length}
+          </dd>
         </div>
         <div>
           <dt className="text-sm text-ink-2">PAC dollars coded to an industry</dt>
-          <dd className="mt-1 text-lg font-semibold">
+          <dd
+            className="mt-1 text-lg font-semibold"
+            data-coverage
+            data-value={JSON.stringify([coding.coverage, coding.codedCents, coding.totalCents])}
+          >
             {formatShare(coding.coverage, 1) ?? 'No PAC data'}
             {coding.totalCents > 0 ? (
               <span className="block text-sm font-normal text-ink-2">
@@ -67,7 +81,18 @@ export default async function SourcesPage() {
             const license = safeHref(source.licenseUrl);
             const run = source.lastRun;
             return (
-              <li key={source.id} id={`source-${source.id}`} className="scroll-mt-24">
+              <li
+                key={source.id}
+                id={`source-${source.id}`}
+                data-source={source.id}
+                data-value={JSON.stringify([
+                  run?.status ?? null,
+                  run?.id ?? null,
+                  source.lastSuccess?.id ?? null,
+                  source.lastSuccess?.finishedAt ?? source.lastSuccess?.startedAt ?? null,
+                ])}
+                className="scroll-mt-24"
+              >
                 <h2 className="font-serif text-2xl font-medium">
                   {url ? (
                     <a className="link-quiet" href={url} rel="noreferrer">
@@ -116,6 +141,8 @@ export default async function SourcesPage() {
                           {runCountRows(run.counts).map((row) => (
                             <li
                               key={row.key}
+                              data-count={row.key}
+                              data-value={JSON.stringify(run.counts[row.key])}
                               className="flex justify-between gap-3 border-b border-rule py-0.5"
                             >
                               <span className="min-w-0 text-ink-2">{row.label}</span>

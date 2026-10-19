@@ -50,13 +50,28 @@ export function IndustryFigure({
       }
     >
       {coding.grossCents === 0 ? (
-        <p className="text-sm text-ink-2">No itemized PAC contributions this cycle.</p>
+        <p className="text-sm text-ink-2" data-industry-gross data-value="0">
+          No itemized PAC contributions this cycle.
+        </p>
       ) : (
         <>
           <p className="mb-4 text-sm text-ink-2">
-            <span className="num font-semibold text-ink">{formatShare(coding.coverage)}</span> of{' '}
-            <span className="num">{formatCents(coding.grossCents)}</span> in PAC contributions is
-            coded to an industry.
+            <span
+              className="num font-semibold text-ink"
+              data-industry-coverage
+              data-value={JSON.stringify(coding.coverage)}
+            >
+              {formatShare(coding.coverage)}
+            </span>{' '}
+            of{' '}
+            <span
+              className="num"
+              data-industry-gross
+              data-value={JSON.stringify(coding.grossCents)}
+            >
+              {formatCents(coding.grossCents)}
+            </span>{' '}
+            in PAC contributions is coded to an industry.
             {coding.refundsCents < 0 ? (
               <>
                 {' '}

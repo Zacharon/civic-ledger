@@ -68,6 +68,14 @@ export function CareerTimeline({
           e.kind === 'term' ? (
             <li
               key={`t-${e.term.startDate}-${e.term.chamber}`}
+              data-term={`${e.term.chamber}:${e.term.startDate}`}
+              data-value={JSON.stringify([
+                e.term.state,
+                e.term.district,
+                e.term.party,
+                e.term.startDate,
+                e.term.endDate,
+              ])}
               className="grid gap-1 sm:grid-cols-[minmax(0,16rem)_1fr] sm:items-center sm:gap-4"
             >
               <span className="text-sm">
@@ -93,6 +101,13 @@ export function CareerTimeline({
           ) : (
             <li
               key={`c-${e.campaign.cycle}-${e.campaign.chamber}`}
+              data-campaign={`${e.campaign.chamber}:${e.campaign.cycle}`}
+              data-value={JSON.stringify([
+                e.campaign.state,
+                e.campaign.district,
+                e.campaign.party,
+                e.campaign.outcome,
+              ])}
               className="grid gap-1 sm:grid-cols-[minmax(0,16rem)_1fr] sm:items-center sm:gap-4"
             >
               <span className="text-sm">

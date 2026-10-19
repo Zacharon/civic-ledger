@@ -1,0 +1,24 @@
+# Fictional dev-seed person. Test input only, never a public political claim.
+schema_version: 1
+person:
+  bioguide: X000001
+promises:
+  - id: parity-restart-clinic
+    statement: Publish fictional clinic opening hours every month.
+    made_on: 2026-01-17
+    policy_area: health
+    source_url: https://example.org/parity/clinic-promise
+    ratings:
+      - rater: Fictional parity reviewer
+        status: kept
+        rated_on: 2026-09-19
+        summary: The fictional schedule was published.
+        evidence:
+          - url: https://example.org/parity/clinic-evidence
+            title: Fictional clinic schedule
+  - id: parity-restart-unrated
+    statement: Publish a fictional energy storage register.
+    made_on: 2026-03-21
+    policy_area: energy
+    source_url: https://example.org/parity/energy-promise
+    ratings: []

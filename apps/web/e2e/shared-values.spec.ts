@@ -1,6 +1,15 @@
+import { writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import type { CapabilityOutput } from '@civic-ledger/core';
 import { expect, type Page, test } from '@playwright/test';
 import { formatCents, formatNumber, formatShare, formatYears } from '../src/lib/format';
 import { type PgStack, startPgStack } from './support/pg-stack';
+import {
+  checkHome,
+  checkPolicy,
+  checkSources,
+  checkSupplementalProfile,
+} from './support/supplemental-values';
 
 /**
  * Seven-gate shared capabilities / shared state on the real UI path: what a person sees on
@@ -16,7 +25,7 @@ let stack: PgStack;
 // biome-ignore lint/correctness/noEmptyPattern: Playwright requires a fixtures pattern first
 test.beforeAll(async ({}, testInfo) => {
   testInfo.setTimeout(300_000);
-  stack = await startPgStack();
+  stack = await startPgStack({ restartable: true });
   await stack.startWeb();
   await stack.startMcp();
 });
@@ -287,6 +296,141 @@ test('pages show the values the API and the MCP server return for the same input
   before = await checkProfile(page, subjects[0] ?? '');
   await checkCompare(page, subjects);
   await checkFramework(page);
+});
+
+test('remaining profile sections show populated and missing values through UI, HTTP and MCP', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  const populated = await checkSupplementalProfile(page, stack.baseUrl, agreed, 'avery-ashvale');
+  expect(populated.scores.ideology.length).toBeGreaterThan(0);
+  expect(populated.scores.scorecards.length).toBeGreaterThan(0);
+  expect(populated.scores.linkOnlyPublishers.length).toBeGreaterThan(0);
+  expect(populated.promises.items.length).toBeGreaterThan(0);
+  expect(populated.profile.platform.length).toBeGreaterThan(0);
+  expect(populated.profile.candidacies.length).toBeGreaterThan(0);
+  expect(populated.money.industries.length).toBeGreaterThan(0);
+  expect(populated.money.outsideSpending.itemCount).toBeGreaterThan(0);
+  const scoreless = await checkSupplementalProfile(
+    page,
+    stack.baseUrl,
+    agreed,
+    'emerson-elderquay',
+  );
+  expect(scoreless.scores.scorecards).toEqual([]);
+  const emptyFigures = await checkSupplementalProfile(
+    page,
+    stack.baseUrl,
+    agreed,
+    'blair-brindlemoor',
+  );
+  expect(emptyFigures.money.totals).not.toBeNull();
+  expect(emptyFigures.money.industryCoding.grossCents).toBe(0);
+  expect(emptyFigures.money.outsideSpending.itemCount).toBe(0);
+  const rows = await agreed<CapabilityOutput<'explore.table'>>('explore.table', {
+    filters: { scope: 'all' },
+    limit: 100,
+  });
+  const missing = rows.rows.find((r) => r.isCurrent && r.totalReceiptsCents === null);
+  const former = rows.rows.find((r) => !r.isCurrent);
+  if (!missing || !former) throw new Error('seed must include missing-money and former members');
+  const sparse = await checkSupplementalProfile(page, stack.baseUrl, agreed, missing.slug);
+  expect(sparse.promises.summary.total).toBe(0);
+  expect(sparse.profile.platform).toEqual([]);
+  expect(sparse.money.totals).toBeNull();
+  expect(sparse.money.industryCoding.grossCents).toBe(0);
+  expect(sparse.money.outsideSpending.itemCount).toBe(0);
+  const historical = await checkSupplementalProfile(page, stack.baseUrl, agreed, former.slug);
+  expect(historical.scores.ideology).toEqual([]);
+  expect(historical.profile.candidacies).toEqual([]);
+});
+
+test('Home, Policy index and chamber matrices, and Sources show HTTP and MCP values', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await checkHome(page, stack.baseUrl, agreed);
+  await checkPolicy(page, stack.baseUrl, agreed);
+  await checkSources(page, stack.baseUrl, agreed);
+});
+
+test('actual ingest publication survives web, MCP and Postgres process restarts with unchanged values', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(180_000);
+  const slug = 'avery-ashvale';
+  const previous = await agreed<CapabilityOutput<'promises.list'>>('promises.list', { slug });
+  const beforeStatus = await agreed<CapabilityOutput<'sources.status'>>('sources.status', {});
+  const snapshot = fileURLToPath(new URL('./fixtures/curated', import.meta.url));
+  const receipt = stack.ingestCurated(snapshot);
+  expect(receipt.status).toBe('succeeded');
+  expect(receipt.operation).toBe('ingest.run');
+  expect(receipt.actor).toBe('operator');
+  expect(receipt.source).toBe('curated');
+  expect(receipt.counts).toMatchObject({ promises: 2, promise_ratings: 1, platform_positions: 2 });
+  const loaded = await checkSupplementalProfile(page, stack.baseUrl, agreed, slug);
+  expect(loaded.promises.summary.total).toBe(previous.summary.total + 2);
+  const publishedRows = await checkExplore(page);
+  const publishedCard = publishedRows.find((row) => row.slug === slug);
+  expect(publishedCard?.promiseKeptRate).toBe(loaded.promises.summary.keptRate);
+  expect(publishedCard?.promisesRated).toBe(loaded.promises.summary.rated);
+  await checkCompare(page, [slug, 'blair-brindlemoor']);
+  const promise = loaded.promises.items.find(
+    (p) => p.promiseKey === 'X000001:parity-restart-clinic',
+  );
+  expect(promise).toMatchObject({
+    statement: 'Publish fictional clinic opening hours every month.',
+    status: 'kept',
+    provenance: { sourceId: 'curated', ingestRunId: receipt.runId },
+  });
+  expect(
+    loaded.promises.items.find((p) => p.promiseKey === 'X000001:parity-restart-unrated')?.status,
+  ).toBe('not_yet_rated');
+  const status = await checkSources(page, stack.baseUrl, agreed);
+  expect(status.readModelRefreshedAt).not.toBe(beforeStatus.readModelRefreshedAt);
+  expect(status.sources.find((s) => s.id === 'curated')?.lastRun).toMatchObject({
+    id: receipt.runId,
+    status: 'succeeded',
+    counts: receipt.counts,
+  });
+  await checkHome(page, stack.baseUrl, agreed);
+  const duplicate = stack.ingestCurated(snapshot);
+  expect(duplicate).toMatchObject({ runId: receipt.runId, deduplicated: true });
+  await stack.stopWeb();
+  await stack.stopMcp();
+  const restart = await stack.restartDatabase();
+  expect(restart.beforePid).not.toBe(restart.afterPid);
+  await stack.startWeb();
+  await stack.startMcp();
+  const restarted = await checkSupplementalProfile(page, stack.baseUrl, agreed, slug);
+  expect(restarted).toEqual(loaded);
+  expect(await checkExplore(page)).toEqual(publishedRows);
+  await checkCompare(page, [slug, 'blair-brindlemoor']);
+  const restartedStatus = await checkSources(page, stack.baseUrl, agreed);
+  expect(restartedStatus).toEqual(status);
+  await checkHome(page, stack.baseUrl, agreed);
+  const evidencePath = testInfo.outputPath('ingest-and-restart.json');
+  await writeFile(
+    evidencePath,
+    JSON.stringify(
+      {
+        receipt,
+        duplicate,
+        restart,
+        promise,
+        status,
+        publishedRows,
+        loaded,
+        unchangedAfterRestart: true,
+      },
+      null,
+      2,
+    ),
+  );
+  await testInfo.attach('ingest-and-restart.json', {
+    contentType: 'application/json',
+    path: evidencePath,
+  });
 });
 
 test('a data change plus read-model refresh reaches the UI, the API and MCP alike', async ({

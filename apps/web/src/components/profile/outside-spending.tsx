@@ -25,7 +25,9 @@ export function OutsideSpending({ outside, notes }: { outside: Outside; notes: S
         caption="Independent expenditures reported to the FEC by groups not controlled by the campaign."
       >
         {outside.itemCount === 0 ? (
-          <p className="text-sm text-ink-2">No independent expenditures reported this cycle.</p>
+          <p className="text-sm text-ink-2" data-outside-count data-value="[0,0]">
+            No independent expenditures reported this cycle.
+          </p>
         ) : (
           <BarList
             label="Outside spending for and against"
@@ -48,7 +50,11 @@ export function OutsideSpending({ outside, notes }: { outside: Outside; notes: S
       </Figure>
       {outside.itemCount > 0 ? (
         <div className="min-w-0">
-          <h3 className="font-semibold">
+          <h3
+            className="font-semibold"
+            data-outside-count
+            data-value={JSON.stringify([outside.spenders.length, outside.itemCount])}
+          >
             By spender{' '}
             <span className="font-normal text-ink-3">
               (<span className="num">{formatNumber(outside.spenders.length)}</span> spenders,{' '}
@@ -77,6 +83,8 @@ export function OutsideSpending({ outside, notes }: { outside: Outside; notes: S
                 {shown.map((s) => (
                   <tr
                     key={`${s.spenderFecCommitteeId}-${s.supportOppose}`}
+                    data-spender={`${s.spenderFecCommitteeId}:${s.supportOppose}`}
+                    data-value={JSON.stringify([s.amountCents, s.expenditures, s.latestDate])}
                     className="border-b border-rule"
                   >
                     <td className="py-2 pr-4">
@@ -135,7 +143,17 @@ function LargestItems({ outside, notes }: { outside: Outside; notes: SourceNotes
           </thead>
           <tbody>
             {outside.items.map((item) => (
-              <tr key={item.provenance.sourceKey} className="border-b border-rule">
+              <tr
+                key={item.provenance.sourceKey}
+                data-expenditure={item.provenance.sourceKey}
+                data-value={JSON.stringify([
+                  item.spenderName,
+                  item.supportOppose,
+                  item.amountCents,
+                  item.expenditureDate,
+                ])}
+                className="border-b border-rule"
+              >
                 <td className="py-2 pr-4">
                   {item.spenderName}
                   {item.purpose ? (
