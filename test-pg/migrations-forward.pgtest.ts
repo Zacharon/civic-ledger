@@ -240,7 +240,10 @@ async function answers(handle: DbHandle): Promise<Record<string, unknown>> {
   };
   for (const slug of slugs) {
     out[`people.get ${slug}`] = await call('people.get', { slug });
-    out[`people.glance ${slug}`] = await call('people.glance', { slug });
+    const glance = (await call('people.glance', { slug })) as Record<string, unknown>;
+    // Only this top-level clock is person_card.refreshed_at. Independently
+    // refreshed databases differ here; source filing/retrieval dates remain exact.
+    out[`people.glance ${slug}`] = { ...glance, asOf: '<refresh time>' };
     out[`money.summary ${slug}`] = await call('money.summary', { slug });
     out[`scores.list ${slug}`] = await call('scores.list', { slug });
     out[`promises.list ${slug}`] = await call('promises.list', { slug });
