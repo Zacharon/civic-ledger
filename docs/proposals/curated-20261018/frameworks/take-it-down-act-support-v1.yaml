@@ -1,0 +1,17 @@
+# REVIEW ONLY. Not a publisher scorecard or an approved owner framework.
+schema_version: 1
+slug: take-it-down-act-support
+version: 1
+title: "Support for the TAKE IT DOWN Act"
+author: Civic Ledger proposal curator (agent; owner approval pending)
+stated_orientation: "Favors the federal criminal and removal-notice approach to nonconsensual intimate imagery in S.146."
+description: "Owner-review proposal. One curator's opt-in view, never a neutral score. Fixed set of 1 roll calls from 119th-Congress S146; all weights are 1. A member's denominator counts only these roll calls with a recorded yea or nay. Present, not voting, missing positions and the other chamber's votes do not increase that denominator. No member results are calculated in this proposal. See framework-final-votes.json for official records and source mappings."
+rules:
+  - target:
+      kind: rollcall
+      congress: 119
+      chamber: house
+      number: 103
+    aligned_position: yea
+    weight: 1
+    rationale: "Curator-selected yea position on S146. Official session 1, roll 104, 2025-04-28: https://clerk.house.gov/evs/2025/roll104.xml. Source sequence is Voteview 103, not the official clerk number."

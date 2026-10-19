@@ -1,0 +1,11 @@
+# REVIEW ONLY. Empty ratings means not_yet_rated; no agent verdict.
+schema_version: 1
+person:
+  bioguide: S001217
+promises:
+  - id: scott-un-funding-vote-if-leader-2024
+    statement: "If selected as Senate Republican Leader, force a vote to halt U.S. funding to the United Nations."
+    made_on: 2024-10-07
+    policy_area: international-affairs
+    source_url: https://rickscott.com/2024/10/07/senator-rick-scott-hosts-floridians-against-antisemitism-roundtable/
+    ratings: []

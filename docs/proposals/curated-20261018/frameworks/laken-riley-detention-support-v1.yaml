@@ -1,0 +1,25 @@
+# REVIEW ONLY. Not a publisher scorecard or an approved owner framework.
+schema_version: 1
+slug: laken-riley-detention-support
+version: 1
+title: "Support for the Laken Riley Act detention approach"
+author: Civic Ledger proposal curator (agent; owner approval pending)
+stated_orientation: "Favors the immigration-detention and state-enforcement approach in S.5, rather than evaluating a member overall."
+description: "Owner-review proposal. One curator's opt-in view, never a neutral score. Fixed set of 2 roll calls from 119th-Congress S5; all weights are 1. A member's denominator counts only these roll calls with a recorded yea or nay. Present, not voting, missing positions and the other chamber's votes do not increase that denominator. No member results are calculated in this proposal. See framework-final-votes.json for official records and source mappings."
+rules:
+  - target:
+      kind: rollcall
+      congress: 119
+      chamber: house
+      number: 22
+    aligned_position: yea
+    weight: 1
+    rationale: "Curator-selected yea position on S5. Official session 1, roll 23, 2025-01-22: https://clerk.house.gov/evs/2025/roll023.xml. Source sequence is Voteview 22, not the official clerk number."
+  - target:
+      kind: rollcall
+      congress: 119
+      chamber: senate
+      number: 7
+    aligned_position: yea
+    weight: 1
+    rationale: "Curator-selected yea position on S5. Official session 1, roll 7, 2025-01-20: https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00007.xml. Source sequence is Voteview 7, not the official clerk number."

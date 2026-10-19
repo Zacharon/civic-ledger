@@ -1,0 +1,50 @@
+[
+  {
+    "id": "aclu",
+    "name": "American Civil Liberties Union",
+    "url": "https://www.aclu.org/congressional-scorecards",
+    "checked_url": "https://www.aclu.org/scorecard/",
+    "self_described_orientation": "UNKNOWN in inspected scorecard landing-page text",
+    "scope_note": "The scorecard landing page was live but exposed little methodological text to the reader.",
+    "terms_status": "pending",
+    "presentation": "links_only",
+    "copied_scores": 0,
+    "permission_to_ingest": "UNVERIFIED"
+  },
+  {
+    "id": "heritage-action",
+    "name": "Heritage Action for America",
+    "url": "https://heritageaction.com/scorecard",
+    "checked_url": "https://heritageaction.com/scorecard",
+    "self_described_orientation": "Conservative; the publisher describes the scorecard as measuring how conservative members are.",
+    "scope_note": "Uses the publisher's selected votes and cosponsorships; do not call it a neutral ranking.",
+    "terms_status": "pending",
+    "presentation": "links_only",
+    "copied_scores": 0,
+    "permission_to_ingest": "UNVERIFIED"
+  },
+  {
+    "id": "ntu",
+    "name": "National Taxpayers Union",
+    "url": "https://www.ntu.org/ratecongress",
+    "checked_url": "https://www.ntu.org/ratecongress",
+    "self_described_orientation": "Taxpayer perspective favoring lower spending, lower taxes and less regulation, as described by the publisher.",
+    "scope_note": "Method and denominator differ from other publishers. Do not average their ratings into a common good-member score.",
+    "terms_status": "pending",
+    "presentation": "links_only",
+    "copied_scores": 0,
+    "permission_to_ingest": "UNVERIFIED"
+  },
+  {
+    "id": "lugar-center",
+    "name": "The Lugar Center / Georgetown University Bipartisan Index",
+    "url": "https://www.thelugarcenter.org/ourwork-Bipartisan-Index.html",
+    "checked_url": "https://www.thelugarcenter.org/ourwork-Bipartisan-Index.html",
+    "self_described_orientation": "Bipartisan legislative collaboration; not an ideological placement measure.",
+    "scope_note": "Its sponsorship/cosponsorship collaboration lens should remain distinct from vote-alignment and ideological measures.",
+    "terms_status": "pending",
+    "presentation": "links_only",
+    "copied_scores": 0,
+    "permission_to_ingest": "UNVERIFIED"
+  }
+]

@@ -1,0 +1,9 @@
+# REVIEW ONLY. Owner approval required before any copy to data/curated.
+schema_version: 1
+person:
+  bioguide: K000394
+cycle: 2024
+positions:
+  - policy_area: government-operations-and-politics
+    stance: "Favors prohibiting members of Congress from trading stocks; his 2024 campaign advertisement highlights a bill he wrote on that subject."
+    source_url: https://www.andykim.com/2024/09/24/new-ad-congressman-kim-launches-first-ad-general-e/

@@ -1,0 +1,11 @@
+# REVIEW ONLY. Empty ratings means not_yet_rated; no agent verdict.
+schema_version: 1
+person:
+  bioguide: L000599
+promises:
+  - id: lawler-salt-cap-vote-condition-2025
+    statement: "Vote no on the reconciliation bill if the Senate reduces the negotiated $40,000 SALT deduction cap."
+    made_on: 2025-06-16
+    policy_area: taxation
+    source_url: https://lawler.house.gov/news/documentsingle.aspx?DocumentID=4426
+    ratings: []

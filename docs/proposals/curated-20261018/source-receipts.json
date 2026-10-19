@@ -1,0 +1,522 @@
+[
+  {
+    "url": "https://www.senate.gov/general/contact_information/senators_cfm.xml",
+    "requested_at": "2026-10-19T00:23:51.307191+00:00",
+    "status": 200,
+    "final_url": "https://www.senate.gov/general/contact_information/senators_cfm.xml",
+    "content_type": "text/xml",
+    "sha256": "01459d6977e9b5590e7d27cb333ff062cf9cf0783c934373393512fe2542b5e2",
+    "bytes": 52533,
+    "retrieved_at": "2026-10-19T00:23:52.096242+00:00"
+  },
+  {
+    "url": "https://clerk.house.gov/xml/lists/MemberData.xml",
+    "requested_at": "2026-10-19T00:23:52.099116+00:00",
+    "status": 200,
+    "final_url": "https://clerk.house.gov/xml/lists/MemberData.xml",
+    "content_type": "text/xml",
+    "sha256": "01833c6c646873b2247950e8ab9c7ecc2c57fd2bf019d1014bd64a58b496ed3d",
+    "bytes": 557203,
+    "retrieved_at": "2026-10-19T00:23:53.598143+00:00"
+  },
+  {
+    "url": "https://unitedstates.github.io/congress-legislators/legislators-current.json",
+    "requested_at": "2026-10-19T00:23:53.625303+00:00",
+    "status": 200,
+    "final_url": "https://unitedstates.github.io/congress-legislators/legislators-current.json",
+    "content_type": "application/json; charset=utf-8",
+    "sha256": "ae8cb9477c48715df71a7d860854229d799dc90a254d61badc1efb770f892b2c",
+    "bytes": 1469059,
+    "retrieved_at": "2026-10-19T00:23:57.003710+00:00"
+  },
+  {
+    "url": "https://www.govinfo.gov/bulkdata/BILLSTATUS/119/s/BILLSTATUS-119s5.xml",
+    "requested_at": "2026-10-19T00:23:57.028173+00:00",
+    "status": 200,
+    "final_url": "https://www.govinfo.gov/bulkdata/BILLSTATUS/119/s/BILLSTATUS-119s5.xml",
+    "content_type": "text/xml",
+    "sha256": "9b554953207e8ab9bc3a236726c7afa2d05389332584666417d8ae0a2324de57",
+    "bytes": 269519,
+    "retrieved_at": "2026-10-19T00:23:58.047253+00:00"
+  },
+  {
+    "url": "https://www.govinfo.gov/bulkdata/BILLSTATUS/119/s/BILLSTATUS-119s146.xml",
+    "requested_at": "2026-10-19T00:23:58.056422+00:00",
+    "status": 200,
+    "final_url": "https://www.govinfo.gov/bulkdata/BILLSTATUS/119/s/BILLSTATUS-119s146.xml",
+    "content_type": "text/xml",
+    "sha256": "507f707f72296d4b2e9a7389bc5763114bba6cc3e9c7011787f4b5325e022ef6",
+    "bytes": 31664,
+    "retrieved_at": "2026-10-19T00:23:58.320096+00:00"
+  },
+  {
+    "url": "https://www.govinfo.gov/bulkdata/BILLSTATUS/119/hr/BILLSTATUS-119hr1.xml",
+    "requested_at": "2026-10-19T00:23:58.323361+00:00",
+    "status": 200,
+    "final_url": "https://www.govinfo.gov/bulkdata/BILLSTATUS/119/hr/BILLSTATUS-119hr1.xml",
+    "content_type": "text/xml",
+    "sha256": "95644d3867530f8d99b4134948e7c47e1b3e5c50882e9cb73f30778628b81fda",
+    "bytes": 1979603,
+    "retrieved_at": "2026-10-19T00:24:03.225530+00:00"
+  },
+  {
+    "url": "https://voteview.com/static/data/out/rollcalls/HS119_rollcalls.csv",
+    "requested_at": "2026-10-19T00:36:06.027600+00:00",
+    "status": 200,
+    "final_url": "https://voteview.com/static/data/out/rollcalls/HS119_rollcalls.csv",
+    "content_type": "application/octet-stream",
+    "sha256": "3710e59c403b273346e3ae7aeda015a197d24dcad28037771853f97b58592b4a",
+    "bytes": 468474,
+    "retrieved_at": "2026-10-19T00:36:21.868980+00:00",
+    "fallback": "Node fetch with normal TLS verification",
+    "initial_error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1081)>"
+  },
+  {
+    "url": "https://clerk.house.gov/evs/2025/roll023.xml",
+    "requested_at": "2026-10-19T00:24:05.776565+00:00",
+    "status": 200,
+    "final_url": "https://clerk.house.gov/evs/2025/roll023.xml",
+    "content_type": "application/xml; charset=UTF-8",
+    "sha256": "7d44ca7cded3649d57ee1048fd5431306127c1da9a118847dd709e45390a4186",
+    "bytes": 94390,
+    "retrieved_at": "2026-10-19T00:24:06.158296+00:00"
+  },
+  {
+    "url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00007.xml",
+    "requested_at": "2026-10-19T00:24:06.163762+00:00",
+    "status": 200,
+    "final_url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00007.xml",
+    "content_type": "text/xml",
+    "sha256": "75569bb8cc84e5f08771697375f15cd4b0e7f930f6face533ae46f22e76e29cc",
+    "bytes": 28483,
+    "retrieved_at": "2026-10-19T00:24:06.544383+00:00"
+  },
+  {
+    "url": "https://clerk.house.gov/evs/2025/roll104.xml",
+    "requested_at": "2026-10-19T00:24:06.546214+00:00",
+    "status": 200,
+    "final_url": "https://clerk.house.gov/evs/2025/roll104.xml",
+    "content_type": "application/xml; charset=UTF-8",
+    "sha256": "7e3474ac0c18abefed41bdae758f7ef99d59cfde98d26a52ad169023cdf4da27",
+    "bytes": 94460,
+    "retrieved_at": "2026-10-19T00:24:06.970028+00:00"
+  },
+  {
+    "url": "https://clerk.house.gov/evs/2025/roll190.xml",
+    "requested_at": "2026-10-19T00:24:06.974659+00:00",
+    "status": 200,
+    "final_url": "https://clerk.house.gov/evs/2025/roll190.xml",
+    "content_type": "application/xml; charset=UTF-8",
+    "sha256": "6222452a344969c3d565e60d7d9b492584b9a9d403d56798a7b4901427a28e90",
+    "bytes": 93888,
+    "retrieved_at": "2026-10-19T00:24:07.425139+00:00"
+  },
+  {
+    "url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00372.xml",
+    "requested_at": "2026-10-19T00:24:07.430635+00:00",
+    "status": 200,
+    "final_url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00372.xml",
+    "content_type": "text/xml",
+    "sha256": "b7c0944df3ffefd23575b12c92d405bac12e594b5b002417ff9ee1354ebacc13",
+    "bytes": 28801,
+    "retrieved_at": "2026-10-19T00:24:07.718679+00:00"
+  },
+  {
+    "url": "https://clerk.house.gov/evs/2025/roll145.xml",
+    "requested_at": "2026-10-19T00:24:07.720549+00:00",
+    "status": 200,
+    "final_url": "https://clerk.house.gov/evs/2025/roll145.xml",
+    "content_type": "application/xml; charset=UTF-8",
+    "sha256": "ca1e52d284f75409640aa12d35b3e3f0075c25df40c34efb061bbccafb249223",
+    "bytes": 94081,
+    "retrieved_at": "2026-10-19T00:24:08.302639+00:00"
+  },
+  {
+    "url": "https://addison-mcdowell-for-congress.squarespace.com/issues",
+    "requested_at": "2026-10-19T00:24:08.353240+00:00",
+    "status": 200,
+    "final_url": "https://addison-mcdowell-for-congress.squarespace.com/issues",
+    "content_type": "text/html;charset=utf-8",
+    "sha256": "068c148841e4ccd9e4120649d6b71b9c3878f9a1da31d1bc20965fc2e75f0083",
+    "bytes": 852785,
+    "retrieved_at": "2026-10-19T00:24:11.479238+00:00"
+  },
+  {
+    "url": "https://berniemoreno.com/about/",
+    "requested_at": "2026-10-19T00:24:08.364139+00:00",
+    "status": 200,
+    "final_url": "https://berniemoreno.com/about/",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "8749ef1b6b6f9e18794bfe4f8150a3dc8a3a027b01e5f48a623e005871626e51",
+    "bytes": 47933,
+    "retrieved_at": "2026-10-19T00:24:08.673096+00:00"
+  },
+  {
+    "url": "https://elizabethwarren.com/plans/universal-child-care",
+    "requested_at": "2026-10-19T00:24:08.369626+00:00",
+    "status": 200,
+    "final_url": "https://elizabethwarren.com/plans/universal-child-care",
+    "content_type": "UNKNOWN (Node fallback)",
+    "sha256": "3d2272c9135777747f14c1a7fb7a28209b674b25c5b529fe72401e78a13dae44",
+    "bytes": 214673,
+    "retrieved_at": "2026-10-19T00:24:10.665248+00:00",
+    "fallback": "Node fetch with normal TLS verification",
+    "initial_error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1081)>"
+  },
+  {
+    "url": "https://hakeemjeffries.com/issues/",
+    "requested_at": "2026-10-19T00:24:08.673162+00:00",
+    "status": 200,
+    "final_url": "https://hakeemjeffries.com/issues/",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "aa5f8658e360daa104cb190bbfcc28c89492794c56031cc3fcadc2da8b37c42d",
+    "bytes": 93706,
+    "retrieved_at": "2026-10-19T00:24:09.611991+00:00"
+  },
+  {
+    "url": "https://jordan.house.gov/issues",
+    "requested_at": "2026-10-19T00:24:09.612058+00:00",
+    "status": 200,
+    "final_url": "https://jordan.house.gov/issues",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "f29851f5ab60e0d73862e584a5f72b8f0e493a16b373ff298b507963d7822419",
+    "bytes": 45605,
+    "retrieved_at": "2026-10-19T00:24:11.692823+00:00"
+  },
+  {
+    "url": "https://khanna.house.gov/issues/health",
+    "requested_at": "2026-10-19T00:24:10.665334+00:00",
+    "status": 200,
+    "final_url": "https://khanna.house.gov/issues/health",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "ebd30996b54745cdfc29b2fdeadde3c2ae3bdac63ac525bc002bee63f6331b70",
+    "bytes": 66779,
+    "retrieved_at": "2026-10-19T00:24:11.790933+00:00"
+  },
+  {
+    "url": "https://lawler.house.gov/news/documentsingle.aspx?DocumentID=4426",
+    "requested_at": "2026-10-19T00:24:11.479326+00:00",
+    "status": 200,
+    "final_url": "https://lawler.house.gov/news/documentsingle.aspx?DocumentID=4426",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "03932baa2dc1bbb8e238bf714b599bf6bb58996c8493bf91186bc053534a3da5",
+    "bytes": 25950,
+    "retrieved_at": "2026-10-19T00:24:12.164975+00:00"
+  },
+  {
+    "url": "https://mace.house.gov/issues/spending",
+    "requested_at": "2026-10-19T00:24:11.692899+00:00",
+    "status": 200,
+    "final_url": "https://mace.house.gov/issues/spending",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "4e703ac93bab9875804c492af82492f39fd7b8841cc7b46b98b986b0c49d5c51",
+    "bytes": 84819,
+    "retrieved_at": "2026-10-19T00:24:12.267485+00:00"
+  },
+  {
+    "url": "https://mikejohnson.house.gov/issues/issue/?IssueID=14899",
+    "requested_at": "2026-10-19T00:24:11.791011+00:00",
+    "status": 200,
+    "final_url": "https://mikejohnson.house.gov/issues/issue/?IssueID=14899",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "c33158c24617e30f4810811ad14aca4b16b068923cb090c5586aab09a9d5a3ca",
+    "bytes": 24144,
+    "retrieved_at": "2026-10-19T00:24:12.952901+00:00"
+  },
+  {
+    "url": "https://mikejohnson.house.gov/news/documentsingle.aspx?DocumentID=1378",
+    "requested_at": "2026-10-19T00:24:12.165075+00:00",
+    "status": 200,
+    "final_url": "https://mikejohnson.house.gov/news/documentsingle.aspx?DocumentID=1378",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "9eb99164cd17cc1110a1e30d248411761f5e600e74564c1251a4e16ec6396f3d",
+    "bytes": 33783,
+    "retrieved_at": "2026-10-19T00:24:12.555104+00:00"
+  },
+  {
+    "url": "https://rickscott.com/2024/10/07/senator-rick-scott-hosts-floridians-against-antisemitism-roundtable/",
+    "requested_at": "2026-10-19T00:24:12.267564+00:00",
+    "status": 200,
+    "final_url": "https://rickscott.com/2024/10/07/senator-rick-scott-hosts-floridians-against-antisemitism-roundtable/",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "23acacad9f526bbf98e28facdbf0c8fb8838f74b47292d894ea15dd1a48c7d4e",
+    "bytes": 97481,
+    "retrieved_at": "2026-10-19T00:24:12.992337+00:00"
+  },
+  {
+    "url": "https://rickscott.com/about-rick-scott/",
+    "requested_at": "2026-10-19T00:24:12.555167+00:00",
+    "status": 200,
+    "final_url": "https://rickscott.com/about-rick-scott/",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "1eb0bc48e5195d945443a07ee796341cff1e1abf4c45b52c17f8e8a80bae9b39",
+    "bytes": 71884,
+    "retrieved_at": "2026-10-19T00:24:14.070723+00:00"
+  },
+  {
+    "url": "https://rokhanna.com/en/platform",
+    "requested_at": "2026-10-19T00:24:12.952972+00:00",
+    "status": 403,
+    "error": "HTTP Error 403: Forbidden",
+    "sha256": null,
+    "retrieved_at": "2026-10-19T00:24:13.128490+00:00"
+  },
+  {
+    "url": "https://sarahmcbride.com/2026/10/icymi-sarah-mcbrides-record-highlighted-in-the-delaware-news-journal/",
+    "requested_at": "2026-10-19T00:24:12.992406+00:00",
+    "status": 200,
+    "final_url": "https://sarahmcbride.com/2026/10/icymi-sarah-mcbrides-record-highlighted-in-the-delaware-news-journal/",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "604d0a5e6e335f9396299548141b54f86bb0ec7863afe3e3f3669d91133caa1e",
+    "bytes": 70640,
+    "retrieved_at": "2026-10-19T00:24:13.541407+00:00"
+  },
+  {
+    "url": "https://sarahmcbride.com/priority/care-economy/",
+    "requested_at": "2026-10-19T00:24:13.128852+00:00",
+    "status": 200,
+    "final_url": "https://sarahmcbride.com/priority/care-economy/",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "e76cb792c98bed308f002ab776afffaa66ce5291c6ff80ab335d08f5be7b7044",
+    "bytes": 65760,
+    "retrieved_at": "2026-10-19T00:24:13.751717+00:00"
+  },
+  {
+    "url": "https://www.andykim.com/2024/09/24/new-ad-congressman-kim-launches-first-ad-general-e/",
+    "requested_at": "2026-10-19T00:24:13.541501+00:00",
+    "status": 200,
+    "final_url": "https://www.andykim.com/2024/09/24/new-ad-congressman-kim-launches-first-ad-general-e/",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "20af594c73eb39d8df8000e035b1d6b67dcbc05d3eacc5e9b78ac0c280ae711e",
+    "bytes": 22972,
+    "retrieved_at": "2026-10-19T00:24:14.247557+00:00"
+  },
+  {
+    "url": "https://www.angelaalsobrooks.com/priority/abortion",
+    "requested_at": "2026-10-19T00:24:13.751783+00:00",
+    "status": 200,
+    "final_url": "https://www.angelaalsobrooks.com/priority/abortion",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "0a81ee9786bd7a43f5e76b67eb3e0693b55b8ad0bc4f634bca2f689170d2fd64",
+    "bytes": 18195,
+    "retrieved_at": "2026-10-19T00:24:14.182634+00:00"
+  },
+  {
+    "url": "https://www.baldwin.senate.gov/news/press-releases/new-baldwin-will-force-vote-to-extend-aca-tax-breaks-for-one-year",
+    "requested_at": "2026-10-19T00:24:14.070794+00:00",
+    "status": 200,
+    "final_url": "https://www.baldwin.senate.gov/news/press-releases/new-baldwin-will-force-vote-to-extend-aca-tax-breaks-for-one-year",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "dbbdafb63b5ea75c8584d593ae4a84c037a1eee68068fdbbd0f519ea4d472978",
+    "bytes": 73598,
+    "retrieved_at": "2026-10-19T00:24:14.634709+00:00"
+  },
+  {
+    "url": "https://www.blackburn.senate.gov/technology",
+    "requested_at": "2026-10-19T00:24:14.182694+00:00",
+    "status": 200,
+    "final_url": "https://www.blackburn.senate.gov/technology",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "5b40acd2d412edb827073a38b206d6986b8950f75c24ecfd14490bfc1d979c09",
+    "bytes": 88250,
+    "retrieved_at": "2026-10-19T00:24:14.881961+00:00"
+  },
+  {
+    "url": "https://www.brianfitzpatrick.com/issues/supporting-our-veterans-and-law-enforcement/",
+    "requested_at": "2026-10-19T00:24:14.247631+00:00",
+    "status": 200,
+    "final_url": "https://www.brianfitzpatrick.com/issues/supporting-our-veterans-and-law-enforcement/",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "0419dd0e7da3cf7cdd5a59536fec0fb1f4ef4e20d6c054779b621772043caf4e",
+    "bytes": 89951,
+    "retrieved_at": "2026-10-19T00:24:16.582131+00:00"
+  },
+  {
+    "url": "https://www.davemccormickpa.com/2024/05/15/my-plan-to-shake-up-washington/",
+    "requested_at": "2026-10-19T00:24:14.634782+00:00",
+    "status": 200,
+    "final_url": "https://www.davemccormickpa.com/2024/05/15/my-plan-to-shake-up-washington/",
+    "content_type": "UNKNOWN (Node fallback)",
+    "sha256": "c884257ac4551ac4576041f536ae76a5b7a26b540faee73d443e214440c0b2a8",
+    "bytes": 46674,
+    "retrieved_at": "2026-10-19T00:24:16.175501+00:00",
+    "fallback": "Node fetch with normal TLS verification",
+    "initial_error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1081)>"
+  },
+  {
+    "url": "https://www.frostforcongress.com/",
+    "requested_at": "2026-10-19T00:24:14.882042+00:00",
+    "status": 200,
+    "final_url": "https://www.frostforcongress.com/",
+    "content_type": "text/html;charset=utf-8",
+    "sha256": "9e5a146c5206f47db73d69f77c260c9775ac29b9ea21cbdc9173b5556dcd4d99",
+    "bytes": 734316,
+    "retrieved_at": "2026-10-19T00:24:17.166517+00:00"
+  },
+  {
+    "url": "https://www.gallego.senate.gov/news/press-releases/gallego-padilla-mccormick-britt-introduce-bipartisan-bill-to-help-house-disabled-veterans/",
+    "requested_at": "2026-10-19T00:24:16.175584+00:00",
+    "status": 200,
+    "final_url": "https://www.gallego.senate.gov/news/press-releases/gallego-padilla-mccormick-britt-introduce-bipartisan-bill-to-help-house-disabled-veterans/",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "09e08e93563f0097ff3e75451019b9926a0907d80cbf786e1e39db63f0a5ba11",
+    "bytes": 183106,
+    "retrieved_at": "2026-10-19T00:24:18.926268+00:00"
+  },
+  {
+    "url": "https://www.gallego.senate.gov/news/press-releases/gallego-to-vote-for-cloture-on-genius-act/",
+    "requested_at": "2026-10-19T00:24:16.582209+00:00",
+    "status": 200,
+    "final_url": "https://www.gallego.senate.gov/news/press-releases/gallego-to-vote-for-cloture-on-genius-act/",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "1825a9dad98d42c84d6b5d1522f4c56ea2bf69668aaff5a1f05b33a0b626ccd5",
+    "bytes": 179151,
+    "retrieved_at": "2026-10-19T00:24:18.447202+00:00"
+  },
+  {
+    "url": "https://www.hawley.senate.gov/hawley-op-ed-border-bills-assault-american-workers/",
+    "requested_at": "2026-10-19T00:24:17.166614+00:00",
+    "status": 200,
+    "final_url": "https://www.hawley.senate.gov/hawley-op-ed-border-bills-assault-american-workers/",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "393eac1fb130fe27eb1b4708cee503668f561958507bdee0e7d0fd8cd15803e4",
+    "bytes": 247893,
+    "retrieved_at": "2026-10-19T00:24:19.015879+00:00"
+  },
+  {
+    "url": "https://www.lawlerforcongress.com/2026/08/11/lawler-for-congress-launches-5-million-ad-campaign-marking-the-beginning-of-significant-spend-in-top-swing-seat/",
+    "requested_at": "2026-10-19T00:24:18.447266+00:00",
+    "status": 200,
+    "final_url": "https://www.lawlerforcongress.com/2026/08/11/lawler-for-congress-launches-5-million-ad-campaign-marking-the-beginning-of-significant-spend-in-top-swing-seat/",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "9434e4a12be02e0b9822a1812079a43704c92684efbe42f44001ad001820e9ee",
+    "bytes": 40866,
+    "retrieved_at": "2026-10-19T00:24:18.881203+00:00"
+  },
+  {
+    "url": "https://www.ocasiocortez.com/issues",
+    "requested_at": "2026-10-19T00:24:18.881245+00:00",
+    "status": 200,
+    "final_url": "https://www.ocasiocortez.com/issues",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "f271a6b3b3f7ad39a3528c75952b88bf232f29e10b1e3b0984dd0463cd824d73",
+    "bytes": 128656,
+    "retrieved_at": "2026-10-19T00:24:19.748429+00:00"
+  },
+  {
+    "url": "https://www.rosenfornevada.com/issue/healthcare/",
+    "requested_at": "2026-10-19T00:24:18.926319+00:00",
+    "status": 403,
+    "error": "HTTP Error 403: Forbidden",
+    "sha256": null,
+    "retrieved_at": "2026-10-19T00:24:19.162941+00:00"
+  },
+  {
+    "url": "https://www.suhasforvirginia.com/issues",
+    "requested_at": "2026-10-19T00:24:19.015928+00:00",
+    "status": 200,
+    "final_url": "https://www.suhasforvirginia.com/issues",
+    "content_type": "text/html;charset=utf-8",
+    "sha256": "0f7793bc34936e1c94ae6cc9c8a9da24bbcc3e51188ff64c3780901c7ee1fd47",
+    "bytes": 309529,
+    "retrieved_at": "2026-10-19T00:24:22.874581+00:00"
+  },
+  {
+    "url": "https://www.tammybaldwin.com/2024/06/06/icymi-tammy-baldwin-discusses-leading-the-fight-for-womens-freedoms-on-msnbcs-the-last-word-with-lawrence-odonnell/",
+    "requested_at": "2026-10-19T00:24:19.163239+00:00",
+    "status": 403,
+    "error": "HTTP Error 403: Forbidden",
+    "sha256": null,
+    "retrieved_at": "2026-10-19T00:24:19.950678+00:00"
+  },
+  {
+    "url": "https://www.tedcruz.org/reforming-immigration-and-improving-border-security/",
+    "requested_at": "2026-10-19T00:24:19.748501+00:00",
+    "status": 200,
+    "final_url": "https://www.tedcruz.org/reforming-immigration-and-improving-border-security/",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "ca00d84dac98aa65bacec2acf73cbce3a810212d7aa223d7f16a47a03302322e",
+    "bytes": 469348,
+    "retrieved_at": "2026-10-19T00:24:23.298790+00:00"
+  },
+  {
+    "url": "https://www.warren.senate.gov/newsroom/press-releases/at-hearing-warren-grills-deputy-treasury-secretary-nominee-on-student-loan-default-crisis-and-potential-impacts-on-seniors-social-security-benefits/",
+    "requested_at": "2026-10-19T00:24:19.950894+00:00",
+    "status": 200,
+    "final_url": "https://www.warren.senate.gov/newsroom/press-releases/at-hearing-warren-grills-deputy-treasury-secretary-nominee-on-student-loan-default-crisis-and-potential-impacts-on-seniors-social-security-benefits/",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "7f2e682b7e3bc75d309f16564809da0aa542cade84884e913940634f99e879de",
+    "bytes": 213250,
+    "retrieved_at": "2026-10-19T00:24:21.781663+00:00"
+  },
+  {
+    "url": "https://www.aclu.org/scorecard/",
+    "requested_at": "2026-10-19T00:24:21.781704+00:00",
+    "status": 200,
+    "final_url": "https://www.aclu.org/congressional-scorecards",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "dc8045521f2273bda3198fbf0fc3264bc4918096d5e75a9abcd530b1a93d1faf",
+    "bytes": 272327,
+    "retrieved_at": "2026-10-19T00:24:23.311953+00:00"
+  },
+  {
+    "url": "https://heritageaction.com/scorecard",
+    "requested_at": "2026-10-19T00:24:22.874650+00:00",
+    "status": 200,
+    "final_url": "https://heritageaction.com/scorecard",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "4ea27da973f708514f3e7aaecf287ede2b5b15bcb9ad8a7bd71ef9d9e6f94c2e",
+    "bytes": 43979,
+    "retrieved_at": "2026-10-19T00:24:23.435207+00:00"
+  },
+  {
+    "url": "https://www.ntu.org/ratecongress",
+    "requested_at": "2026-10-19T00:24:23.298851+00:00",
+    "status": 200,
+    "final_url": "https://www.ntu.org/ratecongress",
+    "content_type": "text/html; charset=utf-8",
+    "sha256": "8c59bb828c2c33eb5b436cf8ffc93842b7024aed7fbf8674dbf7ce74585589bd",
+    "bytes": 85236,
+    "retrieved_at": "2026-10-19T00:24:23.814690+00:00"
+  },
+  {
+    "url": "https://www.thelugarcenter.org/ourwork-Bipartisan-Index.html",
+    "requested_at": "2026-10-19T00:24:23.312041+00:00",
+    "status": 200,
+    "final_url": "https://www.thelugarcenter.org/ourwork-Bipartisan-Index.html",
+    "content_type": "text/html; charset=UTF-8",
+    "sha256": "7b744cb8005e19ba638b378603c40da68f36ae2dcc4e20ce33535de91088f1f0",
+    "bytes": 298282,
+    "retrieved_at": "2026-10-19T00:24:24.498792+00:00"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/unclecode/crawl4ai/main/LICENSE",
+    "requested_at": "2026-10-19T00:24:23.435274+00:00",
+    "status": 200,
+    "final_url": "https://raw.githubusercontent.com/unclecode/crawl4ai/main/LICENSE",
+    "content_type": "text/plain; charset=utf-8",
+    "sha256": "193fe32704bee15cd74f5153e569cdf830e26445e19798a55daee32da40758aa",
+    "bytes": 9998,
+    "retrieved_at": "2026-10-19T00:24:23.641795+00:00"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/D4Vinci/Scrapling/main/LICENSE",
+    "requested_at": "2026-10-19T00:24:23.641863+00:00",
+    "status": 200,
+    "final_url": "https://raw.githubusercontent.com/D4Vinci/Scrapling/main/LICENSE",
+    "content_type": "text/plain; charset=utf-8",
+    "sha256": "5c782ef0346e4fbfe0dc76fd435f181a0f1e4a1a7a6b13c169c6e74314ff5964",
+    "bytes": 1499,
+    "retrieved_at": "2026-10-19T00:24:24.016677+00:00"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/apify/crawlee/master/LICENSE.md",
+    "requested_at": "2026-10-19T00:24:23.814783+00:00",
+    "status": 200,
+    "final_url": "https://raw.githubusercontent.com/apify/crawlee/master/LICENSE.md",
+    "content_type": "text/plain; charset=utf-8",
+    "sha256": "37c9b417332af22e146d381766f284649483fb6ece17ca566584bf6adcf89135",
+    "bytes": 11355,
+    "retrieved_at": "2026-10-19T00:24:24.215074+00:00"
+  }
+]

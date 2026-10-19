@@ -1,0 +1,11 @@
+# REVIEW ONLY. Empty ratings means not_yet_rated; no agent verdict.
+schema_version: 1
+person:
+  bioguide: J000299
+promises:
+  - id: johnson-border-act-floor-week-2024
+    statement: "Bring the End the Border Catastrophe Act to the House floor during the week of April 17, 2024."
+    made_on: 2024-04-17
+    policy_area: immigration
+    source_url: https://mikejohnson.house.gov/news/documentsingle.aspx?DocumentID=1378
+    ratings: []

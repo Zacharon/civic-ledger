@@ -1,0 +1,11 @@
+# REVIEW ONLY. Empty ratings means not_yet_rated; no agent verdict.
+schema_version: 1
+person:
+  bioguide: B001230
+promises:
+  - id: baldwin-aca-extension-vote-2025
+    statement: "Force a Senate vote on a measure to allow a one-year extension of enhanced ACA premium tax credits to be added to the continuing resolution."
+    made_on: 2025-11-10
+    policy_area: health
+    source_url: https://www.baldwin.senate.gov/news/press-releases/new-baldwin-will-force-vote-to-extend-aca-tax-breaks-for-one-year
+    ratings: []

@@ -1,0 +1,9 @@
+# REVIEW ONLY. Owner approval required before any copy to data/curated.
+schema_version: 1
+person:
+  bioguide: W000817
+cycle: 2020
+positions:
+  - policy_area: families
+    stance: "Proposes a federally supported child-care network with free care below 200% of the federal poverty level and family costs capped at 7% of income above that threshold."
+    source_url: https://elizabethwarren.com/plans/universal-child-care

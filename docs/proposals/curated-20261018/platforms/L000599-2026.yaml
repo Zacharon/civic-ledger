@@ -1,0 +1,9 @@
+# REVIEW ONLY. Owner approval required before any copy to data/curated.
+schema_version: 1
+person:
+  bioguide: L000599
+cycle: 2026
+positions:
+  - policy_area: taxation
+    stance: "His 2026 campaign advocates the increased $40,000 state and local tax deduction cap and presents it as a central tax-policy priority."
+    source_url: https://www.lawlerforcongress.com/2026/08/11/lawler-for-congress-launches-5-million-ad-campaign-marking-the-beginning-of-significant-spend-in-top-swing-seat/

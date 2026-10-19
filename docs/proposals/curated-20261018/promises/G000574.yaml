@@ -1,0 +1,11 @@
+# REVIEW ONLY. Empty ratings means not_yet_rated; no agent verdict.
+schema_version: 1
+person:
+  bioguide: G000574
+promises:
+  - id: gallego-genius-cloture-2025
+    statement: "Vote to advance consideration of the GENIUS Act that evening."
+    made_on: 2025-05-19
+    policy_area: finance-and-financial-sector
+    source_url: https://www.gallego.senate.gov/news/press-releases/gallego-to-vote-for-cloture-on-genius-act/
+    ratings: []

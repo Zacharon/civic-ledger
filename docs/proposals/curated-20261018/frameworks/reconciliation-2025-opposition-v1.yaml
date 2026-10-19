@@ -1,0 +1,33 @@
+# REVIEW ONLY. Not a publisher scorecard or an approved owner framework.
+schema_version: 1
+slug: reconciliation-2025-opposition
+version: 1
+title: "Opposition to the 2025 reconciliation package"
+author: Civic Ledger proposal curator (agent; owner approval pending)
+stated_orientation: "Opposes H.R.1 as a whole. The vote bundles tax, spending and other provisions and cannot isolate a motive or one issue."
+description: "Owner-review proposal. One curator's opt-in view, never a neutral score. Fixed set of 3 roll calls from 119th-Congress HR1; all weights are 1. A member's denominator counts only these roll calls with a recorded yea or nay. Present, not voting, missing positions and the other chamber's votes do not increase that denominator. No member results are calculated in this proposal. See framework-final-votes.json for official records and source mappings."
+rules:
+  - target:
+      kind: rollcall
+      congress: 119
+      chamber: house
+      number: 189
+    aligned_position: nay
+    weight: 1
+    rationale: "Curator-selected nay position on HR1. Official session 1, roll 190, 2025-07-03: https://clerk.house.gov/evs/2025/roll190.xml. Source sequence is Voteview 189, not the official clerk number."
+  - target:
+      kind: rollcall
+      congress: 119
+      chamber: senate
+      number: 372
+    aligned_position: nay
+    weight: 1
+    rationale: "Curator-selected nay position on HR1. Official session 1, roll 372, 2025-07-01: https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00372.xml. Source sequence is Voteview 372, not the official clerk number."
+  - target:
+      kind: rollcall
+      congress: 119
+      chamber: house
+      number: 144
+    aligned_position: nay
+    weight: 1
+    rationale: "Curator-selected nay position on HR1. Official session 1, roll 145, 2025-05-22: https://clerk.house.gov/evs/2025/roll145.xml. Source sequence is Voteview 144, not the official clerk number."

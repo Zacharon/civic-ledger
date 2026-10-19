@@ -1,0 +1,100 @@
+[
+  {
+    "slug": "laken-riley-detention-support",
+    "proposal_file": "frameworks/laken-riley-detention-support-v1.yaml",
+    "bill": "S5",
+    "aligned_position": "yea",
+    "fixed_rollcall_count": 2,
+    "maximum_denominator_by_chamber": {
+      "house": 1,
+      "senate": 1
+    },
+    "per_member_denominator": "Count distinct selected roll calls on which that person voted yea or nay; never assume the maximum for an absent/nonmember person.",
+    "rollcalls": [
+      {
+        "congress": 119,
+        "chamber": "house",
+        "number": 22,
+        "official_roll": 23,
+        "session": 1,
+        "date": "2025-01-22",
+        "official_url": "https://clerk.house.gov/evs/2025/roll023.xml"
+      },
+      {
+        "congress": 119,
+        "chamber": "senate",
+        "number": 7,
+        "official_roll": 7,
+        "session": 1,
+        "date": "2025-01-20",
+        "official_url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00007.xml"
+      }
+    ],
+    "owner_approved": false
+  },
+  {
+    "slug": "take-it-down-act-support",
+    "proposal_file": "frameworks/take-it-down-act-support-v1.yaml",
+    "bill": "S146",
+    "aligned_position": "yea",
+    "fixed_rollcall_count": 1,
+    "maximum_denominator_by_chamber": {
+      "house": 1
+    },
+    "per_member_denominator": "Count distinct selected roll calls on which that person voted yea or nay; never assume the maximum for an absent/nonmember person.",
+    "rollcalls": [
+      {
+        "congress": 119,
+        "chamber": "house",
+        "number": 103,
+        "official_roll": 104,
+        "session": 1,
+        "date": "2025-04-28",
+        "official_url": "https://clerk.house.gov/evs/2025/roll104.xml"
+      }
+    ],
+    "owner_approved": false
+  },
+  {
+    "slug": "reconciliation-2025-opposition",
+    "proposal_file": "frameworks/reconciliation-2025-opposition-v1.yaml",
+    "bill": "HR1",
+    "aligned_position": "nay",
+    "fixed_rollcall_count": 3,
+    "maximum_denominator_by_chamber": {
+      "house": 2,
+      "senate": 1
+    },
+    "per_member_denominator": "Count distinct selected roll calls on which that person voted yea or nay; never assume the maximum for an absent/nonmember person.",
+    "rollcalls": [
+      {
+        "congress": 119,
+        "chamber": "house",
+        "number": 189,
+        "official_roll": 190,
+        "session": 1,
+        "date": "2025-07-03",
+        "official_url": "https://clerk.house.gov/evs/2025/roll190.xml"
+      },
+      {
+        "congress": 119,
+        "chamber": "senate",
+        "number": 372,
+        "official_roll": 372,
+        "session": 1,
+        "date": "2025-07-01",
+        "official_url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00372.xml"
+      },
+      {
+        "congress": 119,
+        "chamber": "house",
+        "number": 144,
+        "official_roll": 145,
+        "session": 1,
+        "date": "2025-05-22",
+        "official_url": "https://clerk.house.gov/evs/2025/roll145.xml"
+      }
+    ],
+    "owner_approved": false
+  }
+]

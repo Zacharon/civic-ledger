@@ -1,0 +1,11 @@
+# REVIEW ONLY. Empty ratings means not_yet_rated; no agent verdict.
+schema_version: 1
+person:
+  bioguide: M001243
+promises:
+  - id: mccormick-two-senate-terms-2024
+    statement: "If elected to the U.S. Senate, serve no more than two Senate terms."
+    made_on: 2024-05-15
+    policy_area: congress
+    source_url: https://www.davemccormickpa.com/2024/05/15/my-plan-to-shake-up-washington/
+    ratings: []

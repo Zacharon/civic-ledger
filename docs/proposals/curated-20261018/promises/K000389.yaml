@@ -1,0 +1,11 @@
+# REVIEW ONLY. Empty ratings means not_yet_rated; no agent verdict.
+schema_version: 1
+person:
+  bioguide: K000389
+promises:
+  - id: khanna-telehealth-bill-introduction-2025
+    statement: "Introduce the Telehealth Coverage Act to make Medicare telehealth coverage permanent."
+    made_on: 2025-02-25
+    policy_area: health
+    source_url: https://khanna.house.gov/issues/health
+    ratings: []

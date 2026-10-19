@@ -1,0 +1,138 @@
+{
+  "official_identities_checked": 24,
+  "record_identity_references_checked": 32,
+  "proposal_hashes_checked": 17,
+  "official_vote_references_checked": 6,
+  "vote_checks": [
+    {
+      "bill": "S5",
+      "chamber": "House",
+      "session": 1,
+      "official_roll": 23,
+      "voteview_sequence": 22,
+      "date": "2025-01-22",
+      "yea": 263,
+      "nay": 156,
+      "receipt": {
+        "url": "https://clerk.house.gov/evs/2025/roll023.xml",
+        "requested_at": "2026-10-19T00:36:24.023165+00:00",
+        "status": 200,
+        "final_url": "https://clerk.house.gov/evs/2025/roll023.xml",
+        "content_type": "application/xml; charset=UTF-8",
+        "sha256": "7d44ca7cded3649d57ee1048fd5431306127c1da9a118847dd709e45390a4186",
+        "bytes": 94390,
+        "retrieved_at": "2026-10-19T00:36:25.576095+00:00"
+      },
+      "result": "PASS"
+    },
+    {
+      "bill": "S5",
+      "chamber": "Senate",
+      "session": 1,
+      "official_roll": 7,
+      "voteview_sequence": 7,
+      "date": "2025-01-20",
+      "yea": 64,
+      "nay": 35,
+      "receipt": {
+        "url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00007.xml",
+        "requested_at": "2026-10-19T00:36:25.602844+00:00",
+        "status": 200,
+        "final_url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00007.xml",
+        "content_type": "text/xml",
+        "sha256": "75569bb8cc84e5f08771697375f15cd4b0e7f930f6face533ae46f22e76e29cc",
+        "bytes": 28483,
+        "retrieved_at": "2026-10-19T00:36:26.229101+00:00"
+      },
+      "result": "PASS"
+    },
+    {
+      "bill": "S146",
+      "chamber": "House",
+      "session": 1,
+      "official_roll": 104,
+      "voteview_sequence": 103,
+      "date": "2025-04-28",
+      "yea": 409,
+      "nay": 2,
+      "receipt": {
+        "url": "https://clerk.house.gov/evs/2025/roll104.xml",
+        "requested_at": "2026-10-19T00:36:26.233495+00:00",
+        "status": 200,
+        "final_url": "https://clerk.house.gov/evs/2025/roll104.xml",
+        "content_type": "application/xml; charset=UTF-8",
+        "sha256": "7e3474ac0c18abefed41bdae758f7ef99d59cfde98d26a52ad169023cdf4da27",
+        "bytes": 94460,
+        "retrieved_at": "2026-10-19T00:36:28.043050+00:00"
+      },
+      "result": "PASS"
+    },
+    {
+      "bill": "HR1",
+      "chamber": "House",
+      "session": 1,
+      "official_roll": 190,
+      "voteview_sequence": 189,
+      "date": "2025-07-03",
+      "yea": 218,
+      "nay": 214,
+      "receipt": {
+        "url": "https://clerk.house.gov/evs/2025/roll190.xml",
+        "requested_at": "2026-10-19T00:36:28.047324+00:00",
+        "status": 200,
+        "final_url": "https://clerk.house.gov/evs/2025/roll190.xml",
+        "content_type": "application/xml; charset=UTF-8",
+        "sha256": "6222452a344969c3d565e60d7d9b492584b9a9d403d56798a7b4901427a28e90",
+        "bytes": 93888,
+        "retrieved_at": "2026-10-19T00:36:29.278265+00:00"
+      },
+      "result": "PASS"
+    },
+    {
+      "bill": "HR1",
+      "chamber": "Senate",
+      "session": 1,
+      "official_roll": 372,
+      "voteview_sequence": 372,
+      "date": "2025-07-01",
+      "yea": 50,
+      "nay": 50,
+      "receipt": {
+        "url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00372.xml",
+        "requested_at": "2026-10-19T00:36:29.284181+00:00",
+        "status": 200,
+        "final_url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00372.xml",
+        "content_type": "text/xml",
+        "sha256": "b7c0944df3ffefd23575b12c92d405bac12e594b5b002417ff9ee1354ebacc13",
+        "bytes": 28801,
+        "retrieved_at": "2026-10-19T00:36:29.822084+00:00"
+      },
+      "result": "PASS"
+    },
+    {
+      "bill": "HR1",
+      "chamber": "House",
+      "session": 1,
+      "official_roll": 145,
+      "voteview_sequence": 144,
+      "date": "2025-05-22",
+      "yea": 215,
+      "nay": 214,
+      "receipt": {
+        "url": "https://clerk.house.gov/evs/2025/roll145.xml",
+        "requested_at": "2026-10-19T00:36:29.824124+00:00",
+        "status": 200,
+        "final_url": "https://clerk.house.gov/evs/2025/roll145.xml",
+        "content_type": "application/xml; charset=UTF-8",
+        "sha256": "ca1e52d284f75409640aa12d35b3e3f0075c25df40c34efb061bbccafb249223",
+        "bytes": 94081,
+        "retrieved_at": "2026-10-19T00:36:30.846336+00:00"
+      },
+      "result": "PASS"
+    }
+  ],
+  "all_promise_ratings_empty": true,
+  "owner_approved": false,
+  "database_load": "NOT_RUN",
+  "result": "PASS"
+}

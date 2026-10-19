@@ -1,0 +1,9 @@
+# REVIEW ONLY. Owner approval required before any copy to data/curated.
+schema_version: 1
+person:
+  bioguide: S001217
+cycle: 2024
+positions:
+  - policy_area: economics-and-public-finance
+    stance: "Supports reducing federal spending and taking action to preserve Social Security and Medicare, as described on his 2024 Senate campaign biography."
+    source_url: https://rickscott.com/about-rick-scott/

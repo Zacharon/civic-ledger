@@ -1,0 +1,9 @@
+# REVIEW ONLY. Owner approval required before any copy to data/curated.
+schema_version: 1
+person:
+  bioguide: M001238
+cycle: 2026
+positions:
+  - policy_area: labor-and-employment
+    stance: "Supports a permanent national paid family and medical leave program providing up to 12 weeks for specified life events."
+    source_url: https://sarahmcbride.com/priority/care-economy/

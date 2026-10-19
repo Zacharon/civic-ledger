@@ -1,0 +1,11 @@
+# REVIEW ONLY. Empty ratings means not_yet_rated; no agent verdict.
+schema_version: 1
+person:
+  bioguide: W000817
+promises:
+  - id: warren-brooke-nomination-no-2026
+    statement: "Vote against Francis Brooke's nomination to be Deputy Secretary of the Treasury."
+    made_on: 2026-07-16
+    policy_area: government-operations-and-politics
+    source_url: https://www.warren.senate.gov/newsroom/press-releases/at-hearing-warren-grills-deputy-treasury-secretary-nominee-on-student-loan-default-crisis-and-potential-impacts-on-seniors-social-security-benefits/
+    ratings: []

@@ -1,0 +1,9 @@
+# REVIEW ONLY. Owner approval required before any copy to data/curated.
+schema_version: 1
+person:
+  bioguide: M001243
+cycle: 2024
+positions:
+  - policy_area: government-operations-and-politics
+    stance: "Supports a two-term limit for his own Senate service, restrictions on congressional stock trading and moving federal agencies out of Washington."
+    source_url: https://www.davemccormickpa.com/2024/05/15/my-plan-to-shake-up-washington/
