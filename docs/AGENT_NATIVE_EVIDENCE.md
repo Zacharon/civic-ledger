@@ -9,9 +9,12 @@ The new program extends the public registry to 15 reads (`people.glance` and
 The integrated desktop/performance suite passed 58 tests with zero retries,
 including both new reads, every previously uncovered UI section, an actual
 operator import and web/MCP/Postgres restarts. This supersedes the two specific
-missing scenarios described in the historical table below. Combined `pnpm check`,
-Postgres verification and independent H3 are recorded in the current report when
-complete; this paragraph does not claim hosted acceptance.
+missing scenarios described in the historical table below. Combined `pnpm check`
+passed 463 tests, PostgreSQL passed 69, focused mobile flows passed three, and the
+previous-app rollback passed. Independent H3 returned VERIFIED on `34d689c` for
+bounded local implementation and operations preparation, with all seven gates PASS
+local. Details and preserved negatives are in the current report. Hosted acceptance,
+P4 and editorial activation remain outside that verdict.
 
 The remainder of this file preserves the earlier review baseline and its limits.
 Its 13-capability inventory and PARTIAL ratings are historical, not a fresh

@@ -1,6 +1,6 @@
 # Civic Ledger public understanding and reliability program
 
-Status: local runtime checks complete; independent review and upstream CI pending.
+Status: independent H3 VERIFIED for the bounded local candidate; upstream CI pending.
 No launch claim.
 
 ## Scope and before state
@@ -101,7 +101,7 @@ fictional PGlite/PostgreSQL fixtures unless explicitly called a real-data visual
 | Final `pnpm test:pg` | PASS: 9 files / 69 tests, 178.80 s, unchanged budgets |
 | Integrated previous-app rollback | PASS: previous app/old schemas on candidate database, 13 legacy reads and old profile/Explore/Sources, 59.4 s |
 | Real-data desktop/mobile visual collection | PASS: 12 routes, 24 screenshots, zero horizontal overflow and response timings from an isolated public-data snapshot, 1.4 minutes; no retries |
-| Independent H3 | Pending final checks; catalog/input coverage, operator naming and background-pool logging findings have independently inspected repairs; no final verdict claimed |
+| Independent H3 | VERIFIED on `34d689c`: H1/H2/H3 PASS within bounded local implementation and operations preparation; three findings resolved, seven gates PASS local |
 
 The first real-data visual used a copied public ingest database whose migrations
 had not actually been applied: the CLI ignores `PGLITE_DATA_DIR`, while the web
@@ -132,7 +132,7 @@ temporary directory. These local files are not transferred by a source merge.
 
 ## Seven-gate assessment of the bounded local candidate
 
-This table is an implementer assessment pending independent H3. It covers the
+Independent H3 verified this bounded local assessment on `34d689c`. It covers the
 public product reads and the stated trusted-machine operator commands, not a
 hosted service, editorial activation or verified operator identity.
 
@@ -160,3 +160,18 @@ it is not a fresh nationwide ingest or a deployed service. The prepared Render p
 is Node 24.21.0, verified to exist in the official release index; local application
 checks used Node 24.16.0. Runtime compatibility on the hosted pin remains NOT RUN.
 The pre-existing dynamic-filesystem tracing build warning remains.
+
+## Independent review
+
+The read-only verifier inspected source, actual logs, import/restart and restore
+receipts, final screenshots and canonical factual writeback. It independently
+reproduced deadline/recovery, district-validation, public-read authority and pool
+diagnostic negatives. Verdict: **VERIFIED for bounded local implementation and
+operations preparation**. This does not certify P4, deployment or editorial activation.
+
+Resolved review findings: H3NEW-01 additive catalog/role/upgrade fixture coverage
+(including exact Glance rebuild-clock normalization); H3NEW-02 stable operator
+capability names; H3NEW-03 raw background pool diagnostics, with committed red/green
+tests and an independent canary recheck. The reviewer found no remaining implementation
+objection in this scope. A documentation-only successor records the verdict and
+clarifies hosted configuration and draft-only alerts; upstream CI remains required.

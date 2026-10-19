@@ -245,7 +245,7 @@ the ingest CLI is a separate process from the web server and nothing calls
   load transaction, so facts and read model become visible together when a run commits.
 * Data only changes when an ingest run finishes, so after an ingest a CDN may serve the
   previous answer for up to `s-maxage` plus the stale window. If that matters, purge the
-  CDN (host-specific, pending D1) after `pnpm ingest`.
+  CDN (hosted configuration pending) after `pnpm ingest`.
 
 ## Incident severity (VC-109)
 
@@ -260,7 +260,9 @@ Incorrect or non-neutral data is treated as at least SEV2 even when the site is 
 the product promise is the data.
 
 There is a single owner and no paging rota (VC-110 is not met; sustainable paging is
-an owner decision). Alerts are email or push from the uptime monitor (pending D1).
+an owner decision). Prepared monitoring produces GitHub incident drafts and a
+success digest only. Independent uptime monitoring, actual notification delivery
+and owner receipt remain NOT RUN; see DEPLOY_RENDER before activation.
 
 ### First 15 minutes
 
