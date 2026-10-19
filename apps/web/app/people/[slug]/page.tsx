@@ -12,6 +12,7 @@ import { ScoresSection } from '@/components/profile/scores-section';
 import { ProfileSection, SectionFallback } from '@/components/profile/section';
 import { VotesSection } from '@/components/profile/votes-section';
 import { SourceList, SourceMark, SourceNotes } from '@/components/sources';
+import { COMPARE_MAX, compareHref, exploreHref, parseCompareIds } from '@/lib/compare-list';
 import {
   formatCents,
   formatDate,
@@ -24,6 +25,7 @@ import {
   serviceYears,
 } from '@/lib/format';
 import { readOrNotFound } from '@/server/capabilities';
+import { comparedNames } from '@/server/compare-names';
 import { sourceInfos } from '@/server/sources';
 
 const IDENTIFIER_LINKS: Record<string, { label: string; href: (id: string) => string }> = {
@@ -72,10 +74,27 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
   const { slug: rawSlug } = await params;
   const query = await searchParams;
   const slug = safeSlug(rawSlug);
-  const [profile, sources] = await Promise.all([
+  const chosen = parseCompareIds(firstParam(query.compare));
+  const [profile, sources, compared] = await Promise.all([
     readOrNotFound('people.get', { slug }),
     sourceInfos(),
+    comparedNames(chosen),
   ]);
+  // Comparison in progress (carried from Compare through Explore): add to it, don't restart.
+  const others = compared.filter((m) => m.slug !== slug);
+  const inComparison = compared.some((m) => m.slug === slug);
+  const ids = compared.map((m) => m.slug);
+  const compareAction =
+    compared.length === 0
+      ? { href: compareHref([slug]), label: 'Compare with others' }
+      : inComparison
+        ? { href: compareHref(ids), label: 'Back to comparison' }
+        : ids.length >= COMPARE_MAX
+          ? { href: compareHref(ids), label: `Comparison full (${COMPARE_MAX} of ${COMPARE_MAX})` }
+          : {
+              href: compareHref([...ids, slug]),
+              label: `Add to comparison (${ids.length + 1} of ${COMPARE_MAX})`,
+            };
   const { person, card, terms, candidacies, identifiers, platform } = profile;
   const cycle = Number.parseInt(firstParam(query.cycle) ?? '', 10);
   const votesPage = Number.parseInt(firstParam(query.vpage) ?? '', 10);
@@ -92,7 +111,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
   return (
     <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10">
       <nav aria-label="Breadcrumb" className="text-sm text-ink-2">
-        <Link href="/explore" className="link">
+        <Link href={exploreHref(ids)} className="link">
           Explore
         </Link>{' '}
         / <span aria-current="page">{person.fullName}</span>
@@ -132,15 +151,26 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/compare?ids=${slug}`} className="btn btn-primary">
-            Compare with others
+          <Link href={compareAction.href} className="btn btn-primary" data-compare-action>
+            {compareAction.label}
           </Link>
           <Link
-            href={`/explore?q=${encodeURIComponent(person.lastName)}`}
+            href={exploreHref(ids, `q=${encodeURIComponent(person.lastName)}`)}
             className="btn btn-secondary"
           >
             Find in table
           </Link>
+          {others.length > 0 ? (
+            <p className="w-full text-sm text-ink-2" data-compare={ids.join(',')}>
+              {inComparison ? 'In your comparison with ' : 'Comparing '}
+              {others.map((m) => m.name).join(', ')}.{' '}
+              {ids.length < COMPARE_MAX ? (
+                <Link href={exploreHref(ids)} className="link">
+                  Pick another from the table
+                </Link>
+              ) : null}
+            </p>
+          ) : null}
         </div>
       </header>
 

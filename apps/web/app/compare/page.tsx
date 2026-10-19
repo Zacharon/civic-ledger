@@ -6,6 +6,13 @@ import { redirect } from 'next/navigation';
 import { ShareBar } from '@/components/charts/share-bar';
 import { MetricCell, metricValue } from '@/components/explore/cell';
 import { PartyChip } from '@/components/party-chip';
+import {
+  compareHref,
+  exploreHref,
+  COMPARE_MAX as MAX,
+  parseCompareIds as parseIds,
+  profileHref,
+} from '@/lib/compare-list';
 import { allColumns, COLUMN_GROUPS } from '@/lib/explore-columns';
 import { chamberLabel, formatNumber, formerLabel, seatLabel } from '@/lib/format';
 import { read } from '@/server/capabilities';
@@ -15,21 +22,7 @@ export const metadata: Metadata = {
   description: 'Two to four members of Congress side by side, with how often they voted alike.',
 };
 
-const MAX = 4;
-const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
-
-function parseIds(value: string | undefined): string[] {
-  const ids = (value ?? '')
-    .split(',')
-    .map((s) => s.trim().toLowerCase())
-    .filter((s) => SLUG.test(s) && s.length <= 120);
-  return [...new Set(ids)].slice(0, MAX);
-}
-
-const compareHref = (ids: string[]) =>
-  ids.length > 0 ? `/compare?ids=${ids.join(',')}` : '/compare';
 
 export default async function ComparePage({ searchParams }: PageProps<'/compare'>) {
   const query = await searchParams;
@@ -83,6 +76,16 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
             Add
           </button>
         </div>
+        {ids.length > 0 && ids.length < MAX ? (
+          <p className="text-sm text-ink-2">
+            Or{' '}
+            <Link href={exploreHref(ids)} className="link">
+              pick from the table
+            </Link>
+            : open any member’s profile and choose “Add to comparison”. Your choices stay in the
+            link.
+          </p>
+        ) : null}
       </form>
 
       {matches ? (
@@ -124,7 +127,8 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
             {ids.length === 0 ? 'Choose two to four members' : 'Add one more member to compare'}
           </h2>
           <p className="mt-2 max-w-prose text-ink-2">
-            Search by name above, or open a profile and choose “Compare with others”.
+            Search by name above, or browse the table, open a profile and choose “Add to
+            comparison”.
             {single ? (
               <>
                 {' '}
@@ -132,7 +136,7 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
               </>
             ) : null}
           </p>
-          <Link href="/explore" className="btn btn-secondary mt-4">
+          <Link href={exploreHref(ids)} className="btn btn-secondary mt-4">
             Browse the table
           </Link>
         </div>
@@ -166,7 +170,7 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
                       className="border-b border-l border-control border-l-rule px-4 py-4 text-left align-top font-normal"
                     >
                       <Link
-                        href={`/people/${p.slug}`}
+                        href={profileHref(p.slug, ids)}
                         className="link-quiet font-serif text-xl font-medium"
                       >
                         {p.fullName}

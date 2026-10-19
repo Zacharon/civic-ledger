@@ -39,6 +39,11 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 
 ### Fixed
 
+- Compare keeps its members while you browse: Explore and profiles carry the chosen members
+  in the URL (`compare=`), a banner on Explore names them, and a profile offers "Add to
+  comparison (n of 4)" or "Back to comparison" instead of always starting a new one. Before,
+  each "Compare with others" restarted with one member, so a second or third member had to
+  be typed in.
 - The default Vitest suite runs on half the cores (`maxWorkers: '50%'`): with one worker per
   core, tests that spawn a child process with its own PGlite timed out under the full run.
 - `cli-credentials.test.ts` gives the spawned MCP CLI 120 s instead of 30 s and reports a

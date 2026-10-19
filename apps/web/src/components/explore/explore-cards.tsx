@@ -1,18 +1,28 @@
 import Link from 'next/link';
 import { PartyChip } from '@/components/party-chip';
+import { profileHref } from '@/lib/compare-list';
 import type { ColumnDef, ExploreRow } from '@/lib/explore-columns';
 import { chamberLabel, formerLabel, seatLabel } from '@/lib/format';
 import { MetricCell } from './cell';
 
 /** Small screens: one card per member with the same visible columns as the table. */
-export function ExploreCards({ rows, columns }: { rows: ExploreRow[]; columns: ColumnDef[] }) {
+export function ExploreCards({
+  rows,
+  columns,
+  compare,
+}: {
+  rows: ExploreRow[];
+  columns: ColumnDef[];
+  /** Members chosen for Compare; profile links keep them. */
+  compare?: string[] | null;
+}) {
   return (
     <ol className="divide-y divide-rule border-y border-rule">
       {rows.map((row) => (
         <li key={row.slug} className="py-4">
           <div className="flex items-baseline justify-between gap-3">
             <Link
-              href={`/people/${row.slug}`}
+              href={profileHref(row.slug, compare)}
               className="link-quiet min-w-0 font-serif text-lg font-medium leading-snug"
             >
               {row.fullName}

@@ -6,11 +6,13 @@ import { ExploreControls } from '@/components/explore/explore-controls';
 import { ExploreTable } from '@/components/explore/explore-table';
 import { ExploreTransitionProvider, PendingRegion } from '@/components/explore/explore-transition';
 import { Pagination } from '@/components/pagination';
+import { COMPARE_MAX, compareHref } from '@/lib/compare-list';
 import { allColumns, visibleColumns } from '@/lib/explore-columns';
 import { exploreParsers, scopeOf, serializeExplore } from '@/lib/explore-params';
 import { describeSort, exploreTableInput, resolvedSort } from '@/lib/explore-query';
 import { safeHref } from '@/lib/format';
 import { read, readOrInvalid } from '@/server/capabilities';
+import { comparedNames } from '@/server/compare-names';
 
 export const metadata: Metadata = {
   title: 'Explore',
@@ -24,9 +26,10 @@ export default async function ExplorePage({ searchParams }: PageProps<'/explore'
   const state = await loadExplore(searchParams);
   const scope = scopeOf(state);
   const input = exploreTableInput(state);
-  const [facets, result] = await Promise.all([
+  const [facets, result, compared] = await Promise.all([
     read('explore.facets', { scope }),
     readOrInvalid('explore.table', input),
+    comparedNames(state.compare ?? []),
   ]);
   // A name search with no current match may still find former members: say how many.
   const formerMatches =
@@ -67,6 +70,37 @@ export default async function ExplorePage({ searchParams }: PageProps<'/explore'
           . Sort by any column; nothing is ranked for you. Missing data says so.
         </p>
       </header>
+
+      {compared.length > 0 ? (
+        <section
+          aria-label="Comparison in progress"
+          className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-panel border border-rule bg-accent-wash px-4 py-3"
+          data-compare={compared.map((m) => m.slug).join(',')}
+        >
+          <p className="text-sm">
+            <span className="font-semibold">
+              Comparing <span className="num">{compared.length}</span> of {COMPARE_MAX}:
+            </span>{' '}
+            {compared.map((m) => m.name).join(', ')}.{' '}
+            <span className="text-ink-2">
+              {compared.length < COMPARE_MAX
+                ? 'Open a member’s profile and choose “Add to comparison”.'
+                : 'The comparison is full; remove someone there to add another.'}
+            </span>
+          </p>
+          <span className="flex flex-wrap gap-2">
+            <Link href={compareHref(compared.map((m) => m.slug))} className="btn btn-primary">
+              Go to comparison
+            </Link>
+            <Link
+              href={serializeExplore('/explore', { ...state, compare: null })}
+              className="btn btn-secondary"
+            >
+              Stop comparing
+            </Link>
+          </span>
+        </section>
+      ) : null}
 
       <ExploreTransitionProvider>
         <div className="mt-8">
@@ -133,7 +167,7 @@ export default async function ExplorePage({ searchParams }: PageProps<'/explore'
                 />
               </div>
               <div className="md:hidden">
-                <ExploreCards rows={result.data.rows} columns={columns} />
+                <ExploreCards rows={result.data.rows} columns={columns} compare={state.compare} />
               </div>
               <div className="mt-4">
                 <Pagination

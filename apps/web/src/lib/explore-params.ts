@@ -7,6 +7,7 @@ import {
   parseAsString,
   parseAsStringLiteral,
 } from 'nuqs/server';
+import { parseCompareIds } from './compare-list';
 
 /**
  * Explore URL state, shared by the server page (parse) and client controls
@@ -50,6 +51,16 @@ export const parseAsDistrict = createParser<number>({
   serialize: String,
 });
 
+/** Members chosen for Compare, carried while browsing (`compare=a,b`; see compare-list). */
+export const parseAsCompare = createParser<string[]>({
+  parse: (value) => {
+    const ids = parseCompareIds(value);
+    return ids.length > 0 ? ids : null;
+  },
+  serialize: (ids) => ids.join(','),
+  eq: (a, b) => a.length === b.length && a.every((id, i) => id === b[i]),
+});
+
 export const PAGE_SIZES = [25, 50, 100] as const;
 export const CHAMBERS = ['house', 'senate'] as const;
 /** Absent = current members (the default); `scope=all` includes former members. */
@@ -67,6 +78,7 @@ export const exploreParsers = {
   cols: parseAsArrayOf(parseAsString, ','),
   page: parseAsInteger.withDefault(1),
   size: parseAsNumberLiteral(PAGE_SIZES).withDefault(50),
+  compare: parseAsCompare,
 };
 
 export const serializeExplore = createSerializer(exploreParsers);
@@ -82,6 +94,7 @@ export type ExploreState = {
   cols: string[] | null;
   page: number;
   size: (typeof PAGE_SIZES)[number];
+  compare?: string[] | null;
 };
 
 export const scopeOf = (state: Pick<ExploreState, 'scope'>): MemberScope =>

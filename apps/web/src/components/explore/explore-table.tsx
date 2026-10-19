@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import Link from 'next/link';
 import { PartyChip } from '@/components/party-chip';
+import { profileHref } from '@/lib/compare-list';
 import { COLUMN_GROUPS, type ColumnDef, type ExploreRow } from '@/lib/explore-columns';
 import { type ExploreState, nextSort, type SortTerm, serializeExplore } from '@/lib/explore-params';
 import { chamberLabel, formerLabel, seatLabel } from '@/lib/format';
@@ -110,7 +111,7 @@ export function ExploreTable({ rows, columns, state, sort, caption }: Props) {
             <tr key={row.slug} className="xt-row" data-slug={row.slug}>
               <th scope="row" className="xt-name">
                 <Link
-                  href={`/people/${row.slug}`}
+                  href={profileHref(row.slug, state.compare)}
                   className="link-quiet block max-w-64 truncate"
                   title={row.fullName}
                 >
