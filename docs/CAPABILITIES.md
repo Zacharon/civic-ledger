@@ -42,8 +42,9 @@ for public reads; it does not need to.
 | `ops.backup@1` | write (operator) | `pnpm exec tsx scripts/backup/cli.ts backup` | Same trusted-machine CLI |
 | `ops.restore@1` | write (operator; preview default) | Backup CLI `restore --manifest <key> --target-database <name>`, then reviewed `--execute` | Same CLI, never public |
 | `ops.retention@1` | write (operator; preview default) | Backup CLI `retention`, then reviewed `--execute` | Same CLI, authenticated archive keys only |
-| `ops.raw@1` | write (operator) | `pnpm exec tsx scripts/backup/raw.ts backup` or guarded restore | Same CLI, explicit persistent root |
-| `ops.assess@1` | local draft | `pnpm exec tsx scripts/monitor/cli.ts` | Same CLI; incident JSON/digest, no issue send |
+| `ops.raw.archive@1` | write (operator) | `pnpm exec tsx scripts/backup/raw.ts backup` | Same CLI, explicit persistent root |
+| `ops.raw.restore@1` | write (operator; preview default) | Raw archive CLI `restore` into a new directory | Same CLI, never overwrite an existing target |
+| `ops.monitor@1` | local draft | `pnpm exec tsx scripts/monitor/cli.ts` | Same CLI; incident JSON/digest, no issue send |
 
 `frameworks.evaluate` is stateless: the framework spec travels in the request
 (or URL for the UI), so no stored user data exists.
