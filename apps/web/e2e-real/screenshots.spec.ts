@@ -1,4 +1,5 @@
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type APIRequestContext, expect, test } from '@playwright/test';
 
@@ -8,7 +9,10 @@ import { type APIRequestContext, expect, test } from '@playwright/test';
  * playwright.real.config.ts). Profiles are chosen from the data through /api/v1, so the
  * run never hardcodes a politician. Output: apps/web/screenshots/real/.
  */
-const OUT = fileURLToPath(new URL('../screenshots/real/', import.meta.url));
+// Keep the committed earlier screenshots intact when recording a new candidate.
+const OUT = process.env.REAL_SCREENSHOT_DIR
+  ? `${resolve(process.env.REAL_SCREENSHOT_DIR)}${sep}`
+  : fileURLToPath(new URL('../screenshots/real/', import.meta.url));
 const VIEWPORTS = [
   { label: 'desktop', width: 1440, height: 900 },
   { label: 'mobile', width: 390, height: 844 },
@@ -85,6 +89,7 @@ async function pickPages(request: APIRequestContext) {
 }
 
 test('real-data screenshots and page timings', async ({ page, request }) => {
+  mkdirSync(OUT, { recursive: true });
   const pages = await pickPages(request);
   const timings: Record<
     string,
