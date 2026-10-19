@@ -7,6 +7,7 @@ describe('MCP tool names', () => {
     const names = publicCapabilities().map((c) => toolNameFor(c.name));
     expect(names).toContain('people_search');
     expect(names).toContain('frameworks_evaluate');
+    expect(names).toContain('people_agreement');
     expect(names.every((n) => /^[a-z]+_[a-z]+$/.test(n))).toBe(true);
     expect(names).not.toContain('curated_validate');
   });

@@ -1,0 +1,402 @@
+# T-S2a red run at base ad7bacf (tests only)
+# command: pnpm vitest run packages/core/test/compare-periods.test.ts apps/web/test/compare-period.test.ts apps/web/test/parity.test.ts packages/mcp/test/index.test.ts
+# exit code: 1
+
+
+ RUN  v5.0.4 C:/Users/user/Workspace/_worktrees/Civic_Ledger/feature/compare-periods-20261019
+
+ ❯ apps/web/test/compare-period.test.ts (8 tests | 8 failed) 20ms
+   ❯ comparison period in the URL (3)
+     × keeps the period on compare links and leaves the v1 link unchanged without one 12ms
+     × parses only valid Congress numbers and FEC cycles; anything else means no period 1ms
+     × parses the drilldown filter, defaulting to all 1ms
+   ❯ agreement drilldown links (2)
+     × encode the pair, the comparison, the period and the filter; defaults are omitted 0ms
+     × pagination preserves the filter, the period and the comparison on every page 1ms
+   ❯ agreement wording (3)
+     × names the period 0ms
+     × always states the denominator, including tiny ones, never a bare percentage 1ms
+     × counts disagreements in the link text 0ms
+ ❯ packages/mcp/test/index.test.ts (1 test | 1 failed) 14ms
+   ❯ MCP tool names (1)
+     × maps every public capability to the CAPABILITIES.md tool name 12ms
+ ❯ packages/core/test/compare-periods.test.ts (10 tests | 9 failed) 6964ms
+   ❯ people.compare@1 periods (T-S2a) (6)
+     × 1 a selected Congress counts only that Congress’s roll calls and echoes the period 17ms
+     × 2 the default (no period) reproduces v1 agreement and states the all-loaded period 30ms
+     × 3 the default per-person values are the cards’ latest values, each with its period 10ms
+     × 4 a member lacking the selected cycle is unavailable: not zero, not another cycle 1ms
+     × 5 a member lacking the selected Congress is unavailable for ideology and votes 1ms
+   ❯ people.agreement@1 (T-S2a) (4)
+     × 7 lists the exact shared roll calls with states, newest first (date desc, id desc) 1ms
+     × 8 drilldown totals equal the comparison for the same period, for every pair 9ms
+     × 9 filters and paginates deterministically, linking the bill when there is one 2ms
+     × 10 validates its input 1ms
+ ❯ apps/web/test/parity.test.ts (51 tests | 5 failed) 8365ms
+   ❯ read capabilities return equal payloads through dispatch, HTTP and MCP (16)
+     × has representative inputs for every public capability 12ms
+     × people.compare 70ms
+   ❯ the same invalid input fails the same way through dispatch, HTTP and MCP (30)
+     × people.agreement {"a":"a-b","b":"a-b"} -> invalid_input 3ms
+     × people.agreement {"a":"a-b","b":"c-d","filter":"maybe"} -> invalid_input 1ms
+     × people.agreement {"a":"avery-ashvale","b":"nobody-by-this-name"} -> not_found 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 23 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/core/test/compare-periods.test.ts > people.compare@1 periods (T-S2a) > 1 a selected Congress counts only that Congress’s roll calls and echoes the period
+CapabilityError: Input failed validation
+ ❯ invalidInput packages/core/src/errors.ts:74:10
+     72|   message = 'Input failed validation',
+     73| ): CapabilityError {
+     74|   return new CapabilityError('invalid_input', message, {
+       |          ^
+     75|     issues: error.issues.map((issue) => ({
+     76|       path: issue.path.map(String).join('.'),
+ ❯ run packages/core/src/dispatch.ts:46:35
+ ❯ dispatch packages/core/src/dispatch.ts:25:24
+ ❯ compare packages/core/test/compare-periods.test.ts:151:10
+ ❯ packages/core/test/compare-periods.test.ts:176:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/23]⎯
+
+ FAIL  packages/core/test/compare-periods.test.ts > people.compare@1 periods (T-S2a) > 2 the default (no period) reproduces v1 agreement and states the all-loaded period
+AssertionError: expected undefined to deeply equal { votes: { …(4) }, …(2) }
+
+- Expected:
+{
+  "ideology": {
+    "basis": "latest_per_person",
+    "congress": null,
+  },
+  "money": {
+    "basis": "latest_per_person",
+    "cycle": null,
+  },
+  "votes": {
+    "basis": "all_loaded",
+    "congress": null,
+    "firstVoteDate": "2019-03-01",
+    "lastVoteDate": "2023-07-01",
+  },
+}
+
++ Received:
+undefined
+
+ ❯ packages/core/test/compare-periods.test.ts:212:27
+    210|   it('2 the default (no period) reproduces v1 agreement and states the…
+    211|     const result = await compare({ slugs: [ANN, BEN, CAL] });
+    212|     expect(result.period).toEqual({
+       |                           ^
+    213|       votes: {
+    214|         basis: 'all_loaded',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/23]⎯
+
+ FAIL  packages/core/test/compare-periods.test.ts > people.compare@1 periods (T-S2a) > 3 the default per-person values are the cards’ latest values, each with its period
+Error: no period values for s2-period-ann
+ ❯ valuesOf packages/core/test/compare-periods.test.ts:169:17
+    167| const valuesOf = (result: Awaited<ReturnType<typeof compare>>, slug: s…
+    168|   const v = result.periodValues?.find((p) => p.slug === slug);
+    169|   if (!v) throw new Error(`no period values for ${slug}`);
+       |                 ^
+    170|   return v;
+    171| };
+ ❯ packages/core/test/compare-periods.test.ts:248:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/23]⎯
+
+ FAIL  packages/core/test/compare-periods.test.ts > people.compare@1 periods (T-S2a) > 4 a member lacking the selected cycle is unavailable: not zero, not another cycle
+CapabilityError: Input failed validation
+ ❯ invalidInput packages/core/src/errors.ts:74:10
+     72|   message = 'Input failed validation',
+     73| ): CapabilityError {
+     74|   return new CapabilityError('invalid_input', message, {
+       |          ^
+     75|     issues: error.issues.map((issue) => ({
+     76|       path: issue.path.map(String).join('.'),
+ ❯ run packages/core/src/dispatch.ts:46:35
+ ❯ dispatch packages/core/src/dispatch.ts:25:24
+ ❯ compare packages/core/test/compare-periods.test.ts:151:10
+ ❯ packages/core/test/compare-periods.test.ts:287:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/23]⎯
+
+ FAIL  packages/core/test/compare-periods.test.ts > people.compare@1 periods (T-S2a) > 5 a member lacking the selected Congress is unavailable for ideology and votes
+CapabilityError: Input failed validation
+ ❯ invalidInput packages/core/src/errors.ts:74:10
+     72|   message = 'Input failed validation',
+     73| ): CapabilityError {
+     74|   return new CapabilityError('invalid_input', message, {
+       |          ^
+     75|     issues: error.issues.map((issue) => ({
+     76|       path: issue.path.map(String).join('.'),
+ ❯ run packages/core/src/dispatch.ts:46:35
+ ❯ dispatch packages/core/src/dispatch.ts:25:24
+ ❯ compare packages/core/test/compare-periods.test.ts:151:10
+ ❯ packages/core/test/compare-periods.test.ts:331:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/23]⎯
+
+ FAIL  packages/core/test/compare-periods.test.ts > people.agreement@1 (T-S2a) > 7 lists the exact shared roll calls with states, newest first (date desc, id desc)
+TypeError: Cannot read properties of undefined (reading 'input')
+ ❯ run packages/core/src/dispatch.ts:45:34
+     43|   ctx: CapabilityContext,
+     44| ): Promise<unknown> {
+     45|   const parsedInput = capability.input.safeParse(input);
+       |                                  ^
+     46|   if (!parsedInput.success) throw invalidInput(parsedInput.error);
+     47|
+ ❯ dispatch packages/core/src/dispatch.ts:25:24
+ ❯ agreement packages/core/test/compare-periods.test.ts:157:10
+ ❯ packages/core/test/compare-periods.test.ts:366:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/23]⎯
+
+ FAIL  packages/core/test/compare-periods.test.ts > people.agreement@1 (T-S2a) > 8 drilldown totals equal the comparison for the same period, for every pair
+TypeError: Cannot read properties of undefined (reading 'input')
+ ❯ run packages/core/src/dispatch.ts:45:34
+     43|   ctx: CapabilityContext,
+     44| ): Promise<unknown> {
+     45|   const parsedInput = capability.input.safeParse(input);
+       |                                  ^
+     46|   if (!parsedInput.success) throw invalidInput(parsedInput.error);
+     47|
+ ❯ dispatch packages/core/src/dispatch.ts:25:24
+ ❯ agreement packages/core/test/compare-periods.test.ts:157:10
+ ❯ packages/core/test/compare-periods.test.ts:403:29
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/23]⎯
+
+ FAIL  packages/core/test/compare-periods.test.ts > people.agreement@1 (T-S2a) > 9 filters and paginates deterministically, linking the bill when there is one
+TypeError: Cannot read properties of undefined (reading 'input')
+ ❯ run packages/core/src/dispatch.ts:45:34
+     43|   ctx: CapabilityContext,
+     44| ): Promise<unknown> {
+     45|   const parsedInput = capability.input.safeParse(input);
+       |                                  ^
+     46|   if (!parsedInput.success) throw invalidInput(parsedInput.error);
+     47|
+ ❯ dispatch packages/core/src/dispatch.ts:25:24
+ ❯ agreement packages/core/test/compare-periods.test.ts:157:10
+ ❯ packages/core/test/compare-periods.test.ts:416:29
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/23]⎯
+
+ FAIL  packages/core/test/compare-periods.test.ts > people.agreement@1 (T-S2a) > 10 validates its input
+Error: Expected CapabilityError(invalid_input), got TypeError: Cannot read properties of undefined (reading 'input')
+ ❯ expectCapabilityError packages/core/test/helpers.ts:33:11
+     31|   );
+     32|   if (!(error instanceof CapabilityError)) {
+     33|     throw new Error(`Expected CapabilityError(${code}), got ${String(e…
+       |           ^
+     34|   }
+     35|   expect(error.code).toBe(code);
+ ❯ packages/core/test/compare-periods.test.ts:440:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/23]⎯
+
+ FAIL  apps/web/test/compare-period.test.ts > comparison period in the URL > keeps the period on compare links and leaves the v1 link unchanged without one
+AssertionError: expected '/compare?ids=a,b' to be '/compare?ids=a,b&congress=118&cycle=2…' // Object.is equality
+
+Expected: "/compare?ids=a,b&congress=118&cycle=2022"
+Received: "/compare?ids=a,b"
+
+ ❯ apps/web/test/compare-period.test.ts:17:69
+     15|     expect(compareHref(['a', 'b'])).toBe('/compare?ids=a,b');
+     16|     expect(compareHref(['a', 'b'], { congress: null, cycle: null })).t…
+     17|     expect(compareHref(['a', 'b'], { congress: 118, cycle: 2022 })).to…
+       |                                                                     ^
+     18|       '/compare?ids=a,b&congress=118&cycle=2022',
+     19|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/23]⎯
+
+ FAIL  apps/web/test/compare-period.test.ts > comparison period in the URL > parses only valid Congress numbers and FEC cycles; anything else means no period
+TypeError: parsePeriod is not a function
+ ❯ apps/web/test/compare-period.test.ts:24:12
+     22|
+     23|   it('parses only valid Congress numbers and FEC cycles; anything else…
+     24|     expect(parsePeriod({ congress: '118', cycle: '2022' })).toEqual({ …
+       |            ^
+     25|     expect(parsePeriod({ congress: ['116', '118'], cycle: undefined })…
+     26|       congress: 116,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/23]⎯
+
+ FAIL  apps/web/test/compare-period.test.ts > comparison period in the URL > parses the drilldown filter, defaulting to all
+TypeError: parseAgreementFilter is not a function
+ ❯ apps/web/test/compare-period.test.ts:42:12
+     40|
+     41|   it('parses the drilldown filter, defaulting to all', () => {
+     42|     expect(parseAgreementFilter('disagreed')).toBe('disagreed');
+       |            ^
+     43|     expect(parseAgreementFilter('excluded')).toBe('excluded');
+     44|     expect(parseAgreementFilter('nope')).toBe('all');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/23]⎯
+
+ FAIL  apps/web/test/compare-period.test.ts > agreement drilldown links > encode the pair, the comparison, the period and the filter; defaults are omitted
+TypeError: agreementHref is not a function
+ ❯ apps/web/test/compare-period.test.ts:52:7
+     50|   it('encode the pair, the comparison, the period and the filter; defa…
+     51|     expect(
+     52|       agreementHref({
+       |       ^
+     53|         a: 'x',
+     54|         b: 'y',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/23]⎯
+
+ FAIL  apps/web/test/compare-period.test.ts > agreement drilldown links > pagination preserves the filter, the period and the comparison on every page
+TypeError: agreementHref is not a function
+ ❯ apps/web/test/compare-period.test.ts:69:27
+     67|     const base = { a: 'x', b: 'y', ids: ['x', 'y'], congress: 116, fil…
+     68|     for (const page of [1, 2, 3, 9]) {
+     69|       const url = new URL(agreementHref({ ...base, page }), 'http://te…
+       |                           ^
+     70|       expect(url.pathname).toBe('/compare/agreement');
+     71|       expect(url.searchParams.get('a')).toBe('x');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/23]⎯
+
+ FAIL  apps/web/test/compare-period.test.ts > agreement wording > names the period
+TypeError: votesPeriodLabel is not a function
+ ❯ apps/web/test/compare-period.test.ts:83:12
+     81| describe('agreement wording', () => {
+     82|   it('names the period', () => {
+     83|     expect(votesPeriodLabel({ basis: 'congress', congress: 118 })).toB…
+       |            ^
+     84|     expect(votesPeriodLabel({ basis: 'all_loaded', congress: null })).…
+     85|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/23]⎯
+
+ FAIL  apps/web/test/compare-period.test.ts > agreement wording > always states the denominator, including tiny ones, never a bare percentage
+TypeError: agreementSentence is not a function
+ ❯ apps/web/test/compare-period.test.ts:88:12
+     86|
+     87|   it('always states the denominator, including tiny ones, never a bare…
+     88|     expect(agreementSentence(1, 1, 'the 118th Congress')).toBe(
+       |            ^
+     89|       'Agreed on 1 of 1 shared recorded vote in the 118th Congress.',
+     90|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/23]⎯
+
+ FAIL  apps/web/test/compare-period.test.ts > agreement wording > counts disagreements in the link text
+TypeError: disagreementsLinkText is not a function
+ ❯ apps/web/test/compare-period.test.ts:103:12
+    101|
+    102|   it('counts disagreements in the link text', () => {
+    103|     expect(disagreementsLinkText(1)).toBe('Open the 1 disagreement');
+       |            ^
+    104|     expect(disagreementsLinkText(12)).toBe('Open the 12 disagreements'…
+    105|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/23]⎯
+
+ FAIL  apps/web/test/parity.test.ts > read capabilities return equal payloads through dispatch, HTTP and MCP > has representative inputs for every public capability
+AssertionError: expected [ 'explainers.list', …(15) ] to deeply equal [ 'explainers.list', …(14) ]
+
+- Expected
++ Received
+
+@@ -3,10 +3,11 @@
+    "explore.facets",
+    "explore.table",
+    "frameworks.evaluate",
+    "frameworks.list",
+    "money.summary",
++   "people.agreement",
+    "people.compare",
+    "people.get",
+    "people.glance",
+    "people.search",
+    "policy.areas",
+
+ ❯ apps/web/test/parity.test.ts:101:39
+     99| describe('read capabilities return equal payloads through dispatch, HT…
+    100|   it('has representative inputs for every public capability', () => {
+    101|     expect(Object.keys(cases).sort()).toEqual([...names].sort());
+       |                                       ^
+    102|   });
+    103|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/23]⎯
+
+ FAIL  apps/web/test/parity.test.ts > read capabilities return equal payloads through dispatch, HTTP and MCP > people.compare
+CapabilityError: Input failed validation
+ ❯ invalidInput packages/core/src/errors.ts:74:10
+     72|   message = 'Input failed validation',
+     73| ): CapabilityError {
+     74|   return new CapabilityError('invalid_input', message, {
+       |          ^
+     75|     issues: error.issues.map((issue) => ({
+     76|       path: issue.path.map(String).join('.'),
+ ❯ run packages/core/src/dispatch.ts:46:35
+ ❯ dispatchByName packages/core/src/dispatch.ts:37:10
+ ❯ direct apps/web/test/stack.ts:84:32
+ ❯ apps/web/test/parity.test.ts:107:36
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/23]⎯
+
+ FAIL  apps/web/test/parity.test.ts > the same invalid input fails the same way through dispatch, HTTP and MCP > people.agreement {"a":"a-b","b":"a-b"} -> invalid_input
+ FAIL  apps/web/test/parity.test.ts > the same invalid input fails the same way through dispatch, HTTP and MCP > people.agreement {"a":"a-b","b":"c-d","filter":"maybe"} -> invalid_input
+AssertionError: expected 'not_found' to be 'invalid_input' // Object.is equality
+
+Expected: "invalid_input"
+Received: "not_found"
+
+ ❯ apps/web/test/parity.test.ts:165:27
+    163|       (error: { toBody(): unknown; code: string }) => ({ code: error.c…
+    164|     );
+    165|     expect(expected.code).toBe(code);
+       |                           ^
+    166|
+    167|     const response = await http(name, input);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/23]⎯
+
+ FAIL  apps/web/test/parity.test.ts > the same invalid input fails the same way through dispatch, HTTP and MCP > people.agreement {"a":"avery-ashvale","b":"nobody-by-this-name"} -> not_found
+AssertionError: expected { error: { code: 'not_found', …(1) } } to deeply equal { error: { code: 'not_found', …(1) } }
+
+- Expected
++ Received
+
+  {
+    "error": {
+      "code": "not_found",
+-     "message": "Unknown capability \"people.agreement\"",
++     "message": "Unknown tool \"people_agreement\"",
+    },
+  }
+
+ ❯ apps/web/test/parity.test.ts:173:33
+    171|     const tool = await mcp(name, input);
+    172|     expect(tool.isError).toBe(true);
+    173|     expect(toolErrorBody(tool)).toEqual(expected.body);
+       |                                 ^
+    174|   });
+    175| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/23]⎯
+
+ FAIL  packages/mcp/test/index.test.ts > MCP tool names > maps every public capability to the CAPABILITIES.md tool name
+AssertionError: expected [ Array(15) ] to include 'people_agreement'
+ ❯ packages/mcp/test/index.test.ts:10:19
+      8|     expect(names).toContain('people_search');
+      9|     expect(names).toContain('frameworks_evaluate');
+     10|     expect(names).toContain('people_agreement');
+       |                   ^
+     11|     expect(names.every((n) => /^[a-z]+_[a-z]+$/.test(n))).toBe(true);
+     12|     expect(names).not.toContain('curated_validate');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/23]⎯
+
+
+ Test Files  4 failed (4)
+      Tests  23 failed | 47 passed (70)
+   Start at  02:31:59
+   Duration  12.38s (tests 61%, import 27%, transform 12%)
+

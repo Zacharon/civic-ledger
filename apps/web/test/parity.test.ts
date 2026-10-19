@@ -54,6 +54,15 @@ beforeAll(async () => {
       { slugs: [a, b] },
       { slugs: [a, b, c] },
       { slugs: [a, 'philippa-wrenfield'] },
+      // T-S2a periods: a selected Congress, a selected cycle, and a cycle nobody has.
+      { slugs: [a, b], congress: 119 },
+      { slugs: [a, b, c], cycle: 2024 },
+      { slugs: [a, b], congress: 118, cycle: 2022 },
+    ],
+    'people.agreement': [
+      { a, b },
+      { a, b, congress: 119, filter: 'disagreed', limit: 5, offset: 1 },
+      { a, b: c, filter: 'excluded' },
     ],
     'explore.table': [
       {},
@@ -125,6 +134,10 @@ const INVALID: Array<[string, Record<string, unknown>, 'invalid_input' | 'not_fo
   ['people.get', { slug: 'Not A Slug' }, 'invalid_input'],
   ['people.get', { slug: 'nobody-by-this-name' }, 'not_found'],
   ['people.compare', { slugs: ['only-one'] }, 'invalid_input'],
+  ['people.compare', { slugs: ['a-b', 'c-d'], congress: 0 }, 'invalid_input'],
+  ['people.agreement', { a: 'a-b', b: 'a-b' }, 'invalid_input'],
+  ['people.agreement', { a: 'a-b', b: 'c-d', filter: 'maybe' }, 'invalid_input'],
+  ['people.agreement', { a: 'avery-ashvale', b: 'nobody-by-this-name' }, 'not_found'],
   ['explore.table', { sort: [{ column: 'ideology' }] }, 'invalid_input'],
   ['explore.table', { filters: { chamber: 'lords' } }, 'invalid_input'],
   ['explore.table', { filters: { nope: 1 } }, 'invalid_input'],
