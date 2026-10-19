@@ -97,7 +97,11 @@ export default async function PolicyAreaPage({
         </Link>{' '}
         / <span aria-current="page">{area.name}</span>
       </nav>
-      <header className="mt-4 max-w-3xl">
+      <header
+        className="mt-4 max-w-3xl"
+        data-area={area.id}
+        data-value={JSON.stringify([area.billCount, area.rollcallCount, house.total, senate.total])}
+      >
         <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">{area.name}</h1>
         <p className="mt-3 text-ink-2">
           <span className="num">{formatNumber(area.billCount)}</span> bills and{' '}
@@ -140,6 +144,8 @@ export default async function PolicyAreaPage({
                 return (
                   <li
                     key={v.rollcall.number}
+                    data-rollcall={`${v.rollcall.chamber}.${v.rollcall.congress}.${v.rollcall.number}`}
+                    data-value={JSON.stringify([v.tally.yea, v.tally.nay, v.rollcall.result])}
                     className="grid gap-4 py-5 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:gap-10"
                   >
                     <div>
@@ -256,7 +262,16 @@ export default async function PolicyAreaPage({
                   </thead>
                   <tbody>
                     {matrix.results.map((r) => (
-                      <tr key={r.person.slug} className="group">
+                      <tr
+                        key={r.person.slug}
+                        data-slug={r.person.slug}
+                        data-value={JSON.stringify(
+                          votes.items.map(
+                            (_, i) => r.votes.find((x) => x.ruleIndex === i)?.position ?? null,
+                          ),
+                        )}
+                        className="group"
+                      >
                         <th
                           scope="row"
                           className="sticky left-0 z-[1] border-b border-rule bg-surface px-3 py-2 text-left font-normal whitespace-nowrap group-hover:bg-sunk"

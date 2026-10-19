@@ -9,7 +9,10 @@ export interface BarListItem {
   muted?: boolean;
 }
 
-/** Ranked horizontal bars on one zero-based scale, every value printed as text. */
+/**
+ * Ranked horizontal bars on one zero-based scale, every value printed as text. Each bar
+ * exposes the capability value it is drawn from (`data-bar`, `data-value`; DECISIONS A62).
+ */
 export function BarList({ items, label }: { items: BarListItem[]; label: string }) {
   const max = Math.max(...items.map((i) => i.value), 0);
   return (
@@ -17,6 +20,8 @@ export function BarList({ items, label }: { items: BarListItem[]; label: string 
       {items.map((item) => (
         <li
           key={item.key}
+          data-bar={item.key}
+          data-value={JSON.stringify(item.value)}
           className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1"
         >
           <span className={`min-w-0 text-sm ${item.muted ? 'text-ink-3' : 'text-ink'}`}>

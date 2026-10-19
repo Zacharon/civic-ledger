@@ -1,7 +1,7 @@
 import { ArrowRight, Search } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { MetricCell } from '@/components/explore/cell';
+import { MetricCell, metricValue } from '@/components/explore/cell';
 import { PartyChip } from '@/components/party-chip';
 import { columnById } from '@/lib/explore-columns';
 import { serializeExplore } from '@/lib/explore-params';
@@ -58,8 +58,14 @@ export default async function HomePage() {
           </h1>
           <p className="mt-5 max-w-xl text-lg text-ink-2">
             Campaign money, roll-call votes, independent scores and promises for all{' '}
-            <span className="num">{formatNumber(facets.scopes.current)}</span> current members, with
-            former members one click away. Each number links to its source.
+            <span
+              className="num"
+              data-facet="current"
+              data-value={JSON.stringify(facets.scopes.current)}
+            >
+              {formatNumber(facets.scopes.current)}
+            </span>{' '}
+            current members, with former members one click away. Each number links to its source.
           </p>
 
           <search className="mt-8 block max-w-xl">
@@ -138,7 +144,7 @@ export default async function HomePage() {
             </thead>
             <tbody>
               {table.rows.map((row) => (
-                <tr key={row.slug} className="border-t border-rule">
+                <tr key={row.slug} data-slug={row.slug} className="border-t border-rule">
                   <th scope="row" className="px-4 py-3 text-left font-medium">
                     <Link href={`/people/${row.slug}`} className="link-quiet">
                       {row.fullName}
@@ -151,6 +157,8 @@ export default async function HomePage() {
                   {preview.map((c, i) => (
                     <td
                       key={c.id}
+                      data-column={c.id}
+                      data-value={metricValue(c, row)}
                       className={`px-4 py-3 text-right whitespace-nowrap ${i > 1 ? 'hidden sm:table-cell' : ''}`}
                     >
                       <MetricCell column={c} row={row} />
@@ -163,7 +171,13 @@ export default async function HomePage() {
           <div className="rule-total mx-4" />
           <p className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
             <span className="text-ink-2">
-              <span className="num font-semibold text-ink">{formatNumber(table.total)}</span>{' '}
+              <span
+                className="num font-semibold text-ink"
+                data-total
+                data-value={JSON.stringify(table.total)}
+              >
+                {formatNumber(table.total)}
+              </span>{' '}
               current members of Congress
             </span>
             <Link href="/explore" className="link font-semibold">
@@ -180,7 +194,14 @@ export default async function HomePage() {
           </h2>
           <dl className="grid gap-x-10 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
             {status.sources.map((source) => (
-              <div key={source.id}>
+              <div
+                key={source.id}
+                data-source={source.id}
+                data-value={JSON.stringify([
+                  source.lastSuccess?.finishedAt ?? source.lastSuccess?.startedAt ?? null,
+                  source.lastRun?.status ?? null,
+                ])}
+              >
                 <dt className="font-semibold">{source.name}</dt>
                 <dd className="mt-0.5 text-ink-2">
                   {source.lastSuccess ? (
@@ -203,7 +224,11 @@ export default async function HomePage() {
             ))}
             <div>
               <dt className="font-semibold">Industry coding coverage</dt>
-              <dd className="mt-0.5 text-ink-2">
+              <dd
+                className="mt-0.5 text-ink-2"
+                data-coverage
+                data-value={JSON.stringify(status.coverage.industryCoding.coverage)}
+              >
                 {formatShare(status.coverage.industryCoding.coverage) ?? 'No PAC data yet'} of PAC
                 dollars coded; the rest shows as “not coded”.
               </dd>
@@ -231,15 +256,23 @@ export default async function HomePage() {
           </Entry>
           <Entry term="Votes" href="/policy">
             Every roll call with the bill, its policy area across{' '}
-            <span className="num">{areas.items.length}</span> Congress.gov areas, and how each
-            member voted.
+            <span className="num" data-areas data-value={JSON.stringify(areas.items.length)}>
+              {areas.items.length}
+            </span>{' '}
+            Congress.gov areas, and how each member voted.
           </Entry>
           <Entry term="Ideology and scorecards" href="/methodology#scores">
             {table.scorecardColumns.length > 0 ? (
               <>
                 DW-NOMINATE from Voteview beside{' '}
-                <span className="num">{table.scorecardColumns.length}</span> published scorecards,
-                each with the publisher’s own stated orientation.
+                <span
+                  className="num"
+                  data-scorecards
+                  data-value={JSON.stringify(table.scorecardColumns.length)}
+                >
+                  {table.scorecardColumns.length}
+                </span>{' '}
+                published scorecards, each with the publisher’s own stated orientation.
               </>
             ) : (
               <>
@@ -255,8 +288,14 @@ export default async function HomePage() {
           <Entry term="Frameworks" href="/frameworks">
             {frameworks.items.length > 0 ? (
               <>
-                <span className="num">{frameworks.items.length}</span> attributed frameworks, or
-                build your own
+                <span
+                  className="num"
+                  data-frameworks
+                  data-value={JSON.stringify(frameworks.items.length)}
+                >
+                  {frameworks.items.length}
+                </span>{' '}
+                attributed frameworks, or build your own
               </>
             ) : (
               'Build your own framework from any roll calls'

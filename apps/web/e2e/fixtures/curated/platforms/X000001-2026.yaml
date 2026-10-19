@@ -1,0 +1,12 @@
+# Fictional dev-seed person. Test input only.
+schema_version: 1
+person:
+  bioguide: X000001
+cycle: 2026
+positions:
+  - policy_area: health
+    stance: Publish the fictional clinic schedule in an accessible public register.
+    source_url: https://example.org/parity/clinic-platform
+  - policy_area: energy
+    stance: Publish fictional storage capacity without attributing a motive to a vote.
+    source_url: https://example.org/parity/energy-platform

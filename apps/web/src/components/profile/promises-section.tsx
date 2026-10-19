@@ -45,19 +45,29 @@ export async function PromisesSection({ slug }: { slug: string }) {
       id="promises"
       title="Promises"
       lede={
-        summary.total === 0 ? (
-          'No campaign promises have been curated for this member yet.'
-        ) : (
-          <>
-            <span className="num font-semibold text-ink">
-              {summary.kept} of {summary.rated}
-            </span>{' '}
-            rated promises kept
-            {summary.keptRate !== null ? ` (${formatShare(summary.keptRate)})` : ''};{' '}
-            <span className="num">{summary.total - summary.rated}</span> still open or unrated.
-            Ratings are dated and cite their evidence.
-          </>
-        )
+        <span
+          data-promises
+          data-value={JSON.stringify([
+            summary.total,
+            summary.rated,
+            summary.kept,
+            summary.keptRate,
+          ])}
+        >
+          {summary.total === 0 ? (
+            'No campaign promises have been curated for this member yet.'
+          ) : (
+            <>
+              <span className="num font-semibold text-ink">
+                {summary.kept} of {summary.rated}
+              </span>{' '}
+              rated promises kept
+              {summary.keptRate !== null ? ` (${formatShare(summary.keptRate)})` : ''};{' '}
+              <span className="num">{summary.total - summary.rated}</span> still open or unrated.
+              Ratings are dated and cite their evidence.
+            </>
+          )}
+        </span>
       }
     >
       {promises.items.length > 0 ? (
@@ -67,6 +77,13 @@ export async function PromisesSection({ slug }: { slug: string }) {
             return (
               <li
                 key={p.promiseKey}
+                data-promise={p.promiseKey}
+                data-value={JSON.stringify([
+                  p.status,
+                  p.policyArea?.id ?? null,
+                  p.madeOn,
+                  p.ratings.map((r) => r.status),
+                ])}
                 className="grid gap-3 py-5 md:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] md:gap-8"
               >
                 <div>

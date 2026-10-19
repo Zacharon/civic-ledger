@@ -67,7 +67,11 @@ export async function ScoresSection({
               </>
             }
           >
-            <p className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <p
+              className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
+              data-ideology={latest.method}
+              data-value={JSON.stringify([latest.congress, latest.dim1, latest.dim2])}
+            >
               <span className="text-ink-2">First dimension</span>
               <PositionStrip value={latest.dim1} width={140} />
               {latest.dim2 !== null ? (
@@ -101,7 +105,12 @@ export async function ScoresSection({
                 </thead>
                 <tbody>
                   {scores.ideology.map((row) => (
-                    <tr key={`${row.congress}-${row.method}`} className="border-b border-rule">
+                    <tr
+                      key={`${row.congress}-${row.method}`}
+                      data-ideology-congress={`${row.method}:${row.congress}`}
+                      data-value={JSON.stringify([row.dim1, row.dim2])}
+                      className="border-b border-rule"
+                    >
                       <th scope="row" className="py-1 text-left font-normal text-ink-2">
                         {ordinal(row.congress)}
                       </th>
@@ -116,7 +125,7 @@ export async function ScoresSection({
             ) : null}
           </Figure>
         ) : (
-          <p className="text-ink-2">
+          <p className="text-ink-2" data-ideology="none" data-value="null">
             No DW-NOMINATE estimate yet. Voteview publishes one once a member has cast enough
             roll-call votes.
           </p>
@@ -133,7 +142,12 @@ export async function ScoresSection({
                 const span = s.scale.max - s.scale.min;
                 const position = span > 0 ? (s.score - s.scale.min) / span : 0;
                 return (
-                  <li key={`${s.publisher.id}-${s.year}`} className="py-3">
+                  <li
+                    key={`${s.publisher.id}-${s.year}`}
+                    data-scorecard={s.publisher.id}
+                    data-value={JSON.stringify([s.year, s.score, s.scale.min, s.scale.max])}
+                    className="py-3"
+                  >
                     <div className="flex items-baseline justify-between gap-4">
                       <span className="font-medium">{s.publisher.name}</span>
                       <span className="num text-lg font-semibold">
@@ -192,7 +206,7 @@ export async function ScoresSection({
                 {scores.linkOnlyPublishers.map((p) => {
                   const url = safeHref(p.url);
                   return (
-                    <li key={p.id}>
+                    <li key={p.id} data-link-only={p.id}>
                       {url ? (
                         <a className="link" href={url} rel="noreferrer">
                           {p.name}
