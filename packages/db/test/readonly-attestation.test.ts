@@ -113,7 +113,10 @@ describe('attestReadOnlyCredentials', () => {
 });
 
 describe('createReadOnlyGate', () => {
-  const verdict = (facts: ReadOnlySessionFacts, env = PRODUCTION): ReadOnlyAttestation => ({
+  const verdict = (
+    facts: ReadOnlySessionFacts,
+    env: Record<string, string> = PRODUCTION,
+  ): ReadOnlyAttestation => ({
     ...readOnlyVerdict(facts, env),
     facts,
   });
@@ -145,6 +148,18 @@ describe('createReadOnlyGate', () => {
     const gate = createReadOnlyGate(attest, () => {});
     await expect(gate()).rejects.toThrow(/could not be verified/);
     await expect(gate()).resolves.toBeUndefined();
+    expect(attest).toHaveBeenCalledTimes(2);
+  });
+
+  it('with blockUnverified: false (development) an unverified check lets reads through', async () => {
+    const attest = vi
+      .fn<() => Promise<ReadOnlyAttestation>>()
+      .mockResolvedValueOnce({ action: 'unverified', code: '42809' })
+      .mockResolvedValueOnce(verdict(OWNER, {}));
+    const gate = createReadOnlyGate(attest, () => {}, { blockUnverified: false });
+    await expect(gate()).resolves.toBeUndefined();
+    await expect(gate()).resolves.toBeUndefined();
+    await gate();
     expect(attest).toHaveBeenCalledTimes(2);
   });
 
