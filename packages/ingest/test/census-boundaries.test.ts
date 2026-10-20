@@ -553,7 +553,7 @@ describe('ingest.run for census-boundaries (fixture zips, PGlite)', () => {
         shrinkGuard: {
           maxDeleteFraction: 0.1,
           minRecordRatio: 0.5,
-          minRecordBaseline: 20,
+          minBaseline: 20,
           allow: true,
         },
       }),
