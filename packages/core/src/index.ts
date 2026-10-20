@@ -9,6 +9,7 @@ export {
 } from '@civic-ledger/db';
 
 export * from './capabilities/curated';
+export * from './capabilities/districts';
 export * from './capabilities/explainers';
 export * from './capabilities/explore';
 export * from './capabilities/facets';

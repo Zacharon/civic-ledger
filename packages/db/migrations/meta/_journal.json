@@ -43,6 +43,13 @@
       "when": 1792141212036,
       "tag": "0005_ingest_receipts_and_coverage",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792532999041,
+      "tag": "0006_district_map",
+      "breakpoints": true
     }
   ]
 }

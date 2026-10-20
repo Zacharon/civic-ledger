@@ -69,6 +69,7 @@ beforeAll(async () => {
     'people.get': [{ slug: a }, { slug: b }],
     'people.glance': [{ slug: a }, { slug: b }],
     'explainers.list': [{}, { id: 'pac' }],
+    'districts.shape': [{ state: 'ZV', district: 3 }, { state: 'ZX' }],
     'people.compare': [{ slugs: [a, b] }, { slugs: [a, b, c] }],
     'explore.table': [
       {},
