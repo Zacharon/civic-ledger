@@ -534,6 +534,11 @@
       var(--surface-sunk);
   }
 
+  /* Wider track for money bars drawn on one shared scale per race (DESIGN.md). */
+  .share-wide::after {
+    width: 96px;
+  }
+
   /*
    * Ideology by position, never color: a dot on a hairline axis with a centre tick.
    * `--x` is the position along the axis as a percentage (0% = −1, 100% = +1).

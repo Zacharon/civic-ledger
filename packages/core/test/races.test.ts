@@ -87,6 +87,23 @@ describe('races.list@1', () => {
     expect(none.items.every((i) => i.registrations === 0)).toBe(true);
   });
 
+  it('narrows to the seats of one member: registered there, or sitting there with the seat up', async () => {
+    const keys = async (person: string) =>
+      (await dispatch('races.list', { person }, db.ctx())).items.map((i) => i.seat.key);
+    expect(await keys('blair-brindlemoor')).toEqual(['zv-senate']);
+    expect(await keys('cameron-corrowind')).toEqual(['zv-1']);
+    // A former member who registered again is found through the matched FEC id.
+    expect(await keys('cornelius-oakhurst')).toEqual(['zv-1']);
+    // Sitting, but the term ends in 2029 and no registration: no 2026 race.
+    expect(await keys('avery-ashvale')).toEqual([]);
+    const counted = await dispatch('races.list', { person: 'blair-brindlemoor' }, db.ctx());
+    expect(counted.items[0]?.registrations).toBe(5);
+    await expectCapabilityError(
+      dispatch('races.list', { person: 'nobody-by-this-name' }, db.ctx()),
+      'not_found',
+    );
+  });
+
   it('carries the provenance of each source behind the counts', async () => {
     const { sources } = await dispatch('races.list', {}, db.ctx());
     expect(sources.candidates?.sourceKey).toMatch(/^cn:/);

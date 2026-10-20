@@ -1,6 +1,6 @@
 import { read } from '@/server/capabilities';
 
-const STATE_NAMES: Record<string, string> = {
+export const STATE_NAMES: Record<string, string> = {
   AL: 'Alabama',
   AK: 'Alaska',
   AZ: 'Arizona',

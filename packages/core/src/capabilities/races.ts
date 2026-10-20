@@ -7,7 +7,7 @@ import {
   person,
   term,
 } from '@civic-ledger/db';
-import { and, desc, eq, max, type SQL, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, max, type SQL, sql } from 'drizzle-orm';
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { defineCapability } from '../capability';
@@ -151,6 +151,45 @@ async function loadIncumbents(
     );
 }
 
+/**
+ * Seats a member is in for `cycle`: registered there (a candidate row matched to the
+ * person) or sitting there with the seat up. Used by profiles to link to their race.
+ */
+async function seatsOfPerson(db: Db, slug: string, cycle: number) {
+  const [who] = await db.select({ id: person.id }).from(person).where(eq(person.slug, slug));
+  if (!who) throw notFound(`No person with slug "${slug}"`);
+  const [registered, sitting] = await Promise.all([
+    db
+      .selectDistinct({
+        office: candidate.office,
+        state: candidate.state,
+        district: candidate.district,
+      })
+      .from(candidate)
+      .where(
+        and(
+          eq(candidate.cycle, cycle),
+          eq(candidate.electionYear, cycle),
+          eq(candidate.personId, who.id),
+        ),
+      ),
+    loadIncumbents(db, cycle, {}),
+  ]);
+  const seats: Seat[] = [
+    ...registered.flatMap((r) => {
+      const chamber = OFFICE_CHAMBER[r.office as 'H' | 'S'];
+      return chamber
+        ? [{ chamber, state: r.state, district: chamber === 'senate' ? null : (r.district ?? 0) }]
+        : [];
+    }),
+    ...sitting.filter((i) => i.slug === slug),
+  ];
+  return {
+    keys: new Set(seats.map(seatKey)),
+    states: [...new Set(seats.map((s) => s.state))],
+  };
+}
+
 const incumbentRef = (i: Incumbent) => ({ slug: i.slug, fullName: i.fullName, party: i.party });
 
 const sourcesFor = async (db: Db, cycle: number, seat?: Seat): Promise<RaceSources> => {
@@ -178,6 +217,9 @@ export const RacesListInput = z.strictObject({
   ),
   chamber: ChamberSchema.optional(),
   state: StateCodeSchema.optional(),
+  person: SlugSchema.optional().describe(
+    'Only seats this member is in: registered there (matched FEC id) or sitting there with the seat up',
+  ),
 });
 
 export const RacesListOutput = z.object({
@@ -233,6 +275,7 @@ export const racesList = defineCapability({
   async handler({ db }, input) {
     const cycle = await resolveCycle(db, input.cycle);
     const officeFilter = input.chamber ? officeCode(input.chamber) : undefined;
+    const mine = input.person ? await seatsOfPerson(db, input.person, cycle) : null;
     const [counts, incumbents, sources] = await Promise.all([
       db
         .select({
@@ -259,6 +302,11 @@ export const racesList = defineCapability({
             eq(candidate.electionYear, cycle),
             officeFilter ? eq(candidate.office, officeFilter) : undefined,
             input.state ? eq(candidate.state, input.state) : undefined,
+            mine
+              ? mine.states.length > 0
+                ? inArray(candidate.state, mine.states)
+                : sql`false`
+              : undefined,
           ),
         )
         .groupBy(candidate.office, candidate.state, candidate.district),
@@ -301,6 +349,7 @@ export const racesList = defineCapability({
     }
 
     const items = [...seats.values()]
+      .filter((e) => mine === null || mine.keys.has(seatKey(e.seat)))
       .sort((a, b) => compareSeats(a.seat, b.seat))
       .map((e) => ({
         seat: { key: seatKey(e.seat), ...e.seat },
