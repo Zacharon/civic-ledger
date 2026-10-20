@@ -168,3 +168,26 @@ describe('downloadToFile', () => {
     expect(await readdir(dir)).toEqual([]);
   });
 });
+
+describe('downloadToFile in parallel', () => {
+  it('keeps one validator cache intact when many files download at once', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'civic-dl-par-'));
+    const cachePath = join(dir, 'http-cache.json');
+    const deps: HttpDeps = {
+      fetch: async (input) =>
+        new Response(`body of ${String(input)}`, { status: 200, headers: { etag: `"${input}"` } }),
+      sleep: async () => undefined,
+      random: () => 0,
+    };
+    const urls = Array.from({ length: 48 }, (_, i) => `https://example.org/f${i}.jpg`);
+    // On Windows a rename over a cache another download is reading fails EPERM; it must retry.
+    await Promise.all(
+      urls.map((url, i) =>
+        downloadToFile({ url, targetPath: join(dir, `f${i}.jpg`), cachePath }, deps),
+      ),
+    );
+    const cache = JSON.parse(await readFile(cachePath, 'utf8')) as Record<string, { etag: string }>;
+    expect(Object.keys(cache).sort()).toEqual([...urls].sort());
+    expect((await readdir(dir)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
+  });
+});

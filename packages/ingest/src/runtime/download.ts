@@ -202,6 +202,27 @@ async function readCache(path: string): Promise<HttpCache> {
   }
 }
 
+/**
+ * Windows refuses to rename over a file another handle has open (EPERM / EBUSY / EACCES): a
+ * parallel download is reading the cache at that moment. The handle closes within
+ * milliseconds, so retry briefly before giving up.
+ */
+async function renameWithRetry(from: string, to: string): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await rename(from, to);
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (attempt >= 20 || (code !== 'EPERM' && code !== 'EBUSY' && code !== 'EACCES')) {
+        await rm(from, { force: true });
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10 * (attempt + 1)));
+    }
+  }
+}
+
 /** Pending cache writes per cache file: parallel downloads of one source share the file. */
 const cacheWrites = new Map<string, Promise<void>>();
 
@@ -214,7 +235,7 @@ async function updateCache(path: string, url: string, entry: CacheEntry): Promis
     await mkdir(dirname(path), { recursive: true });
     const temp = join(dirname(path), `.http-cache.${process.pid}.${randomUUID()}.tmp`);
     await writeFile(temp, `${JSON.stringify(cache, null, 2)}\n`);
-    await rename(temp, path);
+    await renameWithRetry(temp, path);
   });
   cacheWrites.set(
     path,

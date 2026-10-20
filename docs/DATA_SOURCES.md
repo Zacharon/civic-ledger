@@ -89,9 +89,14 @@ line names the Member Guide as the origin of the collection.
 * Selection: everyone with a Bioguide id and a term that ends after 2025-01-03 (current members and
   those who left during the 119th Congress). The rest of the repository (former members back to 1789,
   about 250 MB for both sizes) is not fetched.
-* Validation: each file must be a complete JPEG (SOI ... EOI, frame header, scan) of exactly
-  225x275 or 450x550 pixels and at most 2 MiB; anything else (an HTML error page served with 200, a
-  truncated download, a wrong size) rejects that person's pair. Image content is never decoded or altered.
+* Validation: each file must be a complete 1- or 3-component JPEG (SOI ... EOI, frame header, scan)
+  at most 2 MiB and inside its variant's pixel box (no larger than 225x275 or 450x550, at least 20% of its
+  area); anything else (an HTML error page served with 200, a truncated download, a CMYK file, an
+  oversized or thumbnail-sized image) rejects that person's pair. Image content is never decoded or altered.
+* Real shapes (2026-10-20, 930 files): upstream scales each photo to fit the box keeping its proportions,
+  so most 225x275 files are 225x275 or 220x275, some are 183x275, 205x275 or 210x275, a few are squarer
+  (225x225, 225x150), and 15 files in `450x550/` are the 225x275 original (not enlarged). One file
+  (`L000585`) is a 4-component (CMYK) JPEG and is rejected.
 * Not guaranteed by the source: the file for a person can change (a better photo, a new term); the
   stored `sha256` and the cache-busting key change with it.
 
