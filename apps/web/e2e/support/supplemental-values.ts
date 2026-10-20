@@ -674,6 +674,10 @@ export async function checkRaces(page: Page, baseUrl: string, agreed: Agreed) {
         'data-seat-up',
         race.seatUp ? 'true' : 'false',
       );
+      // Rows behind the disclosure have no rendered text until it is open.
+      await page.locator('details[data-no-report-count]').evaluateAll((all) => {
+        for (const d of all) (d as HTMLDetailsElement).open = true;
+      });
       for (const c of race.candidates) {
         const row = page.locator(`tr[data-candidate="${c.fecCandidateId}"]`);
         await text(row.locator('th'), c.displayName);
