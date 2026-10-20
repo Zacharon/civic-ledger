@@ -121,6 +121,53 @@ describe('voteview', () => {
 });
 
 describe('fec-bulk', () => {
+  it('loads every House and Senate candidate of the cycle as filed, matched or not', async () => {
+    expect(receipts['fec-bulk']?.counts).toMatchObject({
+      candidates: 19,
+      candidate_rows: 16,
+      candidates_other_election_year_skipped: 2,
+      candidates_other_office_skipped: 1,
+    });
+    const all = await q<{
+      id: string;
+      name: string;
+      ici: string | null;
+      district: number | null;
+    }>(sql`
+      select fec_candidate_id as id, name_as_filed as name, incumbency as ici, district
+      from candidate where fec_candidate_id in ('H4FL01197', 'S6KY00286', 'H0DC00058', 'H8NJ02166')
+      order by 1`);
+    expect(all).toEqual([
+      { id: 'H0DC00058', name: 'NORTON, ELEANOR HOLMES', ici: 'I', district: 0 },
+      { id: 'H4FL01197', name: 'VALIMONT, JENNIFER GAY', ici: 'C', district: 1 },
+      { id: 'H8NJ02166', name: 'VAN DREW, JEFF MR', ici: 'I', district: 2 },
+      { id: 'S6KY00286', name: 'BARR, GARLAND ANDY', ici: 'O', district: null },
+    ]);
+    // Only a Bioguide match sets person_id; unmatched candidates never become people.
+    const matched = await q<{ id: string; slug: string | null }>(sql`
+      select c.fec_candidate_id as id, p.slug from candidate c left join person p on p.id = c.person_id
+      where c.fec_candidate_id in ('H4FL01197', 'S6KY00286', 'H6VA11157') order by 1`);
+    expect(matched).toEqual([
+      { id: 'H4FL01197', slug: null },
+      { id: 'S6KY00286', slug: 'andy-barr-b001282' },
+    ]);
+    const [other] = await q<{ n: number }>(sql`
+      select count(*)::int as n from candidate where office not in ('H', 'S') or election_year <> cycle`);
+    expect(other?.n).toBe(0);
+    const [people] = await q<{ n: number }>(sql`select count(*)::int as n from person`);
+    expect(people?.n).toBe(10);
+  });
+
+  it('keeps independent expenditures for candidates that have no person row', async () => {
+    const [unmatched] = await q<{ n: number }>(sql`
+      select count(*)::int as n from independent_expenditure
+      where person_id is null and candidate_fec_id <> ''`);
+    expect(unmatched?.n).toBeGreaterThan(0);
+    expect(receipts['fec-bulk']?.counts.independent_expenditures).toBeGreaterThan(
+      receipts['fec-bulk']?.counts.ie_matched_to_person ?? 0,
+    );
+  });
+
   it('applies the pas2 amendment / memo / refund rules', () => {
     expect(receipts['fec-bulk']?.counts).toMatchObject({
       pas2_rows: 29,
