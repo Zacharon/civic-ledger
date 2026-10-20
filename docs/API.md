@@ -28,6 +28,8 @@ in `packages/core/src/capabilities`):
 | `money.summary` | `totals.pacShare`, `totals.smallDollarShare` | Shares guarded to [0, 1], else `null`; `totals.unitemizedIndividualCents` is always `null` (weball has no split) |
 | `money.summary` | `smallDollar` `{fecCandidateId, unitemizedIndividualCents, itemizedIndividualCents, totalReceiptsCents, share, coverageEndDate, provenance}` or `null` | FEC candidate summary for its own filing period; `share` is `null` outside [0, 1] or when receipts <= 0; its date can trail `totals.coverageEndDate` |
 | `money.summary` | `outsideSpending` `{supportCents, opposeCents, spenders, itemCount, items}` | `spenders` sums every expenditure per spender and side (largest first); `itemCount` counts all expenditures; `items` lists only the 50 largest |
+| `races.list` | input `cycle`, `chamber`, `state`, `person`; output `items[]` `{seat, seatUp, incumbents, registrations, activeCandidates, candidatesWithMoneyReports}`, `totals`, `sources` | Seats ordered by state, Senate first, then district; never by money. Counts are FEC registrations (`cn`) for the cycle; a money report is a row in the FEC all-candidates summary. Example: `/api/v1/races.list?input={"state":"GA","chamber":"senate"}` |
+| `races.get` | input `seat` (`ga-senate`, `ga-10`, `ak-al`), `cycle`, `sort` (`name` default, `receipts` opt-in); output `candidates[]` with `displayName`, `nameAsFiled`, `person`, `party {code, name}`, `incumbency(Label)`, `status(Label)`, `money` (`null` = no report; cash on hand as filed, may be negative), `outsideSpending {supportCents, opposeCents, expenditures}`, `fecUrl` | `not_found` for a seat with no registration and no member up; `invalid_input` for a key that is not canonical (`zv-01`, `ZV-1`). Outside totals are per FEC candidate id |
 | `sources.status` | runs: `scope`, `counts`, `error` | Ingest scope as stored (`all`, `cycle:2026`, `congress:119`) and the run's own counters |
 
 ## JSON API
@@ -38,7 +40,7 @@ machine-readable contract is generated from the zod schemas at
 
 | Capability | Method | Cache class |
 |---|---|---|
-| `people.search`, `people.get`, `people.glance`, `people.compare`, `explore.table`, `money.summary`, `votes.list`, `scores.list`, `promises.list` | GET | data: `s-maxage=300, stale-while-revalidate=3600` |
+| `people.search`, `people.get`, `people.glance`, `people.compare`, `explore.table`, `money.summary`, `votes.list`, `scores.list`, `promises.list`, `races.list`, `races.get` | GET | data: `s-maxage=300, stale-while-revalidate=3600` |
 | `policy.areas`, `frameworks.list`, `explainers.list` | GET | reference: `s-maxage=3600, stale-while-revalidate=86400` |
 | `sources.status` | GET | status: `s-maxage=60, stale-while-revalidate=300` |
 | `frameworks.evaluate` | POST (JSON body, max 256 KiB) | `no-store` |
@@ -122,7 +124,7 @@ repeated keys, and every GET also accepts `input`.
 per public capability. Tool names replace the dot with an underscore: `people_search`,
 `people_get`, `people_compare`, `explore_table`, `money_summary`, `votes_list`,
 `scores_list`, `promises_list`, `policy_areas`, `frameworks_list`, `frameworks_evaluate`,
-`sources_status`, `explore_facets` (13 tools, one per public capability).
+`sources_status`, `explore_facets`, `races_list`, `races_get` (one tool per public capability).
 
 * `inputSchema` and `outputSchema` are JSON Schema generated from the capability's own
   zod schemas. Results are `structuredContent` plus the same JSON as a text block.

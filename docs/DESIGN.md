@@ -216,6 +216,10 @@ under 2 s with 600 members.
 | Tally bar | `components/charts/tally-bar.tsx` | Yea / Nay / Present / Not voting meter from `summarizeTally`, every count and the denominator printed. |
 | Scroll region | `components/scroll-region.tsx` | Named, focusable wrapper for wide tables. |
 | Pagination | `components/pagination.tsx` | Links, work without JavaScript. |
+| Race notice | `app/races/**` (`role="note"`, left ink rule on `--surface-sunk`) | The fixed sentence that FEC registration is not a ballot; on every race view. |
+| Money bar (shared scale) | `.share .share-wide` | Raised as text plus a 96px neutral `--bar` meter; the scale is the largest receipts in that race, so bars compare within one race only. No party or vote color. |
+| Candidate table + no-report disclosure | `app/races/[cycle]/[seat]/page.tsx` | Names alphabetical by default (opt-in amount order), party through `PartyChip`, negative cash printed with "as filed", candidates with no money report in a native `<details>` (works without JS). No photos. |
+| Seat table | `app/races/page.tsx` | Senate by state, House as one small table per state; state and chamber filter is a GET form. |
 
 Component paths are relative to `apps/web/src/`.
 
@@ -253,4 +257,5 @@ retry) and populated.
 | 2026-10-20 | Swiss x Editorial restyle: concept palette (paper `#F7F5EF`, ink `#20251F`, teal accent `#086F63`), shared 1280px frame, 2px ink rules, square panels, non-sticky masthead with member search, sans section titles | Owner-approved concept; a calmer research tool. Same two fonts, so no new dependency. Muted text keeps a separately tested `--ink-3` (5.6:1) instead of the concept's single muted grey. |
 | 2026-10-20 | Vote colors: Yea teal, Nay amber, Not voting grey, Present hatched grey; never red or blue; `--vote-*` separate from `--party-*` and `--status-*` | Owner rule. The previous tally borrowed the money palette (amber Yea, purple Nay). |
 | 2026-10-20 | Concept weaknesses not copied: 11-12px table text, search hidden below 900px, one color name for both absent and not voting | Readability (data stays 14px+), usable mobile search, and Present is not Not voting. |
+| 2026-10-20 | Race pages: no photos, neutral money bar on one scale per race, name order by default, party only on chips | Most challengers have no official photo; incumbent-only photos would tilt the page (DECISIONS A76). |
 | 2026-10-20 | Explore and Compare share the 1280px frame (was 1440px) | Masthead and content align; their tables already scroll in labeled regions. |

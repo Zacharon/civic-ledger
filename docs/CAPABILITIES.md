@@ -29,6 +29,8 @@ for public reads; it does not need to.
 | `people.compare@1` | read | Compare page | `GET /api/v1/people.compare`, MCP `people_compare` |
 | `explore.table@1` | read | Explore table (sort/filter/paginate; scope current by default, or all incl. former members) | `GET /api/v1/explore.table`, MCP `explore_table` |
 | `explore.facets@1` | read | Explore filter options (states, parties, chambers, scope counts, per-field data coverage) | `GET /api/v1/explore.facets`, MCP `explore_facets` |
+| `races.list@1` | read | Races index (`/races`), the race line on profiles | `GET /api/v1/races.list`, MCP `races_list` |
+| `races.get@1` | read | Race page (`/races/<cycle>/<seat>`) | `GET /api/v1/races.get`, MCP `races_get` |
 | `money.summary@1` | read | Profile → Money | `GET /api/v1/money.summary`, MCP `money_summary` |
 | `votes.list@1` | read | Profile → Votes, Policy page | `GET /api/v1/votes.list`, MCP `votes_list` |
 | `scores.list@1` | read | Profile → Scores | `GET /api/v1/scores.list`, MCP `scores_list` |
@@ -45,6 +47,22 @@ for public reads; it does not need to.
 | `ops.raw.archive@1` | write (operator) | `pnpm exec tsx scripts/backup/raw.ts backup` | Same CLI, explicit persistent root |
 | `ops.raw.restore@1` | write (operator; preview default) | Raw archive CLI `restore` into a new directory | Same CLI, never overwrite an existing target |
 | `ops.monitor@1` | local draft | `pnpm exec tsx scripts/monitor/cli.ts` | Same CLI; incident JSON/digest, no issue send |
+
+`races.list` and `races.get` (DECISIONS A21 amendment, A72-A78) read the FEC candidate
+master. `races.list` input: `cycle` (default: latest cycle with registrations), `chamber`,
+`state`, `person` (seats that member is registered in or sitting in with the seat up);
+output: per seat `seat {key, chamber, state, district}`, `seatUp`, `incumbents` (slug, name,
+party, `termEnd`), `registrations`, `activeCandidates` (FEC status C),
+`candidatesWithMoneyReports`, plus `totals` (including those without a report) and
+`sources` provenance (candidates, money reports, outside spending, terms). `races.get`
+input: `seat` (`ga-senate`, `ga-10`, `ak-al`), `cycle`, `sort` (`name` default, or
+`receipts`, opt-in); output: counts, and for every registered candidate `displayName`,
+`nameAsFiled`, `person` (slug when matched), party code and name, FEC incumbency and
+status codes with labels, `money` (receipts, cash on hand as filed, coverage end, provenance;
+`null` = no report), `outsideSpending` (support, oppose, count) and the fec.gov URL.
+Seats are never ranked by money; candidates are alphabetical unless the caller asks. Both
+are anonymous public reads with strict schemas and no writes. The web race pages use the
+same two capabilities with the same inputs.
 
 `frameworks.evaluate` is stateless: the framework spec travels in the request
 (or URL for the UI), so no stored user data exists.

@@ -9,6 +9,9 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 
 ### Added
 
+- Races: `candidate` table (migration 0006, `fec-bulk@3`), `races.list` / `races.get`
+  capabilities (API and MCP), `/races` and `/races/<cycle>/<seat>` pages, a race line on
+  member profiles and a Races nav link (DECISIONS A21 amendment, A72-A78).
 - Monorepo: `packages/db` (Drizzle schema, forward-only SQL migrations, read-model
   materialized views), `packages/core` (the capability registry: 13 public read
   capabilities plus the operator-only `ingest.run` and `curated.validate`),
