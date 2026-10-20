@@ -23,6 +23,8 @@ export const CACHE_CLASS: Partial<Record<CapabilityName, CacheClass>> = {
   'people.search': 'data',
   'people.get': 'data',
   'people.glance': 'data',
+  // Binary: sent with its own policy by media.ts (immutable only for a matching cache key).
+  'people.portrait': 'none',
   'explainers.list': 'reference',
   'people.compare': 'data',
   'explore.table': 'data',

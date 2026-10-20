@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { type ReactNode, Suspense } from 'react';
 import { CareerTimeline } from '@/components/charts/career-timeline';
 import { PositionStrip } from '@/components/charts/position-strip';
+import { MemberPortrait } from '@/components/member-portrait';
 import { PartyChip } from '@/components/party-chip';
 import { GlanceSection } from '@/components/profile/glance';
 import { MoneySection } from '@/components/profile/money-section';
@@ -103,6 +104,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
   const headerNotes = new SourceNotes('summary', sources);
   const personMark = headerNotes.cite(person.provenance);
   const termMark = headerNotes.cite(terms[0]?.provenance);
+  const portraitMark = headerNotes.cite(profile.portrait?.provenance);
   const title = memberTitle(card.chamber);
   const seat = seatLabel(card.chamber, card.state, card.district);
   const careerNotes = new SourceNotes('career', sources);
@@ -121,6 +123,12 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
             </span>{' '}
             <span aria-current="page">{person.fullName}</span>
           </nav>
+          <MemberPortrait
+            portrait={profile.portrait}
+            name={person.fullName}
+            notes={headerNotes}
+            mark={portraitMark}
+          />
           <p className="eyebrow mt-6">Member record</p>
           <h1 className="page-title mt-3">
             {person.fullName}

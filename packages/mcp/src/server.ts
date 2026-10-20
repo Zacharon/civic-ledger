@@ -24,11 +24,14 @@ const INSTRUCTIONS = [
   'All tools are read-only. Money is integer US cents; shares and rates are fractions in [0, 1]; null means no data, never zero.',
   'Every fact carries provenance (sourceId, sourceKey, retrievedAt); resolve sourceId with sources_status.',
   'Scores are attributed to a named publisher or framework and are never a default sort.',
+  'people_portrait returns an image block (official portrait, public domain) plus its metadata; people_get states the credit and cache key.',
   'Errors are tool errors whose text is JSON: {"error":{"code","message","issues"?}}.',
 ].join('\n');
 
 interface PublicTool {
   capabilityName: string;
+  /** `transport: 'binary'`: the result is returned as an image block plus metadata. */
+  binary: boolean;
   definition: Tool;
 }
 
@@ -45,12 +48,18 @@ function objectSchema(schema: JsonSchema, label: string): Tool['inputSchema'] {
   };
 }
 
+/** The output schema without its `bytes` field: what a binary capability reports as data. */
+function mediaMetadata(output: z.ZodType): z.ZodType {
+  return output instanceof z.ZodObject ? output.omit({ bytes: true }) : output;
+}
+
 /** One tool per public capability; schemas are generated from the capability's own zod schemas. */
 export function publicTools(): PublicTool[] {
   return publicCapabilities().map((capability) => {
     const name = toolNameFor(capability.name);
     return {
       capabilityName: capability.name,
+      binary: capability.transport === 'binary',
       definition: {
         name,
         title: capability.name,
@@ -59,8 +68,18 @@ export function publicTools(): PublicTool[] {
           z.toJSONSchema(capability.input, { io: 'input', unrepresentable: 'any' }),
           `${name} input`,
         ),
+        // A binary capability's result is an image block plus a metadata object, so its
+        // output schema is the metadata only (the bytes are not JSON).
         outputSchema: objectSchema(
-          z.toJSONSchema(capability.output, { io: 'output', unrepresentable: 'any' }),
+          z.toJSONSchema(
+            capability.transport === 'binary'
+              ? mediaMetadata(capability.output)
+              : capability.output,
+            {
+              io: 'output',
+              unrepresentable: 'any',
+            },
+          ),
           `${name} output`,
         ),
         annotations: {
@@ -73,6 +92,25 @@ export function publicTools(): PublicTool[] {
       },
     };
   });
+}
+
+/**
+ * Binary capability result (people.portrait): the metadata as text and structured content,
+ * and the bytes as an MCP image block the client can display or save.
+ */
+function mediaToolResult(result: unknown): CallToolResult {
+  const { bytes, ...metadata } = result as { bytes: Uint8Array; contentType: string };
+  return {
+    content: [
+      { type: 'text', text: JSON.stringify(metadata) },
+      {
+        type: 'image',
+        data: Buffer.from(bytes).toString('base64'),
+        mimeType: metadata.contentType,
+      },
+    ],
+    structuredContent: metadata,
+  };
 }
 
 /** Same wire format as the HTTP adapter's error body; internal details never leave the process. */
@@ -125,6 +163,7 @@ export function createMcpServer({ ctx, rateLimit, onError }: McpServerOptions): 
     }
     try {
       const result = await dispatchByName(tool.capabilityName, request.params.arguments ?? {}, ctx);
+      if (tool.binary) return mediaToolResult(result);
       return {
         content: [{ type: 'text', text: JSON.stringify(result) }],
         structuredContent: result as Record<string, unknown>,

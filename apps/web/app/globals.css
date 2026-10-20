@@ -294,6 +294,56 @@
     padding: 1.25rem 1.25rem 1rem;
   }
 
+  /*
+   * Official portrait in a member record header. Floated left of the identity lines so the
+   * header's markup is unchanged; the facts list clears it. 4:5 frame, same size and weight
+   * with or without a photo; the missing tile is the sunk surface with one line of text.
+   */
+  .member-portrait {
+    float: left;
+    width: 6.5rem;
+    margin: 1.5rem 1rem 0.75rem 0;
+  }
+  @media (min-width: 640px) {
+    .member-portrait {
+      width: 10.5rem;
+      margin-right: 1.5rem;
+    }
+  }
+  .member-portrait-frame {
+    aspect-ratio: 4 / 5;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--surface-sunk);
+  }
+  .member-portrait-frame img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+  }
+  .member-portrait-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: var(--text-sm);
+    line-height: 1.3;
+    color: var(--ink-2);
+  }
+  .member-portrait figcaption {
+    margin-top: 0.5rem;
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    color: var(--ink-3);
+  }
+  .member-portrait ~ dl {
+    clear: both;
+  }
+
   /* In-page section navigation (anchor links, not tabs). */
   .section-nav {
     display: flex;

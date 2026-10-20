@@ -24,6 +24,8 @@ in `packages/core/src/capabilities`):
 | `people.search` | `scope` (default `all`) | Search finds former members too; every item says `isCurrent` |
 | `people.glance` | `slug`; output sections with sentences, facts, provenance and drilldowns | Deterministic profile overview; money, voting and statement coverage retain their separate periods and sources |
 | `explainers.list` | empty input | Shared plain-language definitions used by Methodology and agents |
+| `people.get` | `portrait`: `{url, width, height, credit, sourceUrl, asOf, variants[], provenance}` or `null` | Official portrait facts. `url` is the 1x (225 px) file, site-relative (resolve against the site origin); `variants` lists the 1x and 2x files with their `sha256`; `credit` is the fixed line shown under the image; `null` = no portrait published for this member (never a placeholder URL) |
+| `people.portrait` | input `slug`, `size` (`225` default or `450`), optional `v` (cache key); output is the JPEG file | Binary capability, see "Binary capabilities" below |
 | `explore.table` rows, `people.get` `card`, `people.compare` people | `isCurrent`, `termEnd`, `serviceStart`, `tenureYears`, `smallDollarShare`, `smallDollarAsOf`, `topIndustries`, `industryCodingCoverage`, `scorecards` | `tenureYears` = years actually served; `smallDollarAsOf` = coverage date of the FEC candidate summary behind `smallDollarShare`; `topIndustries` are net-positive industries; `scorecards` only for publishers with cleared terms |
 | `money.summary` | `totals.pacShare`, `totals.smallDollarShare` | Shares guarded to [0, 1], else `null`; `totals.unitemizedIndividualCents` is always `null` (weball has no split) |
 | `money.summary` | `smallDollar` `{fecCandidateId, unitemizedIndividualCents, itemizedIndividualCents, totalReceiptsCents, share, coverageEndDate, provenance}` or `null` | FEC candidate summary for its own filing period; `share` is `null` outside [0, 1] or when receipts <= 0; its date can trail `totals.coverageEndDate` |
@@ -41,11 +43,39 @@ machine-readable contract is generated from the zod schemas at
 | `people.search`, `people.get`, `people.glance`, `people.compare`, `explore.table`, `money.summary`, `votes.list`, `scores.list`, `promises.list` | GET | data: `s-maxage=300, stale-while-revalidate=3600` |
 | `policy.areas`, `frameworks.list`, `explainers.list` | GET | reference: `s-maxage=3600, stale-while-revalidate=86400` |
 | `sources.status` | GET | status: `s-maxage=60, stale-while-revalidate=300` |
+| `people.portrait` | GET | binary: see below (`ETag` = sha256; `immutable` only with a matching `v`) |
 | `frameworks.evaluate` | POST (JSON body, max 256 KiB) | `no-store` |
 
 Other methods answer `405` with an `Allow` header. Unknown or operator-only names
 answer `404 not_found`. `OPTIONS` is answered for CORS (any origin may read; there
 are no credentials).
+
+### Binary capabilities
+
+A capability may declare `transport: 'binary'` (core `Capability`). Its output carries `bytes`,
+`contentType` and `sha256` and is never JSON-serialized. Today the only one is
+`people.portrait` (the official portrait of a member, a public-domain JPEG from the GPO
+Member Guide, stored in our database; the credit and facts come from `people.get`).
+
+* **HTTP:** `GET /api/v1/people.portrait?slug=<slug>&size=225|450[&v=<key>]` answers the file
+  as `image/jpeg` with `ETag: "<sha256>"` (`If-None-Match` answers `304` with no body),
+  `X-Content-Type-Options: nosniff`, `Content-Length` and `Content-Disposition: inline`. The
+  cache key `v` is the first characters (8 to 64) of the file's sha256, as given in
+  `people.get` `portrait.url`. Only a `v` that is a prefix of the sha256 of the bytes sent earns
+  `Cache-Control: public, max-age=31536000, immutable`; without one (or with a stale or invented
+  one) the response is `public, max-age=0, s-maxage=3600, stale-while-revalidate=86400`, so a
+  re-ingested file is never pinned in a cache. Errors are the normal JSON error body: `404`
+  for an unknown member or a member without a portrait, `400` for a size other than 225 or
+  450, a malformed key or an unknown parameter.
+* **Web address:** the profile page uses `/people/<slug>/portrait?size=225|450&v=<key>`, a thin
+  route that forwards to the same handler, so page, API and MCP return identical bytes and
+  headers. Readers' browsers only ever request our own origin (CSP `img-src 'self'`).
+* **MCP:** tool `people_portrait` returns an `image` content block (base64 JPEG, MIME
+  `image/jpeg`) and a text block / `structuredContent` with the metadata
+  (`slug, size, contentType, width, height, sha256, byteLength`); its `outputSchema` describes
+  only that metadata.
+* **OpenAPI:** the operation is marked `x-transport: binary` and its 200 response is
+  `image/jpeg` (`format: binary`).
 
 ### Query encoding (GET)
 
@@ -122,7 +152,7 @@ repeated keys, and every GET also accepts `input`.
 per public capability. Tool names replace the dot with an underscore: `people_search`,
 `people_get`, `people_compare`, `explore_table`, `money_summary`, `votes_list`,
 `scores_list`, `promises_list`, `policy_areas`, `frameworks_list`, `frameworks_evaluate`,
-`sources_status`, `explore_facets` (13 tools, one per public capability).
+`sources_status`, `explore_facets`, `people_glance`, `explainers_list` and `people_portrait` (one tool per public capability; `people_portrait` returns an image block).
 
 * `inputSchema` and `outputSchema` are JSON Schema generated from the capability's own
   zod schemas. Results are `structuredContent` plus the same JSON as a text block.

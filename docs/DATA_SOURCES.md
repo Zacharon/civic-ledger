@@ -66,6 +66,35 @@ Base `https://www.fec.gov/files/bulk-downloads/2026/` (302 → S3; follow redire
 
 API v3 `https://v3.openstates.org/` key required (rate limits unverified). Bulk: legislators YAML (`github.com/openstates/people`), per-session CSV/JSON (login required), monthly Postgres dump (~10.8 GB, no login). "Public domain dedication unless otherwise noted."
 
+## 6b. Official member portraits (unitedstates/images) - public domain
+
+Added 2026-10-20 as ingest source `member-photos` (DECISIONS A72). Repository
+`https://github.com/unitedstates/images`, branch `gh-pages`, published on GitHub Pages. Its README
+states the photos are public domain: they come from the U.S. Government Publishing Office Member
+Guide (`https://memberguide.gpo.gov/`), "which has assured us that all photos are public domain";
+where GPO has no photo the maintainers may accept another official public-domain one, so the credit
+line names the Member Guide as the origin of the collection.
+
+* URL pattern: `https://unitedstates.github.io/images/congress/{225x275|450x550|original}/{BIOGUIDE}.jpg`
+  (`original` is typically 675x825 and is not used). Keyed by Bioguide id; no auth; no rate limit stated;
+  `ETag` + `Last-Modified` on every file, so conditional GET works.
+* Listing (no per-id probing): `https://api.github.com/repos/unitedstates/images/git/trees/gh-pages?recursive=1`
+  returns `path`, `size` and `sha` of every file (5,110 entries on 2026-10-20, `truncated: false`; a
+  truncated answer fails the run). Unauthenticated GitHub API: 60 requests/hour per address; a run
+  uses one. 1,297 people have a 225x275 and a 450x550 file; 1,296 have an `original`. Average sizes:
+  49 KB (225x275), 143 KB (450x550).
+* Coverage: 524 of the 539 current members on 2026-10-20. Missing: B001323 G000606 G000607 W000832
+  B001328 F000485 B001321 B001324 M001246 H001104 A000383 G000608 V000139 M001245 W000831 (the newest
+  members). A missing portrait is a normal state, not an error.
+* Selection: everyone with a Bioguide id and a term that ends after 2025-01-03 (current members and
+  those who left during the 119th Congress). The rest of the repository (former members back to 1789,
+  about 250 MB for both sizes) is not fetched.
+* Validation: each file must be a complete JPEG (SOI ... EOI, frame header, scan) of exactly
+  225x275 or 450x550 pixels and at most 2 MiB; anything else (an HTML error page served with 200, a
+  truncated download, a wrong size) rejects that person's pair. Image content is never decoded or altered.
+* Not guaranteed by the source: the file for a person can change (a better photo, a new term); the
+  stored `sha256` and the cache-busting key change with it.
+
 ## 7. Status
 
 ProPublica Congress API: "no longer available". OpenSecrets API: discontinued 2025-04-15. OpenSecrets bulk: registration + approval, educational-use ToS, commercial republishing generally a fee.

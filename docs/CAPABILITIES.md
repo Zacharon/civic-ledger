@@ -24,6 +24,7 @@ for public reads; it does not need to.
 |---|---|---|---|
 | `people.search@1` | read | Search box, Explore filters | `GET /api/v1/people.search`, MCP `people_search` |
 | `people.get@1` | read | Profile page | `GET /api/v1/people.get`, MCP `people_get` |
+| `people.portrait@1` | read (binary) | Member profile header image (`/people/<slug>/portrait`) | `GET /api/v1/people.portrait`, MCP `people_portrait` (image block) |
 | `people.glance@1` | read | Profile overview and its evidence links | `GET /api/v1/people.glance`, MCP `people_glance` |
 | `explainers.list@1` | read | Methodology definitions and profile explanations | `GET /api/v1/explainers.list`, MCP `explainers_list` |
 | `people.compare@1` | read | Compare page | `GET /api/v1/people.compare`, MCP `people_compare` |
@@ -62,6 +63,13 @@ from donations or votes. Missing coverage remains explicit. `explainers.list`
 returns the same definitions rendered on Methodology; these are editorial
 definitions, not stored claims about a person. Both are anonymous public reads,
 with strict schemas, no writes, no approval step and no idempotency key required.
+
+`people.get` also states the member's official portrait facts (`portrait`, or `null`), and
+`people.portrait` returns the image itself. Both are anonymous public reads over files our own
+ingest stored (`member-photos`, DECISIONS A72): no write, no approval, no idempotency key. The
+image is a binary capability: HTTP sends it as `image/jpeg` with an ETag equal to its sha256,
+MCP as an image block; the web route `/people/<slug>/portrait` forwards to the same
+handler. Portraits appear on member records only, never on race pages (DESIGN.md "Portraits").
 
 Operator backup, restore, retention and monitor commands are documented in
 [DEPLOY_RENDER.md](DEPLOY_RENDER.md). They are trusted-machine CLI capabilities;

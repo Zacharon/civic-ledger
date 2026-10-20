@@ -174,7 +174,9 @@ describe('OPTIONS preflight', () => {
 
 describe('cache policy', () => {
   it('names a class for every public capability, and no-store only for evaluate', () => {
-    for (const { name } of publicCapabilities()) {
+    for (const { name, transport } of publicCapabilities()) {
+      // Binary capabilities carry their own policy (media.ts, portrait-http.test.ts).
+      if (transport === 'binary') continue;
       expect(CACHE_CLASS[name as keyof typeof CACHE_CLASS], name).toBeDefined();
       const control = cacheControlFor(name);
       if (name === 'frameworks.evaluate') expect(control).toBe('no-store');

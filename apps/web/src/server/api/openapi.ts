@@ -67,16 +67,22 @@ export function buildOpenApiDocument(): Json {
     const input = schemaOf(capability.input, 'input');
     const output = schemaOf(capability.output, 'output');
     const method = allowedMethodFor(capability.name);
+    const binary = capability.transport === 'binary';
     const base = {
       operationId: capability.name.replaceAll('.', '_'),
       summary: capability.summary,
       tags: [capability.name.split('.')[0]],
       'x-capability': `${capability.name}@${capability.version}`,
+      ...(binary ? { 'x-transport': 'binary' } : {}),
       responses: {
         '200': {
-          description: 'Capability output',
+          description: binary
+            ? 'The file itself (people.portrait: image/jpeg). ETag is its sha256; the response is immutable-cacheable only when v matches.'
+            : 'Capability output',
           headers: OPERATION_HEADERS,
-          content: { 'application/json': { schema: output } },
+          content: binary
+            ? { 'image/jpeg': { schema: { type: 'string', format: 'binary' } } }
+            : { 'application/json': { schema: output } },
         },
         ...(method === 'GET'
           ? { '304': { description: 'Not modified (If-None-Match matched)' } }

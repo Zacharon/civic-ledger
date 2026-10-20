@@ -41,6 +41,37 @@ const STATUS = {
   not_yet_rated: 'Not yet rated',
 } as const;
 
+/**
+ * The header's portrait is exactly what people.get states (and API and MCP agreed on): the
+ * same file address and credit, or the neutral tile when the capability says `null`.
+ */
+export async function checkPortrait(
+  page: Page,
+  name: string,
+  portrait: CapabilityOutput<'people.get'>['portrait'],
+) {
+  const figure = page.locator('.member-portrait');
+  await expect(figure).toHaveCount(1);
+  if (!portrait) {
+    await expect(figure).toHaveAttribute('data-portrait', 'missing');
+    await expect(figure).toContainText('No official portrait published yet');
+    await expect(figure.locator('img')).toHaveCount(0);
+    return;
+  }
+  await expect(figure).toHaveAttribute('data-portrait', 'present');
+  const image = figure.locator('img');
+  await expect(image).toHaveAttribute('src', portrait.url);
+  await expect(image).toHaveAttribute('alt', `Official portrait of ${name}`);
+  await expect(image).toHaveAttribute('width', String(portrait.width));
+  await expect(image).toHaveAttribute('height', String(portrait.height));
+  const two = portrait.variants.find((v) => v.size === 450);
+  if (two) await expect(image).toHaveAttribute('srcset', `${portrait.url} 1x, ${two.url} 2x`);
+  await expect(figure.locator('figcaption')).toContainText(portrait.credit);
+  await expect(figure.locator('figcaption')).toContainText(
+    'Official portrait · GPO Member Guide · public domain',
+  );
+}
+
 export async function checkSupplementalProfile(
   page: Page,
   baseUrl: string,
@@ -61,6 +92,8 @@ export async function checkSupplementalProfile(
   const scores = await agreed<CapabilityOutput<'scores.list'>>('scores.list', { slug });
   const promises = await agreed<CapabilityOutput<'promises.list'>>('promises.list', { slug });
   const money = await agreed<CapabilityOutput<'money.summary'>>('money.summary', { slug });
+
+  await checkPortrait(page, profile.person.fullName, profile.portrait);
 
   const latest = scores.ideology[0];
   const ideology = page.locator('#scores [data-ideology]');
