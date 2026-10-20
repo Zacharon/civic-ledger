@@ -331,6 +331,26 @@ describe('projection and simplification', () => {
     expect(ze?.statePath).not.toMatch(/NaN/);
   });
 
+  it('does not size the box to far-off specks (Hawaii and its northwestern islands)', () => {
+    const square = (x: number, y: number, size: number) => [
+      [x, y],
+      [x, y + size],
+      [x + size, y + size],
+      [x + size, y],
+      [x, y],
+    ];
+    const state: MultiPolygon = {
+      type: 'MultiPolygon',
+      // A 5-degree island and a 0.02-degree speck 35 degrees east of it.
+      coordinates: [[square(0, 0, 5)], [square(40, 0, 0.02)]],
+    };
+    const shapes = buildStateShapes({ state, districts: [] });
+    // Fitted to the island alone the box is square; fitted to both it would be ~8:1.
+    expect(shapes.width / shapes.height).toBeGreaterThan(0.8);
+    expect(shapes.width / shapes.height).toBeLessThan(1.25);
+    expect(ringsOf(shapes.statePath)).toHaveLength(1);
+  });
+
   it('winds a counter-clockwise ring so it is the small side, not the whole sphere', () => {
     const ccw: Polygon = {
       type: 'Polygon',

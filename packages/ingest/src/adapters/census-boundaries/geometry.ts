@@ -197,6 +197,39 @@ export function ringArea(ring: Ring): number {
   return sum / 2;
 }
 
+/** A polygon that is at least this many square pixels at the first-pass scale shapes the box. */
+const FIT_MIN_AREA = 2;
+
+/**
+ * The polygons of the outline that can be seen at map size. Hawaii's outline includes tiny
+ * northwestern islands about 1,900 km from the main chain: fitting the box to them would shrink
+ * the islands people look for to a corner, and the specks themselves are dropped at the end.
+ * A first-pass fit measures each polygon; those under {@link FIT_MIN_AREA} do not size the box.
+ * The largest polygon always stays.
+ */
+export function visiblePolygons(state: MultiPolygon, options: MapOptions): MultiPolygon {
+  const { projection } = projectionFor(state, options);
+  const sized = state.coordinates.map((rings) => {
+    const projected = projectPolygons(projection, { type: 'MultiPolygon', coordinates: [rings] });
+    const area = projected.reduce((n, p) => n + Math.abs(ringArea(p[0] as Ring)), 0);
+    return { rings, area };
+  });
+  const largest = Math.max(...sized.map((p) => p.area));
+  const kept = sized.filter((p) => p.area >= FIT_MIN_AREA || p.area === largest);
+  return { type: 'MultiPolygon', coordinates: kept.map((p) => p.rings) };
+}
+
+const overlapsBox = (polygon: PolygonRings, width: number, height: number): boolean => {
+  const xs = (polygon[0] ?? []).map((p) => p[0]);
+  const ys = (polygon[0] ?? []).map((p) => p[1]);
+  return (
+    Math.max(...xs) >= 0 &&
+    Math.min(...xs) <= width &&
+    Math.max(...ys) >= 0 &&
+    Math.min(...ys) <= height
+  );
+};
+
 /**
  * Drops holes and polygons smaller than `minArea` (always keeping the largest polygon) and
  * any ring that simplification collapsed below a triangle.
@@ -285,16 +318,20 @@ export function buildStateShapes(
   options: MapOptions = DEFAULT_MAP_OPTIONS,
 ): StateShapes {
   const stateGeo = windForD3(densify(input.state));
-  const { projection, width, height } = projectionFor(stateGeo, options);
+  const { projection, width, height } = projectionFor(visiblePolygons(stateGeo, options), options);
   const asGeometry = (polygons: PolygonRings[]): MultiPolygon => ({
     type: 'MultiPolygon',
     coordinates: polygons,
   });
+  // Parts that lie outside the box (the specks left out of the fit) are not drawn.
+  const inBox = (polygons: PolygonRings[]) => polygons.filter((p) => overlapsBox(p, width, height));
   const objects: Record<string, MultiPolygon> = {
-    state: asGeometry(projectPolygons(projection, stateGeo)),
+    state: asGeometry(inBox(projectPolygons(projection, stateGeo))),
   };
   for (const d of input.districts) {
-    objects[`d${d.key}`] = asGeometry(projectPolygons(projection, windForD3(densify(d.geometry))));
+    objects[`d${d.key}`] = asGeometry(
+      inBox(projectPolygons(projection, windForD3(densify(d.geometry)))),
+    );
   }
   // topojson-server / -simplify type their topologies with incompatible property generics.
   const weighted = presimplify(topology(objects) as unknown as SimplifiableTopology);

@@ -16,7 +16,7 @@ Each source joins rows loaded by the ones before it, so a full refresh runs in t
 | 3 | `fec-bulk` | `--cycle 2026` | cn, cm, ccl, weball, pas2 zips + IE CSV + candidate summary CSV | 20 MB | 80 s |
 | 4 | `govinfo-billstatus` | `--congress 119` | 8 BILLSTATUS type zips | 54 MB | 89 s |
 | 5 | `curated` | none (all) | `data/curated/**` YAML | <1 MB | 33 s |
-| 6 | `census-boundaries` | none (all) | Census `cb_2025_us_cd119_500k.zip` + `cb_2025_us_state_500k.zip` (shapefiles) | 10 MB | @@DURATION@@ |
+| 6 | `census-boundaries` | none (all) | Census `cb_2025_us_cd119_500k.zip` + `cb_2025_us_state_500k.zip` (shapefiles) | 10 MB | 13 s once the files are on disk; 66 s on 2026-10-20 including the 10 MB of downloads on a loaded machine |
 
 Full first load: 6 min 10 s. An unchanged rerun (`pnpm ingest all`): 10 s, all files 304,
 every source deduplicated. Defaults: `--congress` = current congress, `--cycle` = current

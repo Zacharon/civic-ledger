@@ -8,6 +8,9 @@ import { provenanceFields, withProvenance } from '../schemas/provenance';
 
 // districts.shape@1 ----------------------------------------------------------
 
+/** The District of Columbia and the territories: "state" would be the wrong word. */
+const NOT_STATES = new Set(['DC', 'PR', 'GU', 'VI', 'AS', 'MP']);
+
 const longDate = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -108,7 +111,7 @@ export const districtsShape = defineCapability({
       scope: district ? ('district' as const) : ('state' as const),
       description: district
         ? `Map of ${state.stateName} with congressional district ${wanted} highlighted`
-        : `Map of ${state.stateName} with the whole state highlighted`,
+        : `Map of ${state.stateName} with the whole ${NOT_STATES.has(input.state) ? 'area' : 'state'} highlighted`,
       viewBox: `0 0 ${state.width} ${state.height}`,
       width: state.width,
       height: state.height,
