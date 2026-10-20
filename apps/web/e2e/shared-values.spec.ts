@@ -7,6 +7,7 @@ import { type PgStack, startPgStack } from './support/pg-stack';
 import {
   checkHome,
   checkPolicy,
+  checkRaces,
   checkSources,
   checkSupplementalProfile,
 } from './support/supplemental-values';
@@ -345,12 +346,11 @@ test('remaining profile sections show populated and missing values through UI, H
   expect(historical.profile.candidacies).toEqual([]);
 });
 
-test('Home, Policy index and chamber matrices, and Sources show HTTP and MCP values', async ({
-  page,
-}) => {
+test('Home, Policy, Races and Sources show HTTP and MCP values', async ({ page }) => {
   test.setTimeout(180_000);
   await checkHome(page, stack.baseUrl, agreed);
   await checkPolicy(page, stack.baseUrl, agreed);
+  await checkRaces(page, stack.baseUrl, agreed);
   await checkSources(page, stack.baseUrl, agreed);
 });
 
@@ -423,6 +423,7 @@ test('actual ingest publication survives web, MCP and Postgres process restarts 
   const restartedStatus = await checkSources(page, stack.baseUrl, agreed);
   expect(restartedStatus).toEqual(status);
   await checkHome(page, stack.baseUrl, agreed);
+  await checkRaces(page, stack.baseUrl, agreed);
   const evidencePath = testInfo.outputPath('ingest-and-restart.json');
   await writeFile(
     evidencePath,

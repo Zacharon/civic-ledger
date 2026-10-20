@@ -588,3 +588,123 @@ export async function checkPolicy(page: Page, baseUrl: string, agreed: Agreed) {
   }
   return areas;
 }
+
+/**
+ * Races: the index and race pages show what `races.list` / `races.get` return through HTTP
+ * and MCP (`agreed` asserts those two are equal), including the state filter, the opt-in
+ * receipts order, coverage counts, negative cash as filed and candidates with no report.
+ */
+export async function checkRaces(page: Page, baseUrl: string, agreed: Agreed) {
+  const all = await agreed<CapabilityOutput<'races.list'>>('races.list', {});
+  expect(all.items.length).toBeGreaterThan(5);
+  const seatRows = (items: typeof all.items) =>
+    items
+      .map((i) => [i.seat.key, [i.registrations, i.activeCandidates, i.candidatesWithMoneyReports]])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  const shownRows = async () =>
+    (await keyed(page.locator('tr[data-seat]'), 'data-seat')).sort((a, b) =>
+      String(a[0]).localeCompare(String(b[0])),
+    );
+
+  await page.goto(`${baseUrl}/races`);
+  expect(await shownRows()).toEqual(seatRows(all.items));
+  expect(await page.locator('[data-races-totals]').getAttribute('data-races-totals')).toBe(
+    JSON.stringify([
+      all.totals.seats,
+      all.totals.registrations,
+      all.totals.activeCandidates,
+      all.totals.candidatesWithMoneyReports,
+      all.totals.candidatesWithoutMoneyReports,
+    ]),
+  );
+  for (const i of all.items.filter((x) => x.incumbents.length > 0).slice(0, 3)) {
+    const row = page.locator(`tr[data-seat="${i.seat.key}"]`);
+    for (const m of i.incumbents) {
+      await expect(row.getByRole('link', { name: m.fullName })).toHaveAttribute(
+        'href',
+        `/people/${m.slug}`,
+      );
+    }
+  }
+
+  const zv = await agreed<CapabilityOutput<'races.list'>>('races.list', { state: 'ZV' });
+  await page.goto(`${baseUrl}/races?state=ZV`);
+  expect(await shownRows()).toEqual(seatRows(zv.items));
+  const senateOnly = await agreed<CapabilityOutput<'races.list'>>('races.list', {
+    chamber: 'senate',
+  });
+  await page.goto(`${baseUrl}/races?chamber=senate`);
+  expect(await shownRows()).toEqual(seatRows(senateOnly.items));
+
+  const seats = all.items.filter((i) => i.registrations > 0).slice(0, 4);
+  for (const { seat } of seats) {
+    for (const sort of ['name', 'receipts'] as const) {
+      const race = await agreed<CapabilityOutput<'races.get'>>('races.get', {
+        seat: seat.key,
+        sort,
+      });
+      await page.goto(
+        `${baseUrl}/races/${race.cycle}/${seat.key}${sort === 'receipts' ? '?sort=receipts' : ''}`,
+      );
+      const withMoney = race.candidates.filter((c) => c.money !== null);
+      const without = race.candidates.filter((c) => c.money === null);
+      expect(
+        await keyed(page.locator('tr[data-candidate]'), 'data-candidate'),
+        `${seat.key} (${sort})`,
+      ).toEqual(
+        [...withMoney, ...without].map((c) => [
+          c.fecCandidateId,
+          [
+            c.money?.totalReceiptsCents ?? null,
+            c.money?.cashOnHandCents ?? null,
+            c.outsideSpending.supportCents,
+            c.outsideSpending.opposeCents,
+          ],
+        ]),
+      );
+      expect(await page.locator('[data-race-counts]').getAttribute('data-race-counts')).toBe(
+        JSON.stringify([
+          race.counts.registrations,
+          race.counts.activeCandidates,
+          race.counts.withMoneyReports,
+          race.counts.withoutMoneyReports,
+        ]),
+      );
+      await expect(page.locator('[data-seat-up]')).toHaveAttribute(
+        'data-seat-up',
+        race.seatUp ? 'true' : 'false',
+      );
+      for (const c of race.candidates) {
+        const row = page.locator(`tr[data-candidate="${c.fecCandidateId}"]`);
+        await text(row.locator('th'), c.displayName);
+        await text(row.locator('th'), c.nameAsFiled);
+        await expect(
+          row.locator('th a[href^="https://www.fec.gov/data/candidate/"]'),
+        ).toHaveAttribute('href', c.fecUrl);
+        if (c.person) {
+          await expect(row.getByRole('link', { name: c.displayName })).toHaveAttribute(
+            'href',
+            `/people/${c.person.slug}`,
+          );
+        }
+        if (c.money) {
+          await text(row, formatCents(c.money.totalReceiptsCents));
+          await text(row, formatCents(c.money.cashOnHandCents));
+          if (c.money.cashOnHandCents < 0) await text(row, 'as filed');
+          await text(row, formatDate(c.money.coverageEndDate));
+        }
+        if (c.outsideSpending.supportCents > 0)
+          await text(row, formatCents(c.outsideSpending.supportCents));
+        if (c.outsideSpending.opposeCents > 0)
+          await text(row, formatCents(c.outsideSpending.opposeCents));
+      }
+      if (without.length > 0) {
+        await expect(page.locator('details[data-no-report-count]')).toHaveAttribute(
+          'data-no-report-count',
+          String(without.length),
+        );
+      }
+    }
+  }
+  return all;
+}
