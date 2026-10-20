@@ -9,20 +9,7 @@ import {
   term,
   votePosition,
 } from '@civic-ledger/db';
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  exists,
-  gt,
-  gte,
-  inArray,
-  isNull,
-  lte,
-  or,
-  sql,
-} from 'drizzle-orm';
+import { and, asc, desc, eq, exists, gt, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { defineCapability } from '../capability';
 import { notFound } from '../errors';
