@@ -31,9 +31,12 @@ describe('votes.list party breakdown', () => {
   });
 
   it('uses the party on the term in force at the vote date, not the current party', async () => {
-    const [{ slug, id }] = (
-      await exec(sql`select p.slug, p.id from person p where p.slug = 'jules-kindlewood'`)
-    ).rows as { slug: string; id: number }[];
+    const slug = 'jules-kindlewood';
+    const row = (await exec(sql`select p.id from person p where p.slug = ${slug}`)).rows[0] as
+      | { id: number }
+      | undefined;
+    if (!row) throw new Error('missing seed member');
+    const id = row.id;
     // A party switch: close the current term on 2025-09-01 and open a new Independent term.
     await exec(sql`
       insert into term (person_id, office_id, party, start_date, end_date, source_id, source_key, ingest_run_id, retrieved_at)
@@ -57,7 +60,7 @@ describe('votes.list party breakdown', () => {
     }
   });
 
-  it('never double counts a member whose terms overlap, and shows a missing term as Unknown', async () => {
+  it('never double counts a member whose terms overlap, and shows a member with no earlier term as Unknown', async () => {
     await exec(sql`
       insert into term (person_id, office_id, party, start_date, end_date, source_id, source_key, ingest_run_id, retrieved_at)
       select t.person_id, t.office_id, 'Overlap Party', '2025-03-01', '2026-01-01', t.source_id, 'test:overlap', t.ingest_run_id, t.retrieved_at
@@ -73,7 +76,7 @@ describe('votes.list party breakdown', () => {
     const [original] = (
       await exec(sql`
         select t.id, t.start_date::text as start_date from term t join person p on p.id = t.person_id
-        where p.slug = 'blair-brindlemoor' order by t.start_date desc limit 1`)
+        where p.slug = 'jules-kindlewood' order by t.start_date desc limit 1`)
     ).rows as { id: number; start_date: string }[];
     if (!original) throw new Error('missing seed term');
     await exec(sql`update term set start_date = '2026-06-01' where id = ${original.id}`);
@@ -89,6 +92,30 @@ describe('votes.list party breakdown', () => {
       await exec(
         sql`update term set start_date = ${original.start_date} where id = ${original.id}`,
       );
+    }
+  });
+});
+
+describe('votes.list party fallback for a late end date', () => {
+  it('uses the latest earlier term when a member votes after their recorded last day', async () => {
+    const row = (
+      await exec(
+        sql`select t.id, t.end_date::text as end_date from term t join person p on p.id = t.person_id where p.slug = 'jules-kindlewood'`,
+      )
+    ).rows[0] as { id: number; end_date: string | null } | undefined;
+    if (!row) throw new Error('missing seed term');
+    await exec(sql`update term set end_date = '2025-08-01' where id = ${row.id}`);
+    try {
+      const page = await dispatch('votes.list', { slug: 'jules-kindlewood', limit: 100 }, db.ctx());
+      const late = page.items.filter((i) => i.rollcall.voteDate > '2025-08-01' && i.position);
+      expect(late.length).toBeGreaterThan(0);
+      for (const item of late) {
+        expect(item.byParty.map((p) => p.party)).not.toContain('Unknown');
+        expect(item.byParty.map((p) => p.party)).toContain('Prairie Party');
+        expect(item.byParty.reduce((n, p) => n + sum(p), 0)).toBe(sum(item.tally));
+      }
+    } finally {
+      await exec(sql`update term set end_date = ${row.end_date} where id = ${row.id}`);
     }
   });
 });
