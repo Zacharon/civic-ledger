@@ -1,20 +1,33 @@
 @import "tailwindcss";
 
-/* Design tokens: docs/DESIGN.md is the source of truth. Light first; dark follows the OS. */
+/*
+ * Design tokens: docs/DESIGN.md is the source of truth. Light first; dark follows the OS.
+ * Three separate semantic families that must never borrow from each other:
+ *   --vote-*   roll-call positions (teal / amber / grey; never red or blue)
+ *   --party-*  party chips only (the only place red- or blue-leaning tints appear)
+ *   --status-* record status pills (a status is not a vote outcome)
+ */
 :root {
   color-scheme: light;
-  --paper: #f5f3ee;
-  --surface: #fcfbf8;
-  --surface-sunk: #eeebe4;
-  --ink: #1c1b18;
-  --ink-2: #4d4a43;
-  --ink-3: #6b675d;
-  --rule: #d9d4c8;
-  --line-control: #8a8478;
-  --accent: #1d6b50;
-  --accent-ink: #fcfbf8;
-  --accent-wash: #e2ede6;
-  --bar: #8b8577;
+  --paper: #f7f5ef;
+  --surface: #fffdf8;
+  --surface-sunk: #eeede6;
+  --ink: #20251f;
+  --ink-2: #4b5249;
+  --ink-3: #5d645a;
+  --rule: #c6cbbf;
+  --line-control: #80877c;
+  --accent: #086f63;
+  --accent-ink: #fffdf8;
+  --accent-wash: #e5ede4;
+  --bar: #80877c;
+  --status-ink: #234f42;
+  --status-bg: #e9eee5;
+  --status-border: #b8c6b6;
+  --vote-yea: #086f63;
+  --vote-nay: #af7718;
+  --vote-present: #a3a89c;
+  --vote-not-voting: #777d74;
   --party-dem-bg: #e3e8f0;
   --party-dem-ink: #2e4466;
   --party-rep-bg: #f1e3e0;
@@ -29,18 +42,25 @@
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --paper: #141311;
-    --surface: #1c1b18;
-    --surface-sunk: #24221f;
-    --ink: #ede9e0;
-    --ink-2: #bdb7aa;
-    --ink-3: #9a9487;
-    --rule: #34312c;
-    --line-control: #787266;
-    --accent: #74c2a0;
-    --accent-ink: #141311;
-    --accent-wash: #1f3229;
-    --bar: #8e887b;
+    --paper: #121412;
+    --surface: #1a1d1a;
+    --surface-sunk: #242823;
+    --ink: #e8ebe3;
+    --ink-2: #bac0b5;
+    --ink-3: #9ca397;
+    --rule: #333832;
+    --line-control: #747c71;
+    --accent: #6cc2b1;
+    --accent-ink: #121412;
+    --accent-wash: #1b2f2a;
+    --bar: #8a9086;
+    --status-ink: #a8d5c6;
+    --status-bg: #1b2f2a;
+    --status-border: #3b5a50;
+    --vote-yea: #3aa392;
+    --vote-nay: #c4902f;
+    --vote-present: #5e645b;
+    --vote-not-voting: #8a9086;
     --party-dem-bg: #222b38;
     --party-dem-ink: #afc3e0;
     --party-rep-bg: #352421;
@@ -71,6 +91,10 @@
   --color-data-3: var(--data-3);
   --color-data-4: var(--data-4);
   --color-data-other: var(--data-other);
+  --color-vote-yea: var(--vote-yea);
+  --color-vote-nay: var(--vote-nay);
+  --color-vote-present: var(--vote-present);
+  --color-vote-not-voting: var(--vote-not-voting);
   --font-sans: var(--font-instrument), ui-sans-serif, sans-serif;
   --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
 }
@@ -92,8 +116,8 @@
   --text-3xl--line-height: 1.12;
   --text-4xl: 3.0625rem;
   --text-4xl--line-height: 1.08;
-  --radius-control: 4px;
-  --radius-panel: 6px;
+  --radius-control: 2px;
+  --radius-panel: 0px;
 }
 
 @layer base {
@@ -123,9 +147,8 @@
   ::selection {
     background: var(--accent-wash);
   }
-  /* Sticky site header must never hide a focused element. */
   html {
-    scroll-padding-top: 5rem;
+    scroll-padding-top: 1.5rem;
   }
 }
 
@@ -140,6 +163,224 @@
     border-bottom: 3px double var(--ink);
   }
 
+  /*
+   * Page frame: 1360px outer including gutters (1280 usable), 20px gutters on phones,
+   * 28px from 768px, 40px from 1050px. Every route shares it so the masthead and content
+   * align; wide tables scroll inside their own labeled region instead.
+   */
+  .page-frame {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 85rem;
+    padding-inline: 1.25rem;
+  }
+  @media (min-width: 768px) {
+    .page-frame {
+      padding-inline: 1.75rem;
+    }
+  }
+  @media (min-width: 1050px) {
+    .page-frame {
+      padding-inline: 2.5rem;
+    }
+  }
+
+  /* Strong section rule (2px ink); hairlines stay 1px --rule. */
+  .rule-strong {
+    border-top: 2px solid var(--ink);
+  }
+  .rule-strong-bottom {
+    border-bottom: 2px solid var(--ink);
+  }
+
+  /* Editorial serif is reserved for the wordmark and page / record titles. */
+  .wordmark {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 1.75rem;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    white-space: nowrap;
+  }
+  @media (min-width: 1050px) {
+    .wordmark {
+      font-size: 1.9375rem;
+    }
+  }
+  .page-title {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 2.25rem;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+  }
+  @media (min-width: 768px) {
+    .page-title {
+      font-size: 3.0625rem;
+      letter-spacing: -0.026em;
+    }
+  }
+
+  /* Section headings are sans, semibold: navigation of the record, not display. */
+  .section-title {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1.375rem;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+  }
+  @media (min-width: 768px) {
+    .section-title {
+      font-size: 1.5rem;
+    }
+  }
+  .subsection-title {
+    font-weight: 600;
+    font-size: var(--text-lg);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  /* Plain-language lede under a record title. */
+  .lede {
+    font-size: 1.1875rem;
+    line-height: 1.55;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  @media (min-width: 768px) {
+    .lede {
+      font-size: 1.25rem;
+    }
+  }
+
+  /* Record status: what state a record is in. Not a vote outcome, not a party. */
+  .record-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2rem;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid var(--status-border);
+    background: var(--status-bg);
+    color: var(--status-ink);
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+  .record-status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .record-status-plain {
+    border-color: var(--line-control);
+    background: var(--surface-sunk);
+    color: var(--ink);
+  }
+  .record-status-plain::before {
+    border-radius: 0;
+    background: transparent;
+    outline: 1px solid currentColor;
+    outline-offset: -1px;
+  }
+
+  /* Evidence panel: real source access near the top of a record. */
+  .evidence-panel {
+    background: var(--surface);
+    border-top: 3px solid var(--accent);
+    border-bottom: 1px solid var(--rule);
+    padding: 1.25rem 1.25rem 1rem;
+  }
+
+  /* In-page section navigation (anchor links, not tabs). */
+  .section-nav {
+    display: flex;
+    gap: 0.25rem 1.75rem;
+    overflow-x: auto;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    /* Fade the trailing edge while more links are scrolled out of view (phones). */
+    mask-image: linear-gradient(to right, black 85%, transparent);
+  }
+  @media (min-width: 1024px) {
+    .section-nav {
+      mask-image: none;
+    }
+  }
+  .section-nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    border-bottom: 3px solid transparent;
+    color: var(--ink-2);
+  }
+  .section-nav a:hover {
+    color: var(--ink);
+    border-bottom-color: var(--rule);
+  }
+  /* The scroller clips outside outlines; draw focus inside the link instead. */
+  .section-nav a:focus-visible {
+    outline-offset: -2px;
+  }
+  @media (max-width: 1023.98px) {
+    /* Room past the fade so the last link can scroll fully into view. */
+    .section-nav::after {
+      content: "";
+      flex: none;
+      width: 3rem;
+    }
+  }
+
+  /*
+   * Vote keys and meter. Colors come only from --vote-*; labels and counts are always
+   * printed beside them in ink. Present is hatched so it differs from Not voting by
+   * shape, not only by tone.
+   */
+  .vote-key {
+    display: inline-block;
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 1px;
+  }
+  .vote-yea {
+    background: var(--vote-yea);
+  }
+  .vote-nay {
+    background: var(--vote-nay);
+  }
+  .vote-not-voting {
+    background: var(--vote-not-voting);
+  }
+  .vote-present {
+    background:
+      repeating-linear-gradient(135deg, var(--vote-not-voting) 0 1.5px, transparent 1.5px 3.5px),
+      var(--vote-present);
+  }
+  .vote-meter {
+    display: flex;
+    gap: 2px;
+    height: 0.75rem;
+    width: 100%;
+    background: var(--surface-sunk);
+  }
+  .vote-meter > span {
+    flex: var(--n) 1 0;
+    min-width: 0;
+  }
+  .vote-meter-lg {
+    height: 1.0625rem;
+  }
+  @media (min-width: 768px) {
+    .vote-meter-lg {
+      gap: 3px;
+    }
+  }
+
   .link {
     color: var(--accent);
     text-decoration-line: underline;
@@ -149,6 +390,7 @@
   }
   .link:hover {
     text-decoration-color: currentColor;
+    text-decoration-thickness: 2px;
   }
 
   /* Quiet link: ink text, underline on hover only (names in tables). */
@@ -334,9 +576,9 @@
       local,
       linear-gradient(to left, var(--surface) 30%, transparent) right center / 3rem 100% no-repeat
       local,
-      linear-gradient(to right, rgb(28 27 24 / 0.2), transparent) left center / 1.25rem 100%
+      linear-gradient(to right, rgb(32 37 31 / 0.2), transparent) left center / 1.25rem 100%
       no-repeat scroll,
-      linear-gradient(to left, rgb(28 27 24 / 0.2), transparent) right center / 1.25rem 100%
+      linear-gradient(to left, rgb(32 37 31 / 0.2), transparent) right center / 1.25rem 100%
       no-repeat scroll,
       var(--surface);
   }

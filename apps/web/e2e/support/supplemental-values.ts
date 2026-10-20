@@ -533,10 +533,12 @@ export async function checkPolicy(page: Page, baseUrl: string, agreed: Agreed) {
       for (const [partyIndex, party] of vote.byParty.entries()) {
         const partyRow = parties.nth(partyIndex);
         await text(partyRow.locator('th'), party.party);
+        // Present and Not voting are distinct official positions: two columns, never summed.
         await expect(partyRow.locator('td')).toHaveText([
           String(party.yea),
           String(party.nay),
-          String(party.present + party.notVoting),
+          String(party.present),
+          String(party.notVoting),
         ]);
       }
     }

@@ -17,12 +17,8 @@ export async function GlanceSection({ slug }: { slug: string }) {
     })),
   }));
   return (
-    <section
-      id="glance"
-      aria-labelledby="glance-title"
-      className="scroll-mt-24 border-t border-ink pt-5"
-    >
-      <h2 id="glance-title" className="font-serif text-2xl font-medium">
+    <section id="glance" aria-labelledby="glance-title" className="rule-strong scroll-mt-6 pt-6">
+      <h2 id="glance-title" className="section-title">
         At a glance
       </h2>
       <p className="mt-2 max-w-3xl text-ink-2">

@@ -52,11 +52,9 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="mx-auto grid max-w-[1440px] grid-cols-1 gap-12 px-4 pt-10 pb-16 sm:px-6 md:pt-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-16">
+      <section className="page-frame grid grid-cols-1 gap-12 pt-10 pb-16 md:pt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-16">
         <div className="min-w-0 max-w-2xl">
-          <h1 className="font-serif text-[2.5rem] leading-[1.05] font-medium tracking-tight sm:text-[3.5rem]">
-            The public record of Congress, in one table.
-          </h1>
+          <h1 className="page-title">The public record of Congress, in one table.</h1>
           <p className="mt-5 max-w-xl text-lg text-ink-2">
             Explore campaign money, roll-call votes and sourced statements for{' '}
             <span
@@ -70,7 +68,7 @@ export default async function HomePage() {
             coverage varies by section.
           </p>
 
-          <search className="mt-8 block max-w-xl">
+          <search aria-label="Home member search" className="mt-8 block max-w-xl">
             <form action="/explore">
               <label htmlFor="home-search" className="text-sm font-semibold">
                 Find a member of Congress
@@ -130,14 +128,14 @@ export default async function HomePage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-ink-3">
-                <th scope="col" className="px-4 py-2 font-semibold">
+                <th scope="col" className="py-2 pr-2 pl-3 font-semibold sm:px-4">
                   Member
                 </th>
                 {preview.map((c, i) => (
                   <th
                     key={c.id}
                     scope="col"
-                    className={`px-4 py-2 text-right font-semibold ${i > 1 ? 'hidden sm:table-cell' : ''}`}
+                    className={`py-2 pr-3 pl-2 text-right font-semibold sm:px-4 ${i > 1 ? 'hidden sm:table-cell' : ''}`}
                   >
                     {c.header}
                   </th>
@@ -147,7 +145,7 @@ export default async function HomePage() {
             <tbody>
               {table.rows.map((row) => (
                 <tr key={row.slug} data-slug={row.slug} className="border-t border-rule">
-                  <th scope="row" className="px-4 py-3 text-left font-medium">
+                  <th scope="row" className="py-3 pr-2 pl-3 text-left font-medium sm:px-4">
                     <Link href={`/people/${row.slug}`} className="link-quiet">
                       {row.fullName}
                     </Link>
@@ -161,7 +159,7 @@ export default async function HomePage() {
                       key={c.id}
                       data-column={c.id}
                       data-value={metricValue(c, row)}
-                      className={`px-4 py-3 text-right whitespace-nowrap ${i > 1 ? 'hidden sm:table-cell' : ''}`}
+                      className={`py-3 pr-3 pl-2 text-right whitespace-nowrap sm:px-4 ${i > 1 ? 'hidden sm:table-cell' : ''}`}
                     >
                       <MetricCell column={c} row={row} />
                     </td>
@@ -192,7 +190,7 @@ export default async function HomePage() {
       <MemberFinder />
 
       <section aria-labelledby="freshness" className="border-y border-rule bg-surface">
-        <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6">
+        <div className="page-frame py-6">
           <h2 id="freshness" className="sr-only">
             Data freshness
           </h2>
@@ -246,8 +244,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section aria-labelledby="inside" className="mx-auto max-w-[1440px] px-4 py-16 sm:px-6">
-        <h2 id="inside" className="font-serif text-2xl font-medium">
+      <section aria-labelledby="inside" className="page-frame py-16">
+        <h2 id="inside" className="section-title">
           What the ledger holds
         </h2>
         <dl className="mt-6 grid gap-x-12 border-t border-rule md:grid-cols-2">

@@ -66,13 +66,10 @@ export async function MemberFinder() {
     (STATE_NAMES[a.value] ?? a.value).localeCompare(STATE_NAMES[b.value] ?? b.value),
   );
   return (
-    <section
-      aria-labelledby="member-finder-title"
-      className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6"
-    >
-      <div className="grid gap-6 border-t border-ink pt-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-12">
+    <section aria-labelledby="member-finder-title" className="page-frame py-12">
+      <div className="grid gap-6 rule-strong pt-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-12">
         <div>
-          <h2 id="member-finder-title" className="font-serif text-2xl font-medium">
+          <h2 id="member-finder-title" className="section-title">
             Find your members
           </h2>
           <p id="member-finder-help" className="mt-2 max-w-xl text-ink-2">

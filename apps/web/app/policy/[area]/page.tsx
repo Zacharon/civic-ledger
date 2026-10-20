@@ -17,6 +17,7 @@ import {
   shortTitle,
 } from '@/lib/format';
 import { POSITION_LABEL } from '@/lib/labels';
+import { VOTE_KEY_CLASS } from '@/lib/vote';
 import { read } from '@/server/capabilities';
 import { sourceInfos } from '@/server/sources';
 
@@ -90,7 +91,7 @@ export default async function PolicyAreaPage({
   };
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10">
+    <div className="page-frame pt-8 sm:pt-10">
       <nav aria-label="Breadcrumb" className="text-sm text-ink-2">
         <Link href="/policy" className="link">
           Policy areas
@@ -98,11 +99,12 @@ export default async function PolicyAreaPage({
         / <span aria-current="page">{area.name}</span>
       </nav>
       <header
-        className="mt-4 max-w-3xl"
+        className="mt-6 max-w-3xl"
         data-area={area.id}
         data-value={JSON.stringify([area.billCount, area.rollcallCount, house.total, senate.total])}
       >
-        <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">{area.name}</h1>
+        <p className="eyebrow">Policy area · Congress.gov taxonomy</p>
+        <h1 className="page-title mt-3">{area.name}</h1>
         <p className="mt-3 text-ink-2">
           <span className="num">{formatNumber(area.billCount)}</span> bills and{' '}
           <span className="num">{formatNumber(area.rollcallCount)}</span> roll calls in this
@@ -135,10 +137,10 @@ export default async function PolicyAreaPage({
       ) : (
         <>
           <section aria-labelledby="key-votes" className="mt-10">
-            <h2 id="key-votes" className="font-serif text-2xl font-medium">
+            <h2 id="key-votes" className="section-title">
               Roll calls
             </h2>
-            <ol className="mt-4 divide-y divide-rule border-y border-rule">
+            <ol className="mt-4 divide-y divide-rule border-t border-ink border-b border-b-rule">
               {votes.items.map((v, i) => {
                 const billHref = safeHref(v.bill?.url);
                 return (
@@ -178,10 +180,10 @@ export default async function PolicyAreaPage({
                     <div>
                       <TallyBar tally={v.tally} />
                       {v.byParty.length > 0 ? (
-                        <table className="mt-3 w-full text-xs">
+                        <table className="mt-4 w-full text-sm">
                           <caption className="sr-only">Positions by party</caption>
                           <thead>
-                            <tr className="text-ink-3">
+                            <tr className="border-b border-ink text-ink-2">
                               <th scope="col" className="py-1 text-left font-semibold">
                                 Party
                               </th>
@@ -192,7 +194,10 @@ export default async function PolicyAreaPage({
                                 Nay
                               </th>
                               <th scope="col" className="py-1 text-right font-semibold">
-                                Other
+                                Present
+                              </th>
+                              <th scope="col" className="py-1 text-right font-semibold">
+                                Not voting
                               </th>
                             </tr>
                           </thead>
@@ -205,9 +210,8 @@ export default async function PolicyAreaPage({
                                 </th>
                                 <td className="num py-1 text-right">{p.yea}</td>
                                 <td className="num py-1 text-right">{p.nay}</td>
-                                <td className="num py-1 text-right text-ink-2">
-                                  {p.present + p.notVoting}
-                                </td>
+                                <td className="num py-1 text-right text-ink-2">{p.present}</td>
+                                <td className="num py-1 text-right text-ink-2">{p.notVoting}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -222,15 +226,26 @@ export default async function PolicyAreaPage({
 
           {matrix ? (
             <section aria-labelledby="every-member" className="mt-14">
-              <h2 id="every-member" className="font-serif text-2xl font-medium">
+              <h2 id="every-member" className="section-title">
                 How every member voted
               </h2>
               <p className="mt-1.5 text-sm text-ink-2">
-                Y = yea, N = nay, P = present, – = not voting. Columns R1–R{votes.items.length} are
-                the roll calls above.
+                Columns R1–R{votes.items.length} are the roll calls above.
               </p>
+              <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-2">
+                {(['yea', 'nay', 'present', 'not_voting'] as const).map((position) => (
+                  <li key={position} className="inline-flex items-center gap-1.5">
+                    <span aria-hidden="true" className={`vote-key ${VOTE_KEY_CLASS[position]}`} />
+                    <span className="font-semibold text-ink">{POSITION_SHORT[position]}</span> ={' '}
+                    {POSITION_LABEL[position].toLowerCase()}
+                  </li>
+                ))}
+                <li>
+                  <span className="font-semibold text-ink">·</span> = not a member at the time
+                </li>
+              </ul>
               <section
-                className="relative mt-4 max-h-[70dvh] overflow-auto rounded-panel border border-rule bg-surface"
+                className="relative mt-4 max-h-[70dvh] overflow-auto border-y border-ink bg-surface"
                 aria-label="Member positions"
                 // biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable region must be keyboard reachable
                 tabIndex={0}
@@ -299,8 +314,9 @@ export default async function PolicyAreaPage({
                                 <>
                                   <span
                                     aria-hidden="true"
-                                    className={cast.position === 'nay' ? 'font-semibold' : ''}
+                                    className="inline-flex items-center gap-1 font-semibold"
                                   >
+                                    <span className={`vote-key ${VOTE_KEY_CLASS[cast.position]}`} />
                                     {POSITION_SHORT[cast.position]}
                                   </span>
                                   <span className="sr-only">{POSITION_LABEL[cast.position]}</span>

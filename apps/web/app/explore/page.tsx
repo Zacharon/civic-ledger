@@ -50,9 +50,9 @@ export default async function ExplorePage({ searchParams }: PageProps<'/explore'
     serializeExplore('/explore', { ...state, page: page === 1 ? null : page });
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10">
+    <div className="page-frame pt-8 sm:pt-10">
       <header className="max-w-3xl">
-        <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
+        <h1 className="page-title">
           {scope === 'all'
             ? 'Every member on record, one table'
             : 'Every current member, one table'}
@@ -110,7 +110,7 @@ export default async function ExplorePage({ searchParams }: PageProps<'/explore'
         <PendingRegion>
           {!result.ok ? (
             <div role="alert" className="mt-6 rounded-panel border border-control bg-surface p-6">
-              <h2 className="font-serif text-xl font-medium">This view can’t be shown</h2>
+              <h2 className="subsection-title">This view can’t be shown</h2>
               <p className="mt-2 text-ink-2">
                 {result.error.issues?.[0]?.message ?? result.error.message}.
               </p>
@@ -120,7 +120,7 @@ export default async function ExplorePage({ searchParams }: PageProps<'/explore'
             </div>
           ) : result.data.rows.length === 0 ? (
             <div className="mt-6 rounded-panel border border-rule bg-surface p-8 text-center">
-              <h2 className="font-serif text-xl font-medium">
+              <h2 className="subsection-title">
                 {result.data.total > 0
                   ? 'That page does not exist'
                   : `No ${memberNoun} match these filters`}

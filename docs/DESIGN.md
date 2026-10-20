@@ -23,6 +23,13 @@ hairline rules, tabular figures, one ink-green accent taken from ledger paper. T
 interface should feel like a printed record that happens to be interactive: it states
 facts, cites them, and does not editorialize.
 
+Since 2026-10-20 the ledger is set in a **Swiss x Editorial** structure (approved concept
+`combined-swiss-editorial-20261020`): one 1280px frame shared by masthead and content,
+a 2px ink masthead rule, open sections divided by 2px ink and 1px hairline rules, square
+corners, no shadows, the serif reserved for the wordmark and page / record titles, and
+real source records near the top of each record. The concept's fictional records,
+sample counts and inert controls (for example "Save bill") are not product behavior.
+
 - **Decoration:** minimal. Rules and footnotes are the only ornaments, and both carry
   meaning.
 - **Signature element: the double rule and the source mark.** Totals sit on an
@@ -37,7 +44,7 @@ facts, cites them, and does not editorialize.
 
 | Role | Face | Notes |
 |---|---|---|
-| Display (h1, h2, profile names) | **Newsreader** variable (opsz 6–72, wght 200–800) | Designed for news reading; optical sizing keeps large headings refined. Never for numbers in tables. |
+| Display: wordmark, page and record titles (`.wordmark`, `.page-title`), quoted statements | **Newsreader** variable (opsz 6–72, wght 200–800) | Designed for news reading; optical sizing keeps large headings refined. Never for numbers in tables. |
 | UI, body, data | **Instrument Sans** variable (wght 400–700) | Crisp grotesque with proportional figures for prose and a `tnum` set whose comma and period stay narrow, so tabular money columns read as numbers, not code. |
 
 - Self-hosted from `@fontsource-variable/*` through `next/font/local` (no CDN, no runtime
@@ -45,6 +52,9 @@ facts, cites them, and does not editorialize.
 - Scale (ratio 1.25, base 16px): `xs 12` · `sm 14` · `base 16` · `lg 20` · `xl 25` ·
   `2xl 31` · `3xl 39` · `4xl 49`. Table cells are `sm` (14px); captions `xs` only for
   source marks and axis ticks.
+- Roles: `.wordmark` 28/31px serif 500; `.page-title` 36px phone / 49px from 768px, serif
+  500, 1.08; `.section-title` 22/24px **sans** 600 (section headings navigate the record,
+  they are not display); `.subsection-title` 20px sans 600; `.lede` 19/20px, 1.55.
 - Line height 1.5 body, 1.15 display. Measure 60–72ch for prose. `text-wrap: balance` on
   headings. Display weight 500, body 400, emphasis 600. No letterspacing on lowercase.
 - `.num` = `font-variant-numeric: tabular-nums lining-nums` on every number that aligns
@@ -56,20 +66,27 @@ Restrained: neutrals plus one accent. Warm greys only (no cool greys anywhere).
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--paper` | `#F5F3EE` | `#141311` | Page background |
-| `--surface` | `#FCFBF8` | `#1C1B18` | Tables, panels, inputs |
-| `--surface-sunk` | `#EEEBE4` | `#24221F` | Header rows, neutral chips, tracks |
-| `--ink` | `#1C1B18` (15.5:1) | `#EDE9E0` (15.3:1) | Primary text |
-| `--ink-2` | `#4D4A43` (8.0:1) | `#BDB7AA` (9.3:1) | Secondary text |
-| `--ink-3` | `#6B675D` (5.1:1) | `#9A9487` (6.2:1) | Muted text, captions (still AA) |
-| `--rule` | `#D9D4C8` | `#34312C` | Hairlines (decorative separation only) |
-| `--line-control` | `#8A8478` (3.4:1) | `#787266` (3.6:1) | Input borders, chart axes (non-text 3:1) |
-| `--accent` | `#1D6B50` (5.8:1) | `#74C2A0` (8.8:1) | Links, focus ring, selected state, primary button |
-| `--accent-wash` | `#E2EDE6` | `#1F3229` | Selected row/chip background |
-| `--bar` | `#8B8577` | `#8E887B` | Neutral data bars (shares, rates, meters) |
+| `--paper` | `#F7F5EF` | `#121412` | Page background |
+| `--surface` | `#FFFDF8` | `#1A1D1A` | Tables, panels, inputs |
+| `--surface-sunk` | `#EEEDE6` | `#242823` | Header rows, neutral chips, tracks |
+| `--ink` | `#20251F` (14.3:1) | `#E8EBE3` (15.4:1) | Primary text, 2px rules |
+| `--ink-2` | `#4B5249` (7.4:1) | `#BAC0B5` (10.0:1) | Secondary text |
+| `--ink-3` | `#5D645A` (5.6:1; 5.1:1 on sunk) | `#9CA397` (7.1:1) | Muted text, captions (still AA) |
+| `--rule` | `#C6CBBF` | `#333832` | Hairlines (decorative separation only) |
+| `--line-control` | `#80877C` (3.4:1) | `#747C71` (4.3:1) | Input borders, chart axes (non-text 3:1) |
+| `--accent` | `#086F63` (5.6:1) | `#6CC2B1` (8.8:1) | Links, focus ring, selected state, primary button |
+| `--accent-wash` | `#E5EDE4` | `#1B2F2A` | Selected row/chip background |
+| `--bar` | `#80877C` | `#8A9086` | Neutral data bars (shares, rates, meters) |
+| `--status-ink` / `-bg` / `-border` | `#234F42` on `#E9EEE5` (7.9:1) / `#B8C6B6` | `#A8D5C6` on `#1B2F2A` (8.7:1) / `#3B5A50` | Record status pill (`.record-status`): a record's state, never a vote outcome |
 
-- The accent is **ledger green**: not red, not blue, no party meaning. It marks
-  interaction only, never "good".
+- The accent is **ledger teal**: not red, not blue, no party meaning. It marks
+  interaction only, never "good". It shares its light value with `--vote-yea` (as the
+  approved concept did), but the tokens are separate, and a selected Nay choice in the
+  framework builder is filled ink, not accent, so selection never reads as Yea.
+- **Three separate semantic families** that never borrow from each other: `--vote-*`
+  (roll-call positions), `--party-*` (party chips) and `--status-*` (record status).
+  Generic success/error is not mapped to Yea/Nay. `test/vote-semantics.test.ts` enforces
+  the separation and the no-red/no-blue vote rule in both modes.
 - **Party chips** are the only place party color appears: small, muted tint with the
   party name or abbreviation always in text. Known U.S. parties map to a muted tone
   (`democratic` blue-grey, `republican` brick-grey); every other party, including
@@ -101,6 +118,28 @@ Palettes (validated with the dataviz validator, OKLab ΔE, both modes):
 | other | `#A39E92` | `#5E5A52` | Unattributed / not coded (neutral by design) |
 
 Light: worst adjacent CVD ΔE 9.0, normal-vision 18.6, all ≥ 3:1 on `--surface`.
+
+**Vote positions** (owner rule: red and blue are reserved for party identification and
+never encode a vote; `src/lib/vote.ts` is the only mapping):
+
+| Token | Light | Dark | Position | Shape |
+|---|---|---|---|---|
+| `--vote-yea` | `#086F63` (5.6:1 on paper) | `#3AA392` (6.0:1) | Yea | solid |
+| `--vote-nay` | `#AF7718` (3.5:1) | `#C4902F` (6.5:1) | Nay | solid |
+| `--vote-present` | `#A3A89C` with a `--vote-not-voting` hatch | `#5E645B` with hatch | Present | hatched |
+| `--vote-not-voting` | `#777D74` (3.9:1) | `#8A9086` (5.7:1) | Not voting | solid |
+
+- Known overlap: the money palette's slot 1 green and slot 2 amber sit near Yea and Nay.
+  They are separate, labeled charts in different sections (Money vs Votes) and neither is
+  red or blue; retuning the validated money palette is a separate decision.
+- Fills only. Amber and grey are below 4.5:1, so vote labels and counts are always ink
+  text beside a key (`.vote-key`), never colored text.
+- Present and Not voting are distinct official positions: separate counts, columns,
+  keys and labels everywhere (the policy party table no longer folds them into "Other").
+  "No record" (no position on file) and "Not a member at the time" also stay separate.
+- `TallyBar` and its legend come from one `summarizeTally()`: every category's count is
+  printed, the denominator is stated ("Of N recorded positions"), zero totals render a
+  sentence instead of a meter, and tiny categories are never inflated.
 Dark: worst adjacent CVD ΔE 8.9, normal-vision 16.5, all ≥ 3:1 on dark `--surface`.
 
 **Neutrality rules for charts** (acceptance criteria, ARCHITECTURE §1, §6):
@@ -121,14 +160,19 @@ Dark: worst adjacent CVD ΔE 8.9, normal-vision 16.5, all ≥ 3:1 on dark `--sur
 
 - Base unit 4px. Scale: `1 4` · `2 8` · `3 12` · `4 16` · `6 24` · `8 32` · `12 48` ·
   `16 64` (Tailwind defaults on a 4px grid; no arbitrary values).
-- Containers: reading pages `max-w-5xl` (1024px); Explore and Compare go to `max-w-[1440px]`
-  with 24px gutters (16px under 640px).
-- **Shape lock:** controls, chips and buttons `4px` radius; panels `6px`; tables and
+- Frame: `.page-frame` on every route and the masthead, 1360px outer (1280 usable),
+  gutters 20px on phones, 28px from 768px, 40px from 1050px. Reading pages narrow their
+  children with `max-w-5xl`; wide tables scroll inside their own labeled region rather
+  than widening the frame. Record pages use a 12-column grid: 8 main / 4 evidence.
+- Rules: `.rule-strong` (2px ink) opens each section and the masthead; 1px `--rule`
+  hairlines separate rows. Rules are never the only cue for a control.
+- **Shape lock:** controls, chips and buttons `2px` radius; panels square; tables and
   charts square. Elevation is a hairline border; the only shadow is a soft ink-tinted
   one on popovers (the column picker), plus edge shadows that appear on wide tables
   only when more columns are scrolled out of view (`.scroll-cue`).
 - Breakpoints: Tailwind defaults. Every multi-column layout collapses below `md` (768px);
   Explore swaps its table for cards below `md`.
+- The masthead is not sticky (no glass, no blur); in-page anchors use `scroll-mt-6`.
 - Z-index scale (only these): `sticky cells 1`, `sticky header 2`, `site header 10`,
   `popover 20`, `skip link 30`.
 
@@ -151,7 +195,11 @@ under 2 s with 600 members.
 
 | Component | File | Notes |
 |---|---|---|
-| Site header / footer | `src/components/site-header.tsx`, `site-footer.tsx` | Wordmark on a double rule; one-line nav ≥ 1024px, wraps to a scroll row below. Footer carries data freshness. |
+| Site header / footer | `src/components/site-header.tsx`, `site-footer.tsx` | Serif wordmark with a teal dot, nav and member search on a 2px ink rule. Nav is one line ≥ 1024px, a scroll row below; search is always visible (its own full-width row on phones) and submits `GET /explore?q=` (the `explore.table` name filter). Footer carries data freshness. |
+| Record header + evidence | `app/people/[slug]/page.tsx` | Identity, status pill, party chip, seat, actions and summary facts in 8 columns; **Source records** aside in 4 (external identifiers + header footnotes); stacks identity, sources, section nav on phones. |
+| Section nav | `.section-nav` | Horizontal anchor links under a record header (all widths; fades while scrolled). Anchors, not tabs. |
+| Record status | `.record-status` | Current (tint) / Former (`.record-status-plain`). Text always present. |
+| Vote key / meter | `.vote-key`, `.vote-meter`, `src/lib/vote.ts` | Only consumers of `--vote-*`. |
 | Skip link | `apps/web/app/layout.tsx` | First focusable element; jumps to `#main`. |
 | Party chip | `components/party-chip.tsx` | Tint + text, title shows full party name. |
 | No data | `components/no-data.tsx` | Explicit "No data" / "Not coded" text in `--ink-3`. |
@@ -165,7 +213,7 @@ under 2 s with 600 members.
 | Explore table / cards | `components/explore/*` | Sticky header + first column, `aria-sort`, URL state. |
 | Filters, column picker, sort select | `components/explore/*` (client) | nuqs URL state, server re-render on change. |
 | Framework builder | `components/frameworks/*` (client) | Spec lives in the URL. |
-| Tally bar | `components/charts/tally-bar.tsx` | Yea / nay / present / not voting, counts printed. |
+| Tally bar | `components/charts/tally-bar.tsx` | Yea / Nay / Present / Not voting meter from `summarizeTally`, every count and the denominator printed. |
 | Scroll region | `components/scroll-region.tsx` | Named, focusable wrapper for wide tables. |
 | Pagination | `components/pagination.tsx` | Links, work without JavaScript. |
 
@@ -202,3 +250,7 @@ retry) and populated.
 | 2026-10-16 | Ranked lists fold: 10 industries, 12 outside spenders, then a muted summary row and a disclosure | Real members have 45 industries and 30+ spenders; the fold keeps the figure readable without hiding totals. |
 | 2026-10-16 | "Former member" chip (neutral, outlined) plus service years; Explore's "Members" control (Current / Include former) with counts | Scope is a fact, not a judgment: no color, counts on both options. |
 | 2026-10-16 | Scroll containers are `position: relative`; pagination compacts below `sm` | Visually hidden text inside a scroller must not widen the page. |
+| 2026-10-20 | Swiss x Editorial restyle: concept palette (paper `#F7F5EF`, ink `#20251F`, teal accent `#086F63`), shared 1280px frame, 2px ink rules, square panels, non-sticky masthead with member search, sans section titles | Owner-approved concept; a calmer research tool. Same two fonts, so no new dependency. Muted text keeps a separately tested `--ink-3` (5.6:1) instead of the concept's single muted grey. |
+| 2026-10-20 | Vote colors: Yea teal, Nay amber, Not voting grey, Present hatched grey; never red or blue; `--vote-*` separate from `--party-*` and `--status-*` | Owner rule. The previous tally borrowed the money palette (amber Yea, purple Nay). |
+| 2026-10-20 | Concept weaknesses not copied: 11-12px table text, search hidden below 900px, one color name for both absent and not voting | Readability (data stays 14px+), usable mobile search, and Present is not Not voting. |
+| 2026-10-20 | Explore and Compare share the 1280px frame (was 1440px) | Masthead and content align; their tables already scroll in labeled regions. |

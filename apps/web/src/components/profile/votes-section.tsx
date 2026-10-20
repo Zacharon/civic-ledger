@@ -14,6 +14,7 @@ import {
   shortTitle,
 } from '@/lib/format';
 import { POSITION_LABEL } from '@/lib/labels';
+import { VOTE_KEY_CLASS } from '@/lib/vote';
 import { read } from '@/server/capabilities';
 import { sourceInfos } from '@/server/sources';
 import { ProfileSection } from './section';
@@ -152,7 +153,13 @@ export async function VotesSection({
                     </td>
                     <td className="py-2.5 font-semibold whitespace-nowrap">
                       {v.position ? (
-                        POSITION_LABEL[v.position]
+                        <span className="inline-flex items-center gap-2" data-position={v.position}>
+                          <span
+                            aria-hidden="true"
+                            className={`vote-key ${VOTE_KEY_CLASS[v.position]}`}
+                          />
+                          {POSITION_LABEL[v.position]}
+                        </span>
                       ) : (
                         <span className="font-normal text-ink-3">No record</span>
                       )}
@@ -196,7 +203,7 @@ function AreaLink({
       href={href}
       scroll={false}
       aria-current={current ? 'true' : undefined}
-      className={`inline-flex min-h-9 items-center rounded-control border px-3 ${
+      className={`inline-flex min-h-11 items-center rounded-control border px-3 ${
         current
           ? 'border-accent bg-accent-wash font-semibold'
           : 'border-control text-ink-2 hover:border-ink-2 hover:text-ink'

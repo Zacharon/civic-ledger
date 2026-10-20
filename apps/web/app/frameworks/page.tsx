@@ -120,9 +120,9 @@ export default async function FrameworksPage({ searchParams }: PageProps<'/frame
   };
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10">
+    <div className="page-frame pt-8 sm:pt-10">
       <header className="max-w-3xl">
-        <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">Frameworks</h1>
+        <h1 className="page-title">Frameworks</h1>
         <p className="mt-3 text-ink-2">
           A framework is someone’s list of votes and the side they consider aligned. Results read
           “aligned X of Y”, with every vote shown. Pick one below or build your own.
@@ -149,7 +149,7 @@ export default async function FrameworksPage({ searchParams }: PageProps<'/frame
 
       <section aria-labelledby="choose" className="mt-10">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 id="choose" className="font-serif text-2xl font-medium">
+          <h2 id="choose" className="section-title">
             Choose a framework
           </h2>
           <Link href="/frameworks?build=1#build" className="btn btn-secondary">
@@ -169,7 +169,7 @@ export default async function FrameworksPage({ searchParams }: PageProps<'/frame
                   key={`${f.slug}-${f.version}`}
                   className={`rounded-panel border p-5 ${active ? 'border-accent bg-accent-wash' : 'border-rule bg-surface'}`}
                 >
-                  <h3 className="font-serif text-xl font-medium">{f.title}</h3>
+                  <h3 className="subsection-title">{f.title}</h3>
                   <p className="mt-1 text-sm text-ink-2">
                     By {f.author} · Stated orientation: {f.statedOrientation} ·{' '}
                     <span className="num">{f.spec.rules.length}</span> rules · version {f.version}
@@ -199,9 +199,9 @@ export default async function FrameworksPage({ searchParams }: PageProps<'/frame
         <section
           aria-labelledby="build-title"
           id="build"
-          className="mt-14 scroll-mt-24 border-t border-ink pt-6"
+          className="mt-14 rule-strong scroll-mt-6 pt-6"
         >
-          <h2 id="build-title" className="font-serif text-2xl font-medium">
+          <h2 id="build-title" className="section-title">
             Build your own
           </h2>
           <p className="mt-1.5 max-w-3xl text-sm text-ink-2">
@@ -218,9 +218,9 @@ export default async function FrameworksPage({ searchParams }: PageProps<'/frame
         <section
           id="results"
           aria-labelledby="results-title"
-          className="mt-14 scroll-mt-24 border-t border-ink pt-6"
+          className="mt-14 rule-strong scroll-mt-6 pt-6"
         >
-          <h2 id="results-title" className="font-serif text-2xl font-medium">
+          <h2 id="results-title" className="section-title">
             {prebuilt ? prebuilt.title : title}
           </h2>
           <dl className="mt-2 grid max-w-3xl gap-x-6 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
