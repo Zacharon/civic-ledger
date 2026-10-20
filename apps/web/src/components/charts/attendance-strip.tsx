@@ -54,7 +54,7 @@ export function AttendanceStrip({ attendance }: { attendance: Attendance }) {
       </ul>
       <ol
         aria-label={`Attendance by month, ${ordinal(congress)} Congress`}
-        className="mt-4 grid grid-cols-1 gap-2 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+        className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
       >
         {months.map((m) => (
           <MonthCell key={m.month} m={m} />
