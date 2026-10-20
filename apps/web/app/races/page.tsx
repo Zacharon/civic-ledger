@@ -70,7 +70,7 @@ export default async function RacesPage({ searchParams }: PageProps<'/races'>) {
         method="get"
         action="/races"
         aria-label="Filter races"
-        className="rule-strong mt-8 grid gap-4 pt-6 sm:grid-cols-[minmax(0,16rem)_minmax(0,12rem)_auto] sm:items-end"
+        className="rule-strong mt-8 grid gap-4 pt-6 sm:grid-cols-[minmax(0,16rem)_minmax(0,14rem)_auto] sm:items-end"
       >
         <div className="flex min-w-0 flex-col gap-2">
           <label htmlFor="race-state" className="text-sm font-semibold">
@@ -95,7 +95,7 @@ export default async function RacesPage({ searchParams }: PageProps<'/races'>) {
             className="field w-full"
             defaultValue={chamber ?? ''}
           >
-            <option value="">Senate and House</option>
+            <option value="">Both chambers</option>
             <option value="senate">Senate</option>
             <option value="house">House</option>
           </select>
@@ -231,7 +231,7 @@ function SeatTable({
               {firstColumn}
             </th>
             <th scope="col" className="py-2 pr-4 font-semibold">
-              Sitting member, term ends Jan 3
+              Sitting member (seat up)
             </th>
             <th scope="col" className="py-2 pr-4 text-right font-semibold">
               Registered

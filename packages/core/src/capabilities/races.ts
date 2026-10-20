@@ -41,6 +41,9 @@ const IncumbentSchema = z.object({
   slug: SlugSchema,
   fullName: z.string(),
   party: PartySchema.describe('Party of the current term, from congress-legislators'),
+  termEnd: IsoDateSchema.describe(
+    'End of the current term: January 3 of the next year, or the election day for an appointed senator',
+  ),
 });
 
 /** Provenance of the newest row of each source behind a race figure; null = no such rows. */
@@ -69,6 +72,7 @@ interface Incumbent {
   slug: string;
   fullName: string;
   party: string;
+  termEnd: string;
   chamber: Chamber;
   state: string;
   district: number | null;
@@ -105,10 +109,13 @@ async function resolveCycle(db: Db, requested: number | undefined): Promise<numb
 }
 
 /**
- * Current members whose seat is up in `cycle`: their term (today inside it) ends on
- * January 3 of the next year. A term with no scheduled end uses the constitutional length
- * from its start (House 2 years, Senate 6), which only the development seed relies on:
- * congress-legislators always gives an end date.
+ * Current members whose seat is up in `cycle`: their term (today inside it) ends from
+ * November 1 of the cycle through January 3 of the next year. That is January 3 for every
+ * regular term, and the November election day for an appointed senator whose term runs
+ * until a special election (congress-legislators lists Ohio and Florida's that way in 2026).
+ * A term with no scheduled end uses the constitutional length from its start (House 2
+ * years, Senate 6), which only the development seed relies on: congress-legislators
+ * always gives an end date.
  */
 async function loadIncumbents(
   db: Db,
@@ -141,10 +148,10 @@ async function loadIncumbents(
           : sql`${office.district} is not distinct from ${filter.district}`,
       ),
     );
-  const upOn = seatUpOn(cycle);
+  const [from, to] = [`${cycle}-11-01`, seatUpOn(cycle)];
   return rows
-    .filter((r) => r.scheduledEnd === upOn)
-    .map(({ scheduledEnd: _end, ...r }) => r)
+    .filter((r) => r.scheduledEnd >= from && r.scheduledEnd <= to)
+    .map(({ scheduledEnd, ...r }) => ({ ...r, termEnd: scheduledEnd }))
     .sort(
       (a, b) =>
         compareSeats(a, b) || a.fullName.localeCompare(b.fullName) || a.slug.localeCompare(b.slug),
@@ -190,7 +197,12 @@ async function seatsOfPerson(db: Db, slug: string, cycle: number) {
   };
 }
 
-const incumbentRef = (i: Incumbent) => ({ slug: i.slug, fullName: i.fullName, party: i.party });
+const incumbentRef = (i: Incumbent) => ({
+  slug: i.slug,
+  fullName: i.fullName,
+  party: i.party,
+  termEnd: i.termEnd,
+});
 
 const sourcesFor = async (db: Db, cycle: number, seat?: Seat): Promise<RaceSources> => {
   const candidateWhere = and(
@@ -225,7 +237,7 @@ export const RacesListInput = z.strictObject({
 export const RacesListOutput = z.object({
   cycle: CycleSchema,
   seatsUpOn: IsoDateSchema.describe(
-    'Terms ending on this date are seats up in the cycle (January 3 of the next year)',
+    'January 3 of the next year, when regular terms for the cycle end. An appointed senator whose term runs to the November special election is up too (see incumbents[].termEnd)',
   ),
   items: z
     .array(
@@ -234,7 +246,7 @@ export const RacesListOutput = z.object({
         seatUp: z
           .boolean()
           .describe(
-            'A current member term for this seat ends on `seatsUpOn` (congress-legislators)',
+            'A current member term for this seat ends on `seatsUpOn` or at the November election (congress-legislators)',
           ),
         incumbents: z
           .array(IncumbentSchema)
@@ -408,7 +420,11 @@ const CandidateMoneySchema = z.object({
 export const RacesGetOutput = z.object({
   cycle: CycleSchema,
   seat: SeatSchema,
-  seatUp: z.boolean().describe('A current member term for this seat ends on `seatsUpOn`'),
+  seatUp: z
+    .boolean()
+    .describe(
+      'A current member term for this seat ends on `seatsUpOn` or at the November election',
+    ),
   seatsUpOn: IsoDateSchema,
   incumbents: z.array(IncumbentSchema),
   senateSeatsUp: z

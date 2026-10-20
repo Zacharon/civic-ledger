@@ -61,6 +61,7 @@ export default async function RacePage({
     race.sources.moneyReports?.retrievedAt ?? race.sources.candidates?.retrievedAt ?? null,
   );
   const upDate = formatDate(race.seatsUpOn);
+  const termEnds = [...new Set(race.incumbents.map((m) => m.termEnd))];
   const here = raceHref(race.cycle, race.seat.key);
 
   return (
@@ -88,8 +89,12 @@ export default async function RacePage({
 
         <p className="mt-5 text-lg text-ink-2" data-seat-up={race.seatUp ? 'true' : 'false'}>
           {race.seatUp
-            ? `Seat up in ${race.cycle}: a sitting member’s term ends ${upDate}.`
-            : `No sitting member’s term for this seat ends ${upDate}.`}
+            ? `Seat up in ${race.cycle}: ${
+                termEnds.length === 1
+                  ? `a sitting member’s term ends ${formatDate(termEnds[0] ?? null)}.`
+                  : 'sitting members’ terms end on the dates listed below.'
+              }`
+            : `No sitting member’s term for this seat ends ${upDate} or at the ${race.cycle} election. These registrations list ${race.cycle} as their election year.`}
           <SourceMark notes={notes} n={termMark} />
         </p>
         {race.senateSeatsUp !== null && race.senateSeatsUp > 1 ? (
@@ -109,6 +114,7 @@ export default async function RacePage({
                     {m.fullName}
                   </Link>
                   <PartyChip party={m.party} full />
+                  <span className="text-sm text-ink-3">term ends {formatDate(m.termEnd)}</span>
                 </li>
               ))}
             </ul>

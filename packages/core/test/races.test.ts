@@ -104,6 +104,33 @@ describe('races.list@1', () => {
     );
   });
 
+  it('counts an appointed senator whose term ends at the November special election', async () => {
+    const { db: raw } = db.handle();
+    const who = sql`(select id from person where slug = 'jordan-juniperfield')`;
+    await raw.execute(
+      sql`update term set end_date = '2026-11-03' where person_id = ${who} and end_date is null`,
+    );
+    try {
+      const race = await dispatch('races.get', { seat: 'zw-senate' }, db.ctx());
+      expect(race.seatUp).toBe(true);
+      expect(race.incumbents).toMatchObject([
+        { slug: 'jordan-juniperfield', termEnd: '2026-11-03' },
+      ]);
+      // A term that ends before the election season is not a seat up in the cycle.
+      await raw.execute(
+        sql`update term set end_date = '2026-10-25' where person_id = ${who} and end_date = '2026-11-03'`,
+      );
+      const early = await dispatch('races.get', { seat: 'zw-senate' }, db.ctx());
+      expect(early.seatUp).toBe(false);
+    } finally {
+      await raw.execute(
+        sql`update term set end_date = null where person_id = ${who} and end_date in ('2026-11-03', '2026-10-25')`,
+      );
+    }
+    const back = await dispatch('races.get', { seat: 'zw-senate' }, db.ctx());
+    expect(back.incumbents[0]?.termEnd).toBe('2027-01-03');
+  });
+
   it('carries the provenance of each source behind the counts', async () => {
     const { sources } = await dispatch('races.list', {}, db.ctx());
     expect(sources.candidates?.sourceKey).toMatch(/^cn:/);
