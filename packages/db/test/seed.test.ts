@@ -11,6 +11,7 @@ const TABLES = [
   'office',
   'term',
   'candidacy',
+  'candidate',
   'committee',
   'committee_link',
   'committee_industry',

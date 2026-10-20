@@ -23,6 +23,7 @@ export {
 } from './capabilities/person-card';
 export * from './capabilities/policy';
 export * from './capabilities/promises';
+export * from './capabilities/races';
 export * from './capabilities/registry';
 export * from './capabilities/scores';
 export * from './capabilities/sources';
@@ -36,4 +37,12 @@ export * from './errors';
 export { EXPLAINERS, type Explainer, explainerById } from './explainers/content';
 export * from './frameworks/spec';
 export * from './glance/text';
+export { formatFecName } from './races/name';
+export {
+  compareSeats,
+  parseSeatKey,
+  type Seat,
+  SeatKeySchema,
+  seatKey,
+} from './races/seat';
 export * from './schemas/common';

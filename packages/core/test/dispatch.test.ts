@@ -29,6 +29,8 @@ describe('registry', () => {
       'people.search',
       'policy.areas',
       'promises.list',
+      'races.get',
+      'races.list',
       'scores.list',
       'sources.status',
       'votes.list',

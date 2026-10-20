@@ -9,6 +9,7 @@ import { moneySummary } from './money';
 import { peopleCompare, peopleGet, peopleSearch } from './people';
 import { policyAreas } from './policy';
 import { promisesList } from './promises';
+import { racesGet, racesList } from './races';
 import { scoresList } from './scores';
 import { sourcesStatus } from './sources';
 import { votesList } from './votes';
@@ -30,6 +31,8 @@ export const registry = {
   'scores.list': scoresList,
   'promises.list': promisesList,
   'policy.areas': policyAreas,
+  'races.list': racesList,
+  'races.get': racesGet,
   'frameworks.list': frameworksList,
   'frameworks.evaluate': frameworksEvaluate,
   'sources.status': sourcesStatus,
