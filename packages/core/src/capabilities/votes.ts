@@ -18,7 +18,6 @@ import {
   gt,
   gte,
   inArray,
-  isNotNull,
   isNull,
   lte,
   or,
