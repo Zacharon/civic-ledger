@@ -1,4 +1,6 @@
 import type { Capability } from '../capability';
+import { votesAttendance } from './attendance';
+import { chamberComposition } from './chamber';
 import { curatedValidate } from './curated';
 import { explainersList } from './explainers';
 import { exploreTable } from './explore';
@@ -27,6 +29,8 @@ export const registry = {
   'explore.facets': exploreFacets,
   'money.summary': moneySummary,
   'votes.list': votesList,
+  'votes.attendance': votesAttendance,
+  'chamber.composition': chamberComposition,
   'scores.list': scoresList,
   'promises.list': promisesList,
   'policy.areas': policyAreas,

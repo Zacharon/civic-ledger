@@ -17,6 +17,7 @@ describe('registry', () => {
   it('exposes only public reads to adapters (no write or operator capability)', () => {
     const exposed = publicCapabilities();
     expect(exposed.map((c) => c.name).sort()).toEqual([
+      'chamber.composition',
       'explainers.list',
       'explore.facets',
       'explore.table',
@@ -31,6 +32,7 @@ describe('registry', () => {
       'promises.list',
       'scores.list',
       'sources.status',
+      'votes.attendance',
       'votes.list',
     ]);
     expect(exposed.every((c) => c.kind === 'read')).toBe(true);

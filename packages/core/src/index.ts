@@ -8,6 +8,8 @@ export {
   defaultPgliteDir,
 } from '@civic-ledger/db';
 
+export * from './capabilities/attendance';
+export * from './capabilities/chamber';
 export * from './capabilities/curated';
 export * from './capabilities/explainers';
 export * from './capabilities/explore';

@@ -9,7 +9,7 @@ import {
   term,
   votePosition,
 } from '@civic-ledger/db';
-import { and, asc, desc, eq, exists, gte, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, exists, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { defineCapability } from '../capability';
 import { notFound } from '../errors';
@@ -57,7 +57,9 @@ export const VotesListOutput = z.object({
       tally: TallySchema,
       byParty: z
         .array(TallySchema.extend({ party: z.string() }))
-        .describe("Party = the member's party on their term at the vote date"),
+        .describe(
+          "Party = the member's party on their term at the vote date. Rows are alphabetical by party name (no ideological or size order), 'Unknown' (no term covers the date) last, and always sum to `tally`.",
+        ),
     }),
   ),
   ...PageSchema,
@@ -205,10 +207,36 @@ async function billsFor(db: Db, rollcallIds: number[]) {
 const emptyTally = (): Tally => ({ yea: 0, nay: 0, present: 0, notVoting: 0 });
 const TALLY_KEY = { yea: 'yea', nay: 'nay', present: 'present', not_voting: 'notVoting' } as const;
 
+/**
+ * The party label for members whose term list does not cover the vote date. Shown as its
+ * own row, never folded into a real party.
+ */
+export const UNKNOWN_PARTY = 'Unknown';
+
+/**
+ * Party order shared by every per-party list: alphabetical by party name, with the
+ * "no party on file" row last. No ideological or size-based order.
+ */
+export function compareParties(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a === UNKNOWN_PARTY) return 1;
+  if (b === UNKNOWN_PARTY) return -1;
+  return a.localeCompare(b, 'en');
+}
+
 async function talliesFor(db: Db, rollcallIds: number[]) {
   const result = new Map<number, { total: Tally; byParty: (Tally & { party: string })[] }>();
   if (rollcallIds.length === 0) return result;
-  const party = sql<string>`coalesce(${term.party}, 'Unknown')`;
+  // Exactly one party per position: the term in force on the vote date (latest start wins
+  // if a source ever overlaps two), so the party rows always sum to the roll-call total.
+  const party = sql<string>`coalesce((
+    select ${term.party} from ${term}
+    where ${term.personId} = ${votePosition.personId}
+      and ${term.startDate} <= ${rollcall.voteDate}
+      and (${term.endDate} is null or ${rollcall.voteDate} < ${term.endDate})
+    order by ${term.startDate} desc
+    limit 1
+  ), ${sql.raw(`'${UNKNOWN_PARTY}'`)})`;
   const rows = await db
     .select({
       rollcallId: votePosition.rollcallId,
@@ -218,17 +246,8 @@ async function talliesFor(db: Db, rollcallIds: number[]) {
     })
     .from(votePosition)
     .innerJoin(rollcall, eq(rollcall.id, votePosition.rollcallId))
-    .leftJoin(
-      term,
-      and(
-        eq(term.personId, votePosition.personId),
-        gte(rollcall.voteDate, term.startDate),
-        or(isNull(term.endDate), lt(rollcall.voteDate, term.endDate)),
-      ),
-    )
     .where(inArray(votePosition.rollcallId, rollcallIds))
-    .groupBy(votePosition.rollcallId, party, votePosition.position)
-    .orderBy(asc(party));
+    .groupBy(votePosition.rollcallId, party, votePosition.position);
   for (const row of rows) {
     const entry = result.get(row.rollcallId) ?? { total: emptyTally(), byParty: [] };
     let partyTally = entry.byParty.find((p) => p.party === row.party);
@@ -241,6 +260,8 @@ async function talliesFor(db: Db, rollcallIds: number[]) {
     partyTally[key] += row.count;
     result.set(row.rollcallId, entry);
   }
+  for (const entry of result.values())
+    entry.byParty.sort((a, b) => compareParties(a.party, b.party));
   return result;
 }
 

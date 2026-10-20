@@ -85,6 +85,13 @@ beforeAll(async () => {
       { policyArea: 'education', congress: 119, chamber: 'senate' },
       { limit: 3, offset: 1 },
     ],
+    'votes.attendance': [
+      { slug: a },
+      { slug: b, congress: 119 },
+      { slug: 'jules-kindlewood' },
+      { slug: 'cornelius-oakhurst' },
+    ],
+    'chamber.composition': [{}],
     'scores.list': [{ slug: a }, { slug: c }],
     'promises.list': [{ slug: withPromises }, { slug: withPromises, status: 'kept' }],
     'policy.areas': [{}],
