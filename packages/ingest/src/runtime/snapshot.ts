@@ -95,7 +95,10 @@ export async function fetchSnapshot(
             headers: request.headers,
             signal: ctx.signal,
             logger: ctx.logger,
-            maxBytes: ctx.maxDownloadBytes,
+            maxBytes:
+              request.maxBytes === undefined
+                ? ctx.maxDownloadBytes
+                : Math.min(request.maxBytes, ctx.maxDownloadBytes ?? request.maxBytes),
           },
           http,
         );

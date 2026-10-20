@@ -227,6 +227,9 @@ async function takeSnapshot(
     repoRoot: rt.repoRoot,
     snapshotPath: input.snapshotPath,
     signal: control.signal,
+    db,
+    http: rt.http,
+    logger: log,
   });
   control.checkpoint();
   const upstream = await latestSucceededRunIds(db, adapter.dependsOn);

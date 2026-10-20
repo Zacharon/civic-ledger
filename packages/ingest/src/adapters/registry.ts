@@ -3,6 +3,7 @@ import { congressLegislatorsAdapter } from './congress-legislators';
 import { curatedAdapter } from './curated';
 import { fecBulkAdapter } from './fec-bulk';
 import { govinfoBillstatusAdapter } from './govinfo-billstatus';
+import { memberPhotosAdapter } from './member-photos';
 import { voteviewAdapter } from './voteview';
 
 /** Implemented sources, in the order a full refresh runs them (each joins the previous). */
@@ -12,6 +13,7 @@ export const ADAPTERS = {
   'fec-bulk': fecBulkAdapter,
   'govinfo-billstatus': govinfoBillstatusAdapter,
   curated: curatedAdapter,
+  'member-photos': memberPhotosAdapter,
 } satisfies AdapterRegistry;
 
 export const PIPELINE_ORDER = Object.keys(ADAPTERS) as (keyof typeof ADAPTERS)[];

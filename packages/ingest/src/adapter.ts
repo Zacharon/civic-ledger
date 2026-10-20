@@ -1,6 +1,7 @@
 import type { IngestScope, SourceId } from '@civic-ledger/core';
 import type { Db } from '@civic-ledger/db';
 import type { Logger } from 'pino';
+import type { HttpDeps } from './runtime/http';
 
 /**
  * Source adapter contract (ARCHITECTURE §4). The runtime (`runtime/run.ts`) owns fetch,
@@ -82,6 +83,14 @@ export interface PlanContext {
   /** When set, the snapshot is read from this directory instead of fetched. */
   snapshotPath?: string;
   signal?: AbortSignal;
+  /**
+   * The run's database handle, for a plan that depends on loaded rows (member-photos selects
+   * people from the identity spine). Read-only use; plans must not write.
+   */
+  db?: Db;
+  /** The run's HTTP dependencies (tests inject a fake fetch); plans that fetch use these. */
+  http?: HttpDeps;
+  logger?: Logger;
 }
 
 export interface FetchPlan {
@@ -99,6 +108,8 @@ export interface FetchRequest {
   localPath?: string;
   /** Whole-request timeout; large bulk files need more than the 30 s default. */
   timeoutMs?: number;
+  /** Per-file byte cap, applied with the run-wide cap (the smaller wins). */
+  maxBytes?: number;
   /** Send a browser-like User-Agent (some government hosts reject others). */
   browserLike?: boolean;
   headers?: Record<string, string>;

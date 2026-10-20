@@ -13,6 +13,7 @@ export const SOURCE_IDS = [
   'govinfo-billstatus',
   'congress-gov',
   'curated',
+  'member-photos',
   'openstates',
 ] as const;
 export const SourceIdSchema = z.enum(SOURCE_IDS);

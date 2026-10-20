@@ -19,6 +19,7 @@ export const SCOPES: Record<keyof typeof ADAPTERS, IngestScope> = {
   'fec-bulk': { kind: 'cycle', cycle: 2026 },
   'govinfo-billstatus': { kind: 'congress', congress: 119 },
   curated: { kind: 'all' },
+  'member-photos': { kind: 'all' },
 };
 
 export async function freshDb(): Promise<DbHandle> {
