@@ -16,10 +16,41 @@ Each source joins rows loaded by the ones before it, so a full refresh runs in t
 | 3 | `fec-bulk` | `--cycle 2026` | cn, cm, ccl, weball, pas2 zips + IE CSV + candidate summary CSV | 20 MB | 80 s |
 | 4 | `govinfo-billstatus` | `--congress 119` | 8 BILLSTATUS type zips | 54 MB | 89 s |
 | 5 | `curated` | none (all) | `data/curated/**` YAML | <1 MB | 33 s |
+| 6 | `member-photos` | none (all) | GitHub tree listing + `225x275` and `450x550` JPEG per member in scope (1,076 files) | 117 MB | first load ~12 min, rerun ~4 min (2026-10-20, PGlite, machine shared with other builds; see below) |
 
-Full first load: 6 min 10 s. An unchanged rerun (`pnpm ingest all`): 10 s, all files 304,
+Full first load before `member-photos`: 6 min 10 s. An unchanged rerun (`pnpm ingest all`): 10 s, all files 304,
 every source deduplicated. Defaults: `--congress` = current congress, `--cycle` = current
 two-year cycle.
+
+### member-photos (official portraits)
+
+Self-hosted portraits for member records (DECISIONS A72-A76; source notes in
+[DATA_SOURCES.md](DATA_SOURCES.md) 6b). It runs last, depends on `congress-legislators` (its run id is in
+the snapshot checksum), and needs the network only for one GitHub API call (the repository tree, 60
+unauthenticated calls per hour per address) plus the image files.
+
+* **Selection:** people with a Bioguide id and a term ending after 2025-01-03 (555 on 2026-10-20). Only
+  people with both sizes in the listing are fetched; a missing portrait is normal (16 of 555: the 15 newest
+  members and one former member).
+* **Downloads:** 6 in parallel, each file capped at 2 MiB, the whole selection capped at
+  `INGEST_MAX_PORTRAIT_TOTAL_BYTES` (default 400 MiB, checked against the listing before anything is
+  fetched), conditional GET with `ETag` from `data/raw/member-photos/http-cache.json`, raw files and
+  `manifest.json` (sha256 per file, source URL) under `data/raw/member-photos/<date>/`.
+* **Validation (per person, both sizes):** complete JPEG (grayscale, colour or CMYK), inside the variant's pixel
+  box and at least 20% of its area. A bad pair is skipped and counted (`rejected_*`, `files_rejected`);
+  if that person had a good pair from an earlier run it is kept (`rejected_kept_previous`).
+* **Load:** upsert on `(person_id, variant)` with provenance, in batches of 10 people; portraits no longer
+  asserted are deleted (`stale_portraits_deleted`) under the shrink guard (dataset `person_portrait`).
+* **Offline reload:** `pnpm ingest member-photos --snapshot data/raw/member-photos/<date>` reads that
+  directory's files instead of the network.
+* **Timings** (2026-10-20, PGlite, while three other agents were building and ingesting on the same PC, so
+  read them as upper bounds): first load 11 min 59 s (about 10 min of downloads, 2 min to validate and store
+  117 MB); rerun after an adapter version bump, every file answered 304: 4 min 6 s. An unchanged rerun with the
+  same adapter version stops after the 304s with `"deduplicated": true`.
+* **Receipt counters:** `portraits` (rows, two per person), `people_with_portrait`, `people_in_scope`,
+  `people_without_portrait`, `portrait_bytes`, `files_rejected` and `rejected_{bad_name,incomplete_pair,
+  too_large,not_jpeg,wrong_size,unreadable}`, `bioguide_not_in_legislators`, `rejected_kept_previous`,
+  `stale_portraits_deleted`. Expected 2026-10-20 (to be confirmed by the final run): 1,078 / 539 / 555 / 16 / ~117 MB / 0.
 
 ## Commands
 
@@ -87,6 +118,10 @@ re-codes new committees and re-resolves framework targets even when the YAML is 
 | receipt `status: cancelled` | Ctrl-C or the run deadline (`--deadline-minutes`, `INGEST_RUN_DEADLINE_MS`) stopped the run before its commit, at the next record or phase boundary; inside the FEC loader, before its next statement (stage, dedupe, page and each sweep statement; DECISIONS A52). A statement already running finishes first; other loaders finish the batch in hand. Nothing was committed. | Rerun when ready (a longer deadline if it timed out). |
 | `failed`, `error: snapshot_superseded: …` | You replayed a snapshot an older run loaded, after a later run loaded other data. Replay is not a restore. | Rerun with `--force-replay` if you really want that snapshot back; the receipt records `replayOf`. |
 | `failed`, `error: … download cap` / `… decompression cap` | A downloaded file, a cached copy that would be reused, or a zip entry is larger than `INGEST_MAX_DOWNLOAD_BYTES` / `INGEST_MAX_DECOMPRESSED_BYTES`. | Check the upstream file; raise the cap only if the size is genuine. |
+| `failed`, `error: … GitHub API … HTTP 403` (member-photos) | The unauthenticated API rate limit (60 per hour per address) or a block. | Wait an hour and rerun; nothing was loaded. |
+| `failed`, `error: … repository listing is truncated` (member-photos) | The tree answer exceeded GitHub's limit, so the list would be partial. | Do not load; switch the plan to per-folder trees. |
+| `failed`, `error: … INGEST_MAX_PORTRAIT_TOTAL_BYTES cap` | The selected photos total more than the cap (the listing grew or the scope widened). | Check the selection; raise the cap only if the size is genuine. |
+| counter `files_rejected` > 0 (member-photos) | A pair failed validation; the log line `portrait rejected` names the file and why. | Inspect the file upstream; the previous good pair, if any, was kept. |
 | `failed`, `error: … manifest schema_version N is not supported` | `--snapshot` points at a snapshot written by a newer build. | Use a build that reads that version. |
 | receipt `status: failed`, `error: GET … HTTP 404` | File moved or not published yet (new cycle/congress). | Check the URL in DATA_SOURCES.md; nothing was loaded. |
 | `failed` after retries on 5xx / timeout | Source down or slow. | Rerun later; nothing was loaded. |

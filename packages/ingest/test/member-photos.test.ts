@@ -67,6 +67,23 @@ describe('JPEG validation', () => {
     }
   });
 
+  it('accepts 1, 3 and 4 colour components (browsers decode CMYK) but not 2', () => {
+    const good = syntheticGreyJpeg(225, 275);
+    const sof = good.findIndex((b, i) => b === 0xff && good[i + 1] === 0xc0);
+    for (const [components, ok] of [
+      [1, true],
+      [3, true],
+      [4, true],
+      [2, false],
+      [0, false],
+    ] as const) {
+      const bytes = Uint8Array.from(good);
+      bytes[sof + 9] = components;
+      if (ok) expect(inspectJpeg(bytes).components).toBe(components);
+      else expect(() => inspectJpeg(bytes)).toThrow(/colour components/);
+    }
+  });
+
   it('rejects a truncated JPEG, a JPEG with no scan and a zero-sized frame', () => {
     const good = syntheticGreyJpeg(225, 275);
     expect(() => inspectJpeg(good.slice(0, good.length - 10))).toThrow(/end-of-image/);

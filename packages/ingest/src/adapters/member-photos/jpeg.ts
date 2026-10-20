@@ -7,7 +7,7 @@
 export interface JpegInfo {
   width: number;
   height: number;
-  /** 1 = grayscale, 3 = colour. */
+  /** 1 = grayscale, 3 = colour, 4 = CMYK (browsers decode it; one real file uses it). */
   components: number;
   progressive: boolean;
 }
@@ -65,7 +65,7 @@ export function inspectJpeg(bytes: Uint8Array): JpegInfo {
       if (width === 0 || height === 0) {
         throw new JpegError('malformed JPEG: zero width or height');
       }
-      if (components !== 1 && components !== 3) {
+      if (components !== 1 && components !== 3 && components !== 4) {
         throw new JpegError(`unsupported JPEG: ${components} colour components`);
       }
       frame = { width, height, components, progressive: marker === 0xc2 || marker === 0xc6 };
