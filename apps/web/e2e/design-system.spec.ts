@@ -9,6 +9,7 @@ const ROUTES = [
   '/',
   '/explore',
   '/people/avery-ashvale',
+  '/people/jules-kindlewood',
   '/policy',
   '/policy/health',
   '/compare?ids=avery-ashvale,blair-brindlemoor,cameron-corrowind',
