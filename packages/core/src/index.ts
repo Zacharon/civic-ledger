@@ -22,6 +22,7 @@ export {
   ScorecardCellSchema,
 } from './capabilities/person-card';
 export * from './capabilities/policy';
+export * from './capabilities/portraits';
 export * from './capabilities/promises';
 export * from './capabilities/registry';
 export * from './capabilities/scores';

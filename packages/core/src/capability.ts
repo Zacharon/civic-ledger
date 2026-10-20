@@ -11,11 +11,20 @@ export interface CapabilityContext {
  */
 export type Audience = 'public' | 'operator';
 
+/**
+ * How an adapter must carry the output. `json` (default): serialize it. `binary`: the output
+ * has a `bytes` field plus `contentType` and `sha256`; adapters send the bytes as that media
+ * type (HTTP body, MCP image block) and must not JSON-serialize them.
+ */
+export type Transport = 'json' | 'binary';
+
 export interface Capability<I extends z.ZodType = z.ZodType, O extends z.ZodType = z.ZodType> {
   name: string;
   version: number;
   kind: 'read' | 'write';
   audience: Audience;
+  /** Omitted = `json`. */
+  transport?: Transport;
   summary: string;
   input: I;
   output: O;

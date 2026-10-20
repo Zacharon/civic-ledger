@@ -26,6 +26,7 @@ describe('registry', () => {
       'people.compare',
       'people.get',
       'people.glance',
+      'people.portrait',
       'people.search',
       'policy.areas',
       'promises.list',

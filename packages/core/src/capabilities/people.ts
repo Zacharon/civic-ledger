@@ -40,6 +40,7 @@ import {
   scopeWhere,
   selectCards,
 } from './person-card';
+import { PortraitSchema, portraitFacts } from './portraits';
 
 // people.search@1 ------------------------------------------------------------
 
@@ -115,6 +116,9 @@ export const PeopleGetOutput = z.object({
     provenance: ProvenanceSchema,
   }),
   card: PersonCardRowSchema,
+  portrait: PortraitSchema.describe(
+    'Official portrait facts and credit, or null when none is published; the image is people.portrait',
+  ),
   identifiers: z.array(z.object({ scheme: z.string(), value: z.string() })),
   terms: z.array(
     SeatSchema.extend({
@@ -172,7 +176,7 @@ export const peopleGet = defineCapability({
       state: office.state,
       district: office.district,
     };
-    const [identifiers, terms, candidacies, platform] = await Promise.all([
+    const [identifiers, terms, candidacies, platform, portrait] = await Promise.all([
       db
         .select({ scheme: personIdentifier.scheme, value: personIdentifier.value })
         .from(personIdentifier)
@@ -216,12 +220,14 @@ export const peopleGet = defineCapability({
         .innerJoin(policyArea, eq(policyArea.id, platformPosition.policyAreaId))
         .where(eq(platformPosition.personId, row.id))
         .orderBy(desc(platformPosition.cycle), asc(policyArea.name)),
+      portraitFacts(db, row.id, row.slug),
     ]);
 
     const { id: _id, ...personFields } = row;
     return {
       person: withProvenance(personFields),
       card: card.row,
+      portrait,
       identifiers,
       terms: terms.map(withProvenance),
       candidacies: candidacies.map(withProvenance),
