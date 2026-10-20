@@ -72,7 +72,7 @@ export async function fetchSnapshot(
   const directory = snapshotDirectory(ctx.rawDir, plan.source, retrievedAt);
   const cachePath = join(ctx.rawDir, plan.source, 'http-cache.json');
   await mkdir(directory, { recursive: true });
-  const limit = pLimit(DOWNLOAD_CONCURRENCY);
+  const limit = pLimit(plan.concurrency ?? DOWNLOAD_CONCURRENCY);
   const files = await Promise.all(
     plan.requests.map((request) =>
       limit(async (): Promise<SnapshotFile> => {

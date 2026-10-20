@@ -4,8 +4,10 @@ import { join } from 'node:path';
 import type { ParseContext, RawSnapshot } from '../../adapter';
 import { inspectJpeg, JpegError } from './jpeg';
 import {
+  fitsVariantBox,
   isBioguideId,
   MAX_PORTRAIT_FILE_BYTES,
+  MIN_BOX_FILL,
   originUrl,
   VARIANTS,
   type VariantFolder,
@@ -47,8 +49,8 @@ export type PortraitParsed = PortraitRecord | RejectedRecord;
 
 /**
  * Validates each person's pair of images (225x275 and 450x550) before anything is stored: it
- * must be a complete JPEG (SOI ... EOI), within the per-file cap, and exactly the variant's
- * pixel size. One bad file rejects that person's pair; the rest still load. Files are read
+ * must be a complete JPEG (SOI ... EOI), within the per-file cap, and inside the variant's
+ * pixel box (upstream fits photos to the box, so widths vary). One bad file rejects that person's pair; the rest still load. Files are read
  * one person at a time, so memory stays O(one pair).
  */
 export async function* parseMemberPhotos(
@@ -110,11 +112,11 @@ export async function* parseMemberPhotos(
       }
       try {
         const info = inspectJpeg(bytes);
-        if (info.width !== variant.width || info.height !== variant.height) {
+        if (!fitsVariantBox(info.width, info.height, variant)) {
           rejected = reject(
             bioguide,
             'wrong_size',
-            `${entry.name} is ${info.width}x${info.height}, expected ${variant.folder}`,
+            `${entry.name} is ${info.width}x${info.height}, outside the ${variant.folder} box (at most that size, at least ${MIN_BOX_FILL * 100}% of its area)`,
           );
           break;
         }

@@ -19,7 +19,7 @@ export const memberPhotosAdapter: SourceAdapter<PortraitParsed> = {
     description:
       'Official portrait of each current member and of those who served during the 119th Congress, in two sizes (225x275 and 450x550), keyed by Bioguide id. Not every member has one.',
   },
-  version: 'member-photos@1',
+  version: 'member-photos@2',
   // The people it attaches photos to come from the identity spine.
   dependsOn: ['congress-legislators'],
   scopes: ['all'],

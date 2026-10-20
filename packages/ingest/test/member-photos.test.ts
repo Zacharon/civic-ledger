@@ -7,7 +7,7 @@ import { syntheticGreyJpeg } from '@civic-ledger/db/seed';
 import { sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { inspectJpeg, JpegError } from '../src/adapters/member-photos/jpeg';
-import { filesInListing, TREE_URL } from '../src/adapters/member-photos/plan';
+import { filesInListing, fitsVariantBox, TREE_URL } from '../src/adapters/member-photos/plan';
 import type { HttpDeps } from '../src/runtime/http';
 import { runIngest } from '../src/runtime/run';
 import { DEFAULT_SHRINK_GUARD } from '../src/runtime/shrink-guard';
@@ -82,6 +82,19 @@ describe('JPEG validation', () => {
   });
 });
 
+describe('variant box', () => {
+  const small = { width: 225, height: 275 };
+  it('accepts photos fitted to the box and small originals, rejects larger or tiny files', () => {
+    expect(fitsVariantBox(225, 275, small)).toBe(true);
+    expect(fitsVariantBox(183, 275, small)).toBe(true); // narrower than the box
+    expect(fitsVariantBox(225, 150, small)).toBe(true); // a wide crop upstream also keeps
+    expect(fitsVariantBox(225, 275, { width: 450, height: 550 })).toBe(true); // small original
+    expect(fitsVariantBox(226, 275, small)).toBe(false);
+    expect(fitsVariantBox(225, 276, small)).toBe(false);
+    expect(fitsVariantBox(40, 50, small)).toBe(false); // thumbnail
+  });
+});
+
 describe('repository listing', () => {
   it('keeps only the two variant folders and counts bytes per file', () => {
     const files = filesInListing({
@@ -146,12 +159,22 @@ describe('member-photos ingest from a snapshot directory', () => {
       expect(row.sha256).toBe(sha(file));
       expect(row.byte_length).toBe(file.length);
       expect(row.content_type).toBe('image/jpeg');
-      expect([row.width, row.height]).toEqual(row.variant === '225x275' ? [225, 275] : [450, 550]);
+      const dims = inspectJpeg(file);
+      expect([row.width, row.height]).toEqual([dims.width, dims.height]);
       expect(row.origin_url).toBe(
         `https://unitedstates.github.io/images/congress/${row.variant}/${row.bioguide}.jpg`,
       );
       expect(row.source_key).toBe(`portrait:${row.bioguide}:${row.variant}`);
     }
+    // Upstream fits photos to the box keeping their proportions: a narrower file is kept as is.
+    expect(stored.find((r) => r.bioguide === 'N000147' && r.variant === '225x275')).toMatchObject({
+      width: 183,
+      height: 275,
+    });
+    expect(stored.find((r) => r.bioguide === 'N000147' && r.variant === '450x550')).toMatchObject({
+      width: 450,
+      height: 550,
+    });
     // A rejected pair stores nothing, not even the half that was fine.
     expect(
       stored.some((r) => ['A000375', 'V000133', 'K000401', 'H001096'].includes(r.bioguide)),

@@ -176,6 +176,33 @@ Dark: worst adjacent CVD ΔE 8.9, normal-vision 16.5, all ≥ 3:1 on dark `--sur
 - Z-index scale (only these): `sticky cells 1`, `sticky header 2`, `site header 10`,
   `popover 20`, `skip link 30`.
 
+## Portraits
+
+The official portrait of a member (public domain, GPO Member Guide, stored by `member-photos`,
+DECISIONS A72) appears in **one** place: the header of a member record
+(`app/people/[slug]/page.tsx`, component `MemberPortrait`).
+
+- **Where, and where not.** Member records only. **Never on race pages**: most challengers have no
+  official photo, so showing only incumbents' photos would tilt those pages. Not in Explore rows or
+  cards, search results, or framework results either: a photo column would give some rows weight
+  others cannot have. (Compare headers could carry one later; not built.)
+- **Frame.** 4:5, floated left of the eyebrow, name, status and actions; 168px wide from 640px, 104px
+  on phones. 1px `--rule` border, square corners, no shadow, `--surface-sunk` behind the image. The
+  facts list below clears the float. Upstream fits each photo into a 225x275 box keeping its proportions
+  (most are 9:11, about 1 in 8 are narrower such as 183x275), so the image is shown with
+  `object-fit: contain` on the sunk surface: never cropped, stretched, filtered or recolored.
+- **Image.** Explicit `width`/`height` of the file (225x275, so no layout shift), `srcset` 1x (225)
+  and 2x (450), `alt="Official portrait of {name}"`, same origin only. It is the top of the page, so
+  it loads eagerly with high priority; the component takes `lazy` for any lower placement.
+- **Credit.** Directly under the image, in the caption size and `--ink-3`:
+  "Official portrait · GPO Member Guide · public domain", with a source mark to the header's Sources
+  list (retrieval date, run). Same words for every member.
+- **Missing.** A tile of the same frame: `--surface-sunk`, the text "No official portrait published
+  yet" centered in `--ink-2` at 14px, nothing else. No initials, no silhouette, no generated avatar, no
+  credit line (there is nothing to credit). Layout and weight are equal for everyone.
+- **Contrast.** The credit is `--ink-3` on `--paper` (5.6:1 light, 7.1:1 dark); the tile text is
+  `--ink-2` on `--surface-sunk` (axe checks both modes on a member with and one without a portrait).
+
 ## Motion
 
 Minimal-functional. Two motions exist: 120–150ms color/opacity transitions on
@@ -196,6 +223,7 @@ under 2 s with 600 members.
 | Component | File | Notes |
 |---|---|---|
 | Site header / footer | `src/components/site-header.tsx`, `site-footer.tsx` | Serif wordmark with a teal dot, nav and member search on a 2px ink rule. Nav is one line ≥ 1024px, a scroll row below; search is always visible (its own full-width row on phones) and submits `GET /explore?q=` (the `explore.table` name filter). Footer carries data freshness. |
+| Member portrait | `src/components/member-portrait.tsx` | 4:5 official portrait (or the neutral tile) floated left of the identity lines in the record header; see "Portraits". Member records only. |
 | Record header + evidence | `app/people/[slug]/page.tsx` | Identity, status pill, party chip, seat, actions and summary facts in 8 columns; **Source records** aside in 4 (external identifiers + header footnotes); stacks identity, sources, section nav on phones. |
 | Section nav | `.section-nav` | Horizontal anchor links under a record header (all widths; fades while scrolled). Anchors, not tabs. |
 | Record status | `.record-status` | Current (tint) / Former (`.record-status-plain`). Text always present. |
@@ -254,3 +282,4 @@ retry) and populated.
 | 2026-10-20 | Vote colors: Yea teal, Nay amber, Not voting grey, Present hatched grey; never red or blue; `--vote-*` separate from `--party-*` and `--status-*` | Owner rule. The previous tally borrowed the money palette (amber Yea, purple Nay). |
 | 2026-10-20 | Concept weaknesses not copied: 11-12px table text, search hidden below 900px, one color name for both absent and not voting | Readability (data stays 14px+), usable mobile search, and Present is not Not voting. |
 | 2026-10-20 | Explore and Compare share the 1280px frame (was 1440px) | Masthead and content align; their tables already scroll in labeled regions. |
+| 2026-10-20 | Official portrait in the member record header only; neutral same-size tile when none; never on race pages | Owner rule (A75): most challengers have no official photo, so photos on race pages would tilt them toward incumbents. The tile keeps every header the same size. |

@@ -97,6 +97,11 @@ export interface FetchPlan {
   source: SourceId;
   scope: IngestScope;
   requests: FetchRequest[];
+  /**
+   * Parallel downloads (default 3). A source made of many small files on a CDN raises it;
+   * bulk government hosts keep the polite default.
+   */
+  concurrency?: number;
 }
 
 export interface FetchRequest {

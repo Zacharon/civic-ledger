@@ -12,11 +12,31 @@ export const IMAGES_SITE = 'https://unitedstates.github.io/images/congress/';
 export const TREE_URL =
   'https://api.github.com/repos/unitedstates/images/git/trees/gh-pages?recursive=1';
 
-/** Variant folders, in the order they are stored. The names are pixel width x height. */
+/**
+ * Variant folders, in the order they are stored. `width` x `height` is the folder's pixel
+ * box: upstream scales each photo to fit it keeping its proportions, so a file is often
+ * narrower (183x275, 220x275) and a few small originals are not enlarged, but none exceeds it.
+ */
 export const VARIANTS = [
   { folder: '225x275', width: 225, height: 275 },
   { folder: '450x550', width: 450, height: 550 },
 ] as const;
+/** A file must fill at least this share of its box (rejects thumbnails and stray icons). */
+export const MIN_BOX_FILL = 0.2;
+
+/** Whether an image of this size is a plausible file for the variant's box. */
+export function fitsVariantBox(
+  width: number,
+  height: number,
+  box: { width: number; height: number },
+): boolean {
+  return (
+    width <= box.width &&
+    height <= box.height &&
+    width * height >= MIN_BOX_FILL * box.width * box.height
+  );
+}
+
 export type VariantFolder = (typeof VARIANTS)[number]['folder'];
 
 /**
@@ -30,6 +50,8 @@ export const PORTRAITS_SINCE = '2025-01-03';
 export const MAX_PORTRAIT_FILE_BYTES = 2 * 1024 * 1024;
 /** All selected files together (by the repository listing), before anything is downloaded. */
 export const DEFAULT_MAX_TOTAL_BYTES = 400 * 1024 * 1024;
+/** ~1,100 files of 20-200 KB from a CDN: six at a time instead of three. */
+const PHOTO_DOWNLOAD_CONCURRENCY = 6;
 const MAX_LISTING_BYTES = 20 * 1024 * 1024;
 
 const BIOGUIDE = /^[A-Z]\d{6}$/;
@@ -180,5 +202,5 @@ export async function planMemberPhotos(scope: IngestScope, ctx: PlanContext): Pr
   if (requests.length === 0) {
     throw new Error('None of the people in scope has a portrait in the repository listing');
   }
-  return { source: 'member-photos', scope, requests };
+  return { source: 'member-photos', scope, requests, concurrency: PHOTO_DOWNLOAD_CONCURRENCY };
 }
