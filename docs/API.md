@@ -24,6 +24,7 @@ in `packages/core/src/capabilities`):
 | `people.search` | `scope` (default `all`) | Search finds former members too; every item says `isCurrent` |
 | `people.glance` | `slug`; output sections with sentences, facts, provenance and drilldowns | Deterministic profile overview; money, voting and statement coverage retain their separate periods and sources |
 | `explainers.list` | empty input | Shared plain-language definitions used by Methodology and agents |
+| `districts.shape` | `state` (two letters), optional `district` (omit or `0` = whole state); output `scope`, `description`, `viewBox`, `width`, `height`, `statePath`, `districtPath` or `null`, `vintage`, `publisher`, `asOf`, `caveat`, `provenance` | Locator-map geometry as SVG path data in one `viewBox`. `asOf` is the date the district lines are current to (2024-05-31 for the Census 119th-Congress files): later redistricting is not shown. `not_found` for a state or district with no shape |
 | `explore.table` rows, `people.get` `card`, `people.compare` people | `isCurrent`, `termEnd`, `serviceStart`, `tenureYears`, `smallDollarShare`, `smallDollarAsOf`, `topIndustries`, `industryCodingCoverage`, `scorecards` | `tenureYears` = years actually served; `smallDollarAsOf` = coverage date of the FEC candidate summary behind `smallDollarShare`; `topIndustries` are net-positive industries; `scorecards` only for publishers with cleared terms |
 | `money.summary` | `totals.pacShare`, `totals.smallDollarShare` | Shares guarded to [0, 1], else `null`; `totals.unitemizedIndividualCents` is always `null` (weball has no split) |
 | `money.summary` | `smallDollar` `{fecCandidateId, unitemizedIndividualCents, itemizedIndividualCents, totalReceiptsCents, share, coverageEndDate, provenance}` or `null` | FEC candidate summary for its own filing period; `share` is `null` outside [0, 1] or when receipts <= 0; its date can trail `totals.coverageEndDate` |
@@ -39,7 +40,7 @@ machine-readable contract is generated from the zod schemas at
 | Capability | Method | Cache class |
 |---|---|---|
 | `people.search`, `people.get`, `people.glance`, `people.compare`, `explore.table`, `money.summary`, `votes.list`, `scores.list`, `promises.list` | GET | data: `s-maxage=300, stale-while-revalidate=3600` |
-| `policy.areas`, `frameworks.list`, `explainers.list` | GET | reference: `s-maxage=3600, stale-while-revalidate=86400` |
+| `policy.areas`, `frameworks.list`, `explainers.list`, `districts.shape` | GET | reference: `s-maxage=3600, stale-while-revalidate=86400` |
 | `sources.status` | GET | status: `s-maxage=60, stale-while-revalidate=300` |
 | `frameworks.evaluate` | POST (JSON body, max 256 KiB) | `no-store` |
 

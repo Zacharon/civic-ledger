@@ -8,6 +8,14 @@ import { provenanceFields, withProvenance } from '../schemas/provenance';
 
 // districts.shape@1 ----------------------------------------------------------
 
+const longDate = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+
 export const DistrictsShapeInput = z.strictObject({
   state: StateCodeSchema.describe('Two-letter state or territory code, e.g. GA'),
   district: z
@@ -109,7 +117,7 @@ export const districtsShape = defineCapability({
       vintage: state.vintage,
       publisher: state.publisher,
       asOf: state.asOf,
-      caveat: `Shows district lines as of ${state.asOf}. A state that redrew its districts after that date is not reflected.`,
+      caveat: `Shows district lines as of ${longDate(state.asOf)}. A state that redrew its districts after that date is not reflected.`,
       provenance,
     };
   },

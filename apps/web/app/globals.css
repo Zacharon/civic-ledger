@@ -294,6 +294,38 @@
     padding: 1.25rem 1.25rem 1rem;
   }
 
+  /* District locator map (components/district-locator.tsx): neutral ink, no party or vote colour. */
+  .district-locator {
+    margin: 1rem 0 0;
+  }
+  .district-map {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+  .district-map-state,
+  .district-map-highlight {
+    stroke-linejoin: round;
+    fill-rule: evenodd;
+    vector-effect: non-scaling-stroke;
+  }
+  .district-map-state {
+    fill: var(--surface-sunk);
+    stroke: var(--line-control);
+    stroke-width: 1px;
+  }
+  .district-map-highlight {
+    fill: var(--ink-2);
+    stroke: var(--ink);
+    stroke-width: 1px;
+  }
+  .district-locator-caption {
+    margin-top: 0.5rem;
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    color: var(--ink-3);
+  }
+
   /* In-page section navigation (anchor links, not tabs). */
   .section-nav {
     display: flex;

@@ -25,6 +25,7 @@ for public reads; it does not need to.
 | `people.search@1` | read | Search box, Explore filters | `GET /api/v1/people.search`, MCP `people_search` |
 | `people.get@1` | read | Profile page | `GET /api/v1/people.get`, MCP `people_get` |
 | `people.glance@1` | read | Profile overview and its evidence links | `GET /api/v1/people.glance`, MCP `people_glance` |
+| `districts.shape@1` | read | District locator map in the profile's Source records panel (`DistrictLocator`; reusable by other pages) | `GET /api/v1/districts.shape?state=GA&district=10`, MCP `districts_shape` |
 | `explainers.list@1` | read | Methodology definitions and profile explanations | `GET /api/v1/explainers.list`, MCP `explainers_list` |
 | `people.compare@1` | read | Compare page | `GET /api/v1/people.compare`, MCP `people_compare` |
 | `explore.table@1` | read | Explore table (sort/filter/paginate; scope current by default, or all incl. former members) | `GET /api/v1/explore.table`, MCP `explore_table` |
@@ -62,6 +63,19 @@ from donations or votes. Missing coverage remains explicit. `explainers.list`
 returns the same definitions rendered on Methodology; these are editorial
 definitions, not stored claims about a person. Both are anonymous public reads,
 with strict schemas, no writes, no approval step and no idempotency key required.
+
+`districts.shape` takes `{state, district?}` and returns the state outline and, for a numbered
+House district, that district as SVG path data in one shared `viewBox` (`width`, `height`),
+plus `scope` (`district` or `state`), the accessible `description` the UI uses as the map's
+name, and the boundary `vintage`, `publisher`, `asOf` date, a `caveat` saying what the vintage
+does not show, and `provenance`. Omit `district` (a Senate seat) or pass `0` (an at-large seat or
+a delegate) for the whole state; `districtPath` is then `null`. A state or district without a
+shape, such as American Samoa or the Northern Mariana Islands, or any state before the
+`census-boundaries` source has run, is `not_found` and the profile draws no map. The shapes are
+the 119th Congress lines as the states provided them by 2024-05-31; they are not later
+redistricting (DECISIONS A72, DATA_SOURCES section 8). Anonymous public read: strict input, no
+write, no approval step, no idempotency key. Human and agent callers get the same payload; the
+UI draws it with `DistrictLocator`, an agent reads the same paths, description and dates.
 
 Operator backup, restore, retention and monitor commands are documented in
 [DEPLOY_RENDER.md](DEPLOY_RENDER.md). They are trusted-machine CLI capabilities;

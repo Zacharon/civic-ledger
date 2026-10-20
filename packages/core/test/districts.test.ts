@@ -24,7 +24,9 @@ describe('districts.shape@1', () => {
     // The fictional seed says so in every field a caption is built from.
     expect(shape.vintage).toContain('fictional');
     expect(shape.publisher).toContain('fictional');
-    expect(shape.caveat).toContain('2026-10-01');
+    expect(shape.caveat).toBe(
+      'Shows district lines as of October 1, 2026. A state that redrew its districts after that date is not reflected.',
+    );
     expect(shape.provenance).toMatchObject({ sourceId: 'dev-seed' });
     expect(shape.provenance.sourceKey).toBe('districtmap:ZV:3');
   });

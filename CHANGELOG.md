@@ -20,6 +20,7 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 - Ingest shrink guard: a load that would delete more than 10% of a source's rows, or
   load under half the last run's records, is rolled back and recorded `failed`;
   `--allow-shrink` overrides (A42).
+- District locator map on current members' profiles: `census-boundaries` ingest source (Census 2025 cartographic boundary files, 119th Congress), `district_map` table (migration `0006`), public `districts.shape@1` read capability (API and MCP) and the reusable `DistrictLocator` component, with the boundary vintage and as-of date on every map (A72-A76).
 - `GET /api/live` liveness probe separate from `/api/health` readiness (A47).
 - Page rate limiting (300 per minute per client) next to the API limits (A43).
 - `scripts/db/roles.sql`: read-only and ingest database roles, `DATABASE_URL_READONLY`

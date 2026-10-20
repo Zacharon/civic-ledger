@@ -16,6 +16,7 @@ Each source joins rows loaded by the ones before it, so a full refresh runs in t
 | 3 | `fec-bulk` | `--cycle 2026` | cn, cm, ccl, weball, pas2 zips + IE CSV + candidate summary CSV | 20 MB | 80 s |
 | 4 | `govinfo-billstatus` | `--congress 119` | 8 BILLSTATUS type zips | 54 MB | 89 s |
 | 5 | `curated` | none (all) | `data/curated/**` YAML | <1 MB | 33 s |
+| 6 | `census-boundaries` | none (all) | Census `cb_2025_us_cd119_500k.zip` + `cb_2025_us_state_500k.zip` (shapefiles) | 10 MB | @@DURATION@@ |
 
 Full first load: 6 min 10 s. An unchanged rerun (`pnpm ingest all`): 10 s, all files 304,
 every source deduplicated. Defaults: `--congress` = current congress, `--cycle` = current
@@ -76,6 +77,8 @@ with `runId`, `source` and `scope` on every line (`LOG_LEVEL=debug` for more). E
 | `pnpm ingest govinfo-billstatus` | every 6 h while Congress is in session | BILLSTATUS updates every 4 h for the current congress. |
 | `pnpm ingest curated` | on every merge to `main` touching `data/curated/**` | Owner merge is the approval (D3). |
 
+`census-boundaries` depends on no other source (it writes `district_map`, keyed by state code and district number), so it can run alone and is last only so that a Census outage never blocks the money, vote and identity data. It downloads two shapefile zips, projects each state with its own projection, simplifies and stores SVG path data (about 4-5 s of CPU for the whole country). Its vintage (`GENZ2025`, 119th Congress) is pinned in `adapters/census-boundaries/parse.ts`; to move to a new vintage change `CENSUS_VINTAGE_YEAR` / `CENSUS_CONGRESS`, check the new metadata abstract still states when the states provided boundaries (the run fails otherwise, so the shown as-of date is never guessed), and bump the adapter `version`. Counters: `shapes` (rows written), `states`, `districts` (numbered), `whole_state_districts` (`00`/`98` records with no shape of their own), `vertices_in` / `vertices_out`, `rings_dropped`, `stale_shapes_deleted`. The shrink guard compares `shapes` with the last run (about 440).
+
 Run `curated` after any upstream reload: its snapshot includes upstream run ids, so it
 re-codes new committees and re-resolves framework targets even when the YAML is unchanged.
 
@@ -92,6 +95,8 @@ re-codes new committees and re-resolves framework targets even when the YAML is 
 | `failed` after retries on 5xx / timeout | Source down or slow. | Rerun later; nothing was loaded. |
 | `failed`, `error: shrink guard: …` | The upstream file looks truncated or empty (see below). Nothing was changed. | Check the upstream file (size, row count). If the source really shrank, rerun with `--allow-shrink`. |
 | `failed` with a parse error (`line N`, `Unexpected BILLSTATUS shape`, `Unknown Voteview cast_code`) | Source format changed. | Fix the parser with a fixture cut from the new file, bump the adapter `version`, rerun. |
+| `failed`, `error: … the metadata no longer states when the states provided district boundaries` | Census reworded the metadata abstract, so the as-of date cannot be read (it is shown to readers and must not be guessed). | Read the new `.shp.iso.xml` abstract, update `asOfFromMetadata` and its test, bump the adapter version. |
+| `failed`, `error: Census boundary files look truncated` / `… is for Congress N, expected 119` | A cut-off download, or the URL now serves another Congress. | Check the two zips (441 district and 56 state records expected); nothing was loaded. |
 | `Curated data is invalid: file:line …` | A merged YAML file fails the schema. | Fix the file; nothing from the curated run was loaded. |
 | Voteview TLS error | Their certificate chain; never disable verification. | Retry later; report upstream if it persists. |
 
