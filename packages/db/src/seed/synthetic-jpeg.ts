@@ -1,7 +1,7 @@
 /**
  * A tiny, clearly synthetic baseline JPEG: one flat grey tone, no face, no content.
  * Used for the fictional development seed and test fixtures, so a real photo is never
- * attached to an invented person (DECISIONS A81). No image library is needed: every 8x8
+ * attached to an invented person (DECISIONS A85). No image library is needed: every 8x8
  * block has the same DC value and no AC coefficients, so the entropy-coded data is a
  * few bits per block with custom (tiny) Huffman tables.
  */

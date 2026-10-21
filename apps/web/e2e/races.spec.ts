@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Races (DECISIONS A86 to A93): the index, a race page, the no-JavaScript state filter, the
+ * Races (DECISIONS A86 to A95): the index, a race page, the no-JavaScript state filter, the
  * opt-in receipts order and the profile link. Business values are compared with /api/v1 and
  * MCP in shared-values.spec.ts; this file covers what a person does.
  */

@@ -120,6 +120,17 @@ describe('formatFecName', () => {
     expect(formatFecName('SMITH, JOHN COL ALLEN')).toBe('Smith, John Col Allen');
   });
 
+  it.each([
+    ['SMITH, J.D.', 'J.D. Smith'],
+    ['SCHOLTEN, J.D. ROBERT', 'J.D. Robert Scholten'],
+    ['SCHOLTEN, JD', 'Scholten, JD'],
+    ['LAM, HON', 'Lam, Hon'],
+    ['NGUYEN, SEN', 'Nguyen, Sen'],
+    ['SMITH, JOHN M.D.', 'John Smith MD'],
+  ])('never drops or relabels a word that is the given name: %s', (filed, shown) => {
+    expect(formatFecName(filed)).toBe(shown);
+  });
+
   it('does not change a name that is already readable', () => {
     expect(formatFecName('Jodey Arrington')).toBe('Jodey Arrington');
   });

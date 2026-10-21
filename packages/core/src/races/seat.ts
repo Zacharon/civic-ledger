@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 /**
  * Seat keys are the stable race identifiers used in URLs, the API and MCP:
- * `ga-senate`, `ga-10`, and `ak-al` for an at-large House seat (DECISIONS A86).
+ * `ga-senate`, `ga-10`, and `ak-al` for an at-large House seat (DECISIONS A87).
  * A key names the seat in a state, not an election: a state with two Senate elections in
  * one cycle (a regular and a special) has one `-senate` key, because the FEC candidate
  * master does not say which of the two a Senate candidate is running in.

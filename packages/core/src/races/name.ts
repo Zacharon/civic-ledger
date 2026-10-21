@@ -216,6 +216,9 @@ function peel(tokens: string[]): Peeled | null {
     }
     return special(t);
   });
+  // FEC filers often put a credential first ("RAZACK, MD JD, NIZAM"), but a dotted initialism
+  // at the start ("SCHOLTEN, J.D. ROBERT") is the given name, not the J.D. degree.
+  if (marks[0]?.kind === 'suffix' && isInitialism(tokens[0] ?? '')) marks[0] = null;
   let from = 0;
   while (from < tokens.length && marks[from]) from++;
   let to = tokens.length;
@@ -227,6 +230,13 @@ function peel(tokens: string[]): Peeled | null {
     suffixes: unique(run.flatMap((m) => (m?.kind === 'suffix' && m.shown ? [m.shown] : []))),
     core: tokens.slice(from, to),
   };
+}
+
+/** One given-name word: a lone letter gets a period; "JD", "TJ" (no vowel) stay initials. */
+function givenToken(token: string): string {
+  if (/^\p{Lu}{2,3}$/u.test(token) && !/[AEIOUY]/u.test(token)) return token;
+  const cased = caseToken(token);
+  return /^\p{L}$/u.test(token) ? `${cased}.` : cased;
 }
 
 export function formatFecName(asFiled: string): string {
@@ -245,6 +255,13 @@ export function formatFecName(asFiled: string): string {
   const surnameTokens = words(cleaned.slice(0, comma));
   const given = peel(words(cleaned.slice(comma + 1)));
   if (!given || surnameTokens.length === 0) return recase(cleaned);
+  const givenTokens = words(cleaned.slice(comma + 1));
+  if (given.core.length === 0 && givenTokens.length > 0) {
+    // Nothing left of the given names ("LAM, HON", "NGUYEN, SEN", "SCHOLTEN, JD"): the word may
+    // be the name, so keep the filed order and every word, and fix only the case.
+    const surnameAsFiled = surnameTokens.map((t) => caseToken(t)).join(' ');
+    return `${surnameAsFiled}, ${givenTokens.map(givenToken).join(' ')}`;
+  }
 
   // A generational suffix after the surname ("WHALEN III") moves to the end; nothing else
   // is taken out of the surname.
@@ -258,10 +275,7 @@ export function formatFecName(asFiled: string): string {
     } else break;
   }
 
-  const givenShown = given.core.map((token) => {
-    const cased = caseToken(token);
-    return /^\p{L}$/u.test(token) ? `${cased}.` : cased;
-  });
+  const givenShown = given.core.map(givenToken);
   const surname = surnameTokens.map((t) => caseToken(t));
   return [
     ...given.titles,

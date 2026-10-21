@@ -90,7 +90,9 @@ these capabilities, so the page, `/api/v1` and MCP return the same values.
 All three are anonymous public reads with strict schemas, no writes, no approval step and no
 idempotency key (gates 1-4 apply; gates 5-7 do not, there is no user data or external effect).
 
-`races.list` and `races.get` (DECISIONS A21 amendment, A86-A92) read the FEC candidate
+### Races (2026-10-20)
+
+`races.list` and `races.get` (DECISIONS A21 amendment, A86-A95) read the FEC candidate
 master. `races.list` input: `cycle` (default: latest cycle with registrations), `chamber`,
 `state`, `person` (seats that member is registered in or sitting in with the seat up);
 output: `notice` (registration is not a ballot), per seat `seat {key, chamber, state, district}`, `seatUp`, `incumbents` (slug, name,

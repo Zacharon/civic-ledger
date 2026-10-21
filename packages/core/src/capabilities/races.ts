@@ -722,9 +722,6 @@ export const racesGet = defineCapability({
     if (!existing.has(key) && seatIncumbents.length === 0) {
       throw notFound(`No seat "${input.seat}" in ${cycle}`);
     }
-    if (rows.length === 0 && seatIncumbents.length === 0 && !existing.has(key)) {
-      throw notFound(`No race for seat "${input.seat}" in ${cycle}`);
-    }
 
     const personIds = [...new Set(rows.flatMap((r) => (r.personId === null ? [] : [r.personId])))];
     const committees = [
