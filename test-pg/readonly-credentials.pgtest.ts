@@ -82,6 +82,7 @@ describe('production read-only credentials on Postgres 17', () => {
         'scores.list': { slug },
         'promises.list': { slug },
         'people.compare': { slugs: [slug, 'dana-dunmere'] },
+        'races.get': { seat: 'zv-senate' },
         'frameworks.evaluate': { framework: frameworks.items[0]?.spec },
       };
       for (const { name } of publicCapabilities()) {
