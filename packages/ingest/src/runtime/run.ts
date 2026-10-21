@@ -304,6 +304,9 @@ async function loadAndPublish(tx: Db, a: PublishArgs): Promise<RunRow> {
     }
   }
 
+  // The snapshot's own note (the upstream tree id for member-photos) joins any shrink-guard note.
+  note = [a.snapshot.note, note].filter(Boolean).join('; ') || null;
+
   const before = await readModelRefreshedAt(tx);
   await (a.rt.refreshReadModel ?? refreshPersonCard)(tx);
   control.checkpoint();

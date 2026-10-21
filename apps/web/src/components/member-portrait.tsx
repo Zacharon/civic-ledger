@@ -1,8 +1,11 @@
-import type { Portrait } from '@civic-ledger/core';
+import { PORTRAIT_CREDIT, type Portrait } from '@civic-ledger/core';
 import { SourceMark, type SourceNotes } from '@/components/sources';
 
-/** Same words for every member without a portrait; no initials, no silhouette. */
-export const NO_PORTRAIT_TEXT = 'No official portrait published yet';
+/**
+ * Same words for every member without a portrait; no initials, no silhouette. "On file" is
+ * true whatever the reason (never published, a former member, a file we rejected).
+ */
+export const NO_PORTRAIT_TEXT = 'No official portrait on file';
 
 interface MemberPortraitProps {
   /** `people.get` `portrait`: facts only, the image is served from our own origin. */
@@ -39,6 +42,10 @@ export function MemberPortrait({
         <div className="member-portrait-frame member-portrait-empty">
           <p>{NO_PORTRAIT_TEXT}</p>
         </div>
+        {/* Invisible copy of the credit line: the same caption height keeps headers aligned. */}
+        <figcaption aria-hidden="true" className="member-portrait-spacer">
+          {PORTRAIT_CREDIT}
+        </figcaption>
       </figure>
     );
   }

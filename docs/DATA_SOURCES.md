@@ -70,10 +70,12 @@ API v3 `https://v3.openstates.org/` key required (rate limits unverified). Bulk:
 
 Added 2026-10-20 as ingest source `member-photos` (DECISIONS A72). Repository
 `https://github.com/unitedstates/images`, branch `gh-pages`, published on GitHub Pages. Its README
-states the photos are public domain: they come from the U.S. Government Publishing Office Member
-Guide (`https://memberguide.gpo.gov/`), "which has assured us that all photos are public domain";
-where GPO has no photo the maintainers may accept another official public-domain one, so the credit
-line names the Member Guide as the origin of the collection.
+states the photos are public domain. The collection's main origin is the U.S. Government Publishing
+Office Member Guide (`https://memberguide.gpo.gov/`), "which has assured us that all photos are public
+domain"; where GPO has no photo the maintainers accept another official public-domain one (for
+example `O000172` is credited upstream to the U.S. House Office of Photography). The source record
+therefore names the Member Guide as the main origin, and the credit shown with each portrait names the
+collection: "Official portrait · public domain · via unitedstates/images".
 
 * URL pattern: `https://unitedstates.github.io/images/congress/{225x275|450x550|original}/{BIOGUIDE}.jpg`
   (`original` is typically 675x825 and is not used). Keyed by Bioguide id; no auth; no rate limit stated;
@@ -89,6 +91,13 @@ line names the Member Guide as the origin of the collection.
 * Selection: everyone with a Bioguide id and a term that ends after 2025-01-03 (current members and
   those who left during the 119th Congress). The rest of the repository (former members back to 1789,
   about 250 MB for both sizes) is not fetched.
+* Verification: the listing gives each file's git blob SHA-1 and size; a download that does not hash to
+  it is rejected, and the listing's tree id is recorded in the run receipt's `note` and the manifest.
+  An optional `GITHUB_TOKEN` is sent as a bearer token to the listing request only (never logged).
+* Metadata: files carry EXIF/XMP (camera serial numbers, photographer names, edit history), Photoshop
+  data, comments and embedded thumbnails (2026-10-20: 508 of 1,078 files had EXIF/XMP, 484 APP13, 4
+  comments, 386 a thumbnail, none GPS). They are removed on load without re-encoding (11,448,128 bytes,
+  9.8%); JFIF, the ICC profile and the Adobe segment (needed by the CMYK file) are kept.
 * Validation: each file must be a complete grayscale, colour or CMYK JPEG (SOI ... EOI, frame header, scan)
   at most 2 MiB and inside its variant's pixel box (no larger than 225x275 or 450x550, at least 20% of its
   area); anything else (an HTML error page served with 200, a truncated download, an

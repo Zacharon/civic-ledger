@@ -43,7 +43,7 @@ test.describe('profile with a portrait', () => {
       .toBeGreaterThan(0);
 
     await expect(figure.locator('figcaption')).toHaveText(
-      /^Official portrait · GPO Member Guide · public domain\d*$/,
+      /^Official portrait · public domain · via unitedstates\/images\d*$/,
     );
     const box = await frame(page);
     expect(box.width / box.height).toBeCloseTo(0.8, 2);
@@ -63,6 +63,21 @@ test.describe('profile with a portrait', () => {
     const foreign = requested.filter((url) => !url.startsWith(origin) && !url.startsWith('data:'));
     expect(foreign).toEqual([]);
     expect(requested.some((url) => url.includes('/portrait?size='))).toBe(true);
+  });
+
+  test('the name is read before the portrait: h1 precedes the figure in the DOM', async ({
+    page,
+  }) => {
+    for (const slug of [WITH, WITHOUT]) {
+      await page.goto(`/people/${slug}`);
+      const order = await page.evaluate(() => {
+        const h1 = document.querySelector('h1');
+        const figure = document.querySelector('.member-portrait');
+        if (!h1 || !figure) return null;
+        return Boolean(h1.compareDocumentPosition(figure) & Node.DOCUMENT_POSITION_FOLLOWING);
+      });
+      expect(order, slug).toBe(true);
+    }
   });
 
   test('lists the portrait source with the other header sources', async ({ page }) => {
@@ -93,11 +108,22 @@ test.describe('profile without a portrait', () => {
     await page.goto(`/people/${WITHOUT}`);
     const figure = page.locator('.member-portrait');
     await expect(figure).toHaveAttribute('data-portrait', 'missing');
-    await expect(figure).toHaveText('No official portrait published yet');
+    await expect(figure.locator('.member-portrait-empty')).toHaveText(
+      'No official portrait on file',
+    );
+    // The invisible caption spacer is not announced and takes no part in reading the tile.
+    await expect(figure.locator('figcaption')).toHaveAttribute('aria-hidden', 'true');
     await expect(figure.locator('img, svg')).toHaveCount(0);
     const withoutBox = await frame(page);
     expect(withoutBox.width).toBeCloseTo(withBox.width, 0);
     expect(withoutBox.height).toBeCloseTo(withBox.height, 0);
+    // Same caption height, so the rest of the header lines up with or without a photo.
+    const figureHeight = async () =>
+      (await page.locator('.member-portrait').boundingBox())?.height ?? Number.NaN;
+    const without = await figureHeight();
+    await page.goto(`/people/${WITH}`);
+    expect(Math.abs((await figureHeight()) - without)).toBeLessThanOrEqual(2);
+    await page.goto(`/people/${WITHOUT}`);
 
     // Square corners, sunk paper surface, hairline border, no shadow.
     const style = await page.locator('.member-portrait-frame').evaluate((el) => {
@@ -202,7 +228,9 @@ test.describe('portrait file route', () => {
     const profile = (await (await request.get(`/api/v1/people.get?slug=${WITH}`)).json()) as {
       portrait: { url: string; credit: string; variants: Array<{ size: number; sha256: string }> };
     };
-    expect(profile.portrait.credit).toBe('Official portrait · GPO Member Guide · public domain');
+    expect(profile.portrait.credit).toBe(
+      'Official portrait · public domain · via unitedstates/images',
+    );
     expect(web.headers().etag).toBe(
       `"${profile.portrait.variants.find((v) => v.size === 450)?.sha256}"`,
     );

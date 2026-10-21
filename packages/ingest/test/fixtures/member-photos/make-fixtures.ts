@@ -9,6 +9,15 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { syntheticGreyJpeg } from '../../../../db/src/seed/synthetic-jpeg';
+import {
+  adobeSegment,
+  commentSegment,
+  exifSegment,
+  iccSegment,
+  jfxxSegment,
+  photoshopSegment,
+  withSegments,
+} from '../../support/jpeg-segments';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const write = (path: string, bytes: Uint8Array | string) => {
@@ -41,3 +50,18 @@ write('450x550/K000401.jpg', syntheticGreyJpeg(600, 750, 140));
 // The small file was cut off before its end-of-image marker.
 write('225x275/H001096.jpg', small(130).slice(0, 400));
 write('450x550/H001096.jpg', large(130));
+
+// C000127 carries the metadata real files carry: EXIF with GPS and a thumbnail, a comment, Photoshop
+// data and a JFXX thumbnail (all dropped on load), plus an ICC profile and an Adobe segment (kept).
+write(
+  '225x275/C000127.jpg',
+  withSegments(small(150), [
+    exifSegment({ gps: true, thumbnail: true }),
+    commentSegment('edited by a fake photographer'),
+    photoshopSegment(),
+    jfxxSegment(),
+    iccSegment(),
+    adobeSegment(),
+  ]),
+);
+write('450x550/C000127.jpg', withSegments(large(150), [exifSegment({ gps: false, thumbnail: false })]));

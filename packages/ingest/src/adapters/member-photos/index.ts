@@ -14,12 +14,12 @@ export const memberPhotosAdapter: SourceAdapter<PortraitParsed> = {
     name: 'unitedstates/images (GPO Member Guide portraits)',
     url: 'https://github.com/unitedstates/images',
     license:
-      'Public domain: official photos from the U.S. Government Publishing Office Member Guide (memberguide.gpo.gov)',
+      'Public domain official photos, mainly from the U.S. Government Publishing Office Member Guide (memberguide.gpo.gov); the collection also accepts other official public-domain sources',
     licenseUrl: 'https://github.com/unitedstates/images#public-domain',
     description:
-      'Official portrait of each current member and of those who served during the 119th Congress, in two sizes (225x275 and 450x550), keyed by Bioguide id. Not every member has one.',
+      'Official portrait of each current member and of those who served during the 119th Congress, in two sizes (225x275 and 450x550), keyed by Bioguide id, with embedded metadata removed. Mainly from the GPO Member Guide, republished by unitedstates/images. Not every member has one.',
   },
-  version: 'member-photos@3',
+  version: 'member-photos@4',
   // The people it attaches photos to come from the identity spine.
   dependsOn: ['congress-legislators'],
   scopes: ['all'],

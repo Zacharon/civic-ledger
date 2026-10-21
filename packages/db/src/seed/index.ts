@@ -147,6 +147,9 @@ async function loadPortraits(
             width,
             height,
             sha256: createHash('sha256').update(bytes).digest('hex'),
+            // Generated files carry no metadata, so the stored bytes are the origin bytes.
+            originSha256: createHash('sha256').update(bytes).digest('hex'),
+            originByteLength: bytes.byteLength,
             originUrl: `${EXAMPLE}/portraits/${variant}/${p.bioguide}.jpg`,
             ...provenance(`portrait:${p.bioguide}:${variant}`),
           };

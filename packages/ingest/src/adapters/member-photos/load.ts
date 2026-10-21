@@ -20,11 +20,17 @@ export async function loadMemberPhotos(
     'portraits',
     'people_with_portrait',
     'portrait_bytes',
+    'origin_bytes',
+    'metadata_bytes_removed',
+    'files_with_exif',
+    'files_with_gps',
+    'files_with_thumbnail',
+    'people_without_450',
     'people_in_scope',
     'people_without_portrait',
     'files_rejected',
     'rejected_bad_name',
-    'rejected_incomplete_pair',
+    'rejected_missing_1x',
     'rejected_too_large',
     'rejected_not_jpeg',
     'rejected_wrong_size',
@@ -57,9 +63,15 @@ export async function loadMemberPhotos(
         continue;
       }
       loaded.add(personId);
+      if (record.files.length < 2) counts.add('people_without_450');
       for (const file of record.files) {
         counts.add('portraits');
         counts.add('portrait_bytes', file.bytes.byteLength);
+        counts.add('origin_bytes', file.originBytes);
+        counts.add('metadata_bytes_removed', file.removedBytes);
+        if (file.hadExif) counts.add('files_with_exif');
+        if (file.hadGps) counts.add('files_with_gps');
+        if (file.hadThumbnail) counts.add('files_with_thumbnail');
         rows.push({
           personId,
           variant: file.variant,
@@ -69,6 +81,8 @@ export async function loadMemberPhotos(
           width: file.width,
           height: file.height,
           sha256: file.sha256,
+          originSha256: file.originSha256,
+          originByteLength: file.originBytes,
           originUrl: file.originUrl,
           ...provenance(ctx, `portrait:${record.bioguide}:${file.variant}`),
         });

@@ -113,7 +113,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
   return (
     <div className="page-frame pt-6 sm:pt-8">
       <div className="grid gap-x-10 gap-y-8 lg:grid-cols-12">
-        <header className="min-w-0 lg:col-span-8">
+        <header className="profile-header min-w-0 lg:col-span-8">
           <nav aria-label="Breadcrumb" className="text-sm text-ink-2">
             <Link href={exploreHref(ids)} className="link">
               Explore
@@ -123,17 +123,18 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
             </span>{' '}
             <span aria-current="page">{person.fullName}</span>
           </nav>
+          <p className="eyebrow mt-6">Member record</p>
+          <h1 className="page-title mt-3">
+            {person.fullName}
+            <SourceMark notes={headerNotes} n={personMark} />
+          </h1>
+          {/* After the h1 in the DOM so assistive tech reads the name first; CSS grid puts it at left. */}
           <MemberPortrait
             portrait={profile.portrait}
             name={person.fullName}
             notes={headerNotes}
             mark={portraitMark}
           />
-          <p className="eyebrow mt-6">Member record</p>
-          <h1 className="page-title mt-3">
-            {person.fullName}
-            <SourceMark notes={headerNotes} n={personMark} />
-          </h1>
           <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-lg text-ink-2">
             <span
               className={card.isCurrent ? 'record-status' : 'record-status record-status-plain'}

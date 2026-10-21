@@ -6,8 +6,9 @@ evidence only: nothing is pushed, merged or deployed. Decisions: DECISIONS A72-A
 ## What it does
 
 * **Self-hosted images.** New ingest source `member-photos` downloads the public-domain official photos
-  (GPO Member Guide, republished by `unitedstates/images`) into table `person_portrait`
-  (migration `0006_person_portraits`, one file). Readers' browsers only ever request our own origin
+  (mainly the GPO Member Guide, republished by `unitedstates/images`) into table `person_portrait`
+  (migration `0006_person_portraits`, one file), with embedded metadata removed and every download
+  verified against its git blob SHA-1. Readers' browsers only ever request our own origin
   (CSP `img-src 'self' data: blob:` is unchanged).
 * **One capability, three adapters.** `people.get` gains `portrait` (`url`, `width`, `height`, `credit`,
   `sourceUrl`, `asOf`, `variants[]`, `provenance`, or `null`). New public binary read `people.portrait@1`
@@ -15,9 +16,9 @@ evidence only: nothing is pushed, merged or deployed. Decisions: DECISIONS A72-A
   `304`, `nosniff`; MCP tool `people_portrait` returns an image block plus metadata;
   `/people/<slug>/portrait?size=225|450&v=<key>` forwards to the same handler.
 * **Display.** `MemberPortrait` in the member profile header: 4:5 frame (168 px, 104 px on phones), credit
-  line "Official portrait · GPO Member Guide · public domain" with a source mark, alt text
+  line "Official portrait · public domain · via unitedstates/images" with a source mark, alt text
   "Official portrait of {name}", 1x/2x `srcset`, explicit `width`/`height`. Without a portrait: a same-size
-  tile reading "No official portrait published yet". Never on race pages (DESIGN.md "Portraits").
+  tile reading "No official portrait on file". Never on race pages (DESIGN.md "Portraits").
 * **Seed.** The fictional seed gets flat grey synthetic JPEGs (no face, no real photo) for most members and
   none for every fourth (`dana-dunmere` is the e2e member without one).
 
@@ -30,7 +31,9 @@ Command: `DATABASE_URL= pnpm ingest all --db .pglite/live --migrate`, then `pnpm
 |---|---|
 | People in scope (Bioguide id, term ending after 2025-01-03) | 555 |
 | People with a portrait | **539** (1,078 files, 225x275 + 450x550) |
-| Bytes stored | **117,303,947** (111.9 MiB) |
+| Bytes stored | **105,855,819** (100.9 MiB), from 117,303,947 downloaded |
+| Metadata removed | 11,448,128 bytes (9.8%): 508 files had EXIF/XMP, 484 Photoshop (APP13), 4 comments, **386 an embedded thumbnail, 0 GPS**. Decoded pixels identical for all 1,078 (PIL comparison), no `Exif` / XMP / `Photoshop` text left |
+| Verification | all 1,078 files hashed to the git blob SHA-1 in the listing; tree `aec3e4a88af843b282c0576f420b930f6a9a46ad` is in the run receipt |
 | Current members with a portrait | **524 of 539** (checked through `/people/<slug>/portrait` for every current member; the 15 without are exactly the 15 newest members; 523 before the CMYK file was accepted) |
 | Files rejected on the final run | 0 |
 | In scope without a portrait | 16 (the 15 newest current members B001323 G000606 G000607 W000832 B001328 F000485 B001321 B001324 M001246 H001104 A000383 G000608 V000139 M001245 W000831, plus one former member) |
@@ -95,10 +98,12 @@ Screenshots (1440 and 390 px, light and dark, the three members above):
 
 ## Limits and open points
 
-* Credit wording is the owner's. The upstream README says the files come from the GPO Member Guide and that
-  other official public-domain photos may be added when GPO has none, so "GPO Member Guide" names the
-  collection's origin, not a per-file guarantee.
-* The files carry their original EXIF (camera model, edit software) and are served byte for byte.
+* Credit wording was changed after review: upstream credits some files to other official sources (for
+  example O000172 to the House Office of Photography), so the line now names the collection ("via
+  unitedstates/images"), and DATA_SOURCES names the GPO Member Guide as its main origin.
+* Embedded metadata is removed on load (no re-encoding); the downloaded file's sha256 and size stay in
+  `origin_sha256` / `origin_byte_length`. The ICC profile and the Adobe segment (needed by the CMYK file)
+  are kept.
 * ~117 MB of image bytes now live in the database and in every backup. Widening to all former members
   would add ~250 MB.
 * Not built: portraits on Compare headers (optional in the brief).

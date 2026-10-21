@@ -20,6 +20,8 @@ const SUPPORTED_MANIFEST_VERSIONS: readonly number[] = [MANIFEST_SCHEMA_VERSION]
 export interface SnapshotManifest {
   schema_version: number;
   source: string;
+  /** The plan's note (e.g. the upstream tree id), when the snapshot was written with one. */
+  note?: string;
 }
 
 /** Reads `manifest.json` from a snapshot directory, or null when there is none. */
@@ -31,14 +33,22 @@ export async function readManifest(directory: string): Promise<SnapshotManifest 
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
     throw error;
   }
-  const raw = JSON.parse(text) as { schema_version?: unknown; source?: unknown };
+  const raw = JSON.parse(text) as {
+    schema_version?: unknown;
+    source?: unknown;
+    note?: unknown;
+  };
   const version = raw.schema_version ?? MANIFEST_SCHEMA_VERSION;
   if (typeof version !== 'number' || !SUPPORTED_MANIFEST_VERSIONS.includes(version)) {
     throw new Error(
       `${join(directory, MANIFEST_FILE)}: manifest schema_version ${String(version)} is not supported (this build reads ${SUPPORTED_MANIFEST_VERSIONS.join(', ')})`,
     );
   }
-  return { schema_version: version, source: String(raw.source ?? '') };
+  return {
+    schema_version: version,
+    source: String(raw.source ?? ''),
+    ...(typeof raw.note === 'string' ? { note: raw.note } : {}),
+  };
 }
 
 /** `data/raw/<source>/<YYYY-MM-DD>/`: one snapshot directory per source and UTC day. */
@@ -95,6 +105,7 @@ export async function fetchSnapshot(
             headers: request.headers,
             signal: ctx.signal,
             logger: ctx.logger,
+            gitBlob: request.gitBlob,
             maxBytes:
               request.maxBytes === undefined
                 ? ctx.maxDownloadBytes
@@ -113,6 +124,7 @@ export async function fetchSnapshot(
     upstream,
     checksum: snapshotChecksum(files, upstream),
     retrievedAt,
+    ...(plan.note ? { note: plan.note } : {}),
   };
   await writeManifest(snapshot, plan);
   return snapshot;
@@ -147,6 +159,7 @@ export async function snapshotFromDirectory(
     upstream,
     checksum: snapshotChecksum(files, upstream),
     retrievedAt: newest > 0 ? new Date(newest) : new Date(),
+    ...(plan.note || manifest?.note ? { note: plan.note ?? manifest?.note } : {}),
   };
 }
 
@@ -157,6 +170,7 @@ async function writeManifest(snapshot: RawSnapshot, plan: FetchPlan): Promise<vo
     source: snapshot.source,
     checksum: snapshot.checksum,
     retrievedAt: snapshot.retrievedAt.toISOString(),
+    ...(snapshot.note ? { note: snapshot.note } : {}),
     upstream: snapshot.upstream,
     files: snapshot.files.map((f) => ({ ...f, from: urls.get(f.fileName) ?? null })),
   };

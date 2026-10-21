@@ -7,6 +7,7 @@ import {
   MAX_BODY_BYTES,
 } from '../src/server/api/handler';
 import { createLogger } from '../src/server/api/logger';
+import { mediaCacheControl } from '../src/server/api/media';
 import { closedDb, ORIGIN, seededStack } from './stack';
 
 const stack = seededStack();
@@ -175,10 +176,16 @@ describe('OPTIONS preflight', () => {
 describe('cache policy', () => {
   it('names a class for every public capability, and no-store only for evaluate', () => {
     for (const { name, transport } of publicCapabilities()) {
-      // Binary capabilities carry their own policy (media.ts, portrait-http.test.ts).
-      if (transport === 'binary') continue;
       expect(CACHE_CLASS[name as keyof typeof CACHE_CLASS], name).toBeDefined();
       const control = cacheControlFor(name);
+      if (transport === 'binary') {
+        // Binary capabilities are not given a JSON cache class: they are `none` here and are
+        // sent with media.ts's own policy (mediaCacheControl, portrait-http.test.ts).
+        expect(CACHE_CLASS[name as keyof typeof CACHE_CLASS], name).toBe('none');
+        expect(control, name).toBe('no-store');
+        expect(mediaCacheControl('a'.repeat(64), undefined), name).toMatch(/s-maxage/);
+        continue;
+      }
       if (name === 'frameworks.evaluate') expect(control).toBe('no-store');
       else expect(control).toMatch(/^public, max-age=0, s-maxage=\d+, stale-while-revalidate=\d+$/);
     }

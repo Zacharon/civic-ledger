@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ParseContext, RawSnapshot } from '../../adapter';
-import { inspectJpeg, JpegError } from './jpeg';
+import { inspectJpeg, JpegError, stripJpegMetadata } from './jpeg';
 import {
   fitsVariantBox,
   isBioguideId,
@@ -18,11 +18,20 @@ export interface PortraitFile {
   bytes: Uint8Array;
   width: number;
   height: number;
+  /** sha256 of `bytes` (metadata stripped): the ETag and cache key. */
   sha256: string;
+  /** sha256 and size of the file exactly as downloaded: provenance. */
+  originSha256: string;
+  originBytes: number;
   originUrl: string;
+  /** What stripping found and removed (for the receipt). */
+  removedBytes: number;
+  hadExif: boolean;
+  hadGps: boolean;
+  hadThumbnail: boolean;
 }
 
-/** A person whose complete, validated pair of images was found in the snapshot. */
+/** A person with a validated 225x275 image and, when upstream has it, a 450x550 one. */
 export interface PortraitRecord {
   kind: 'portrait';
   bioguide: string;
@@ -31,7 +40,7 @@ export interface PortraitRecord {
 
 export type RejectReason =
   | 'bad_name'
-  | 'incomplete_pair'
+  | 'missing_1x'
   | 'too_large'
   | 'not_jpeg'
   | 'wrong_size'
@@ -48,10 +57,14 @@ export interface RejectedRecord {
 export type PortraitParsed = PortraitRecord | RejectedRecord;
 
 /**
- * Validates each person's pair of images (225x275 and 450x550) before anything is stored: it
- * must be a complete JPEG (SOI ... EOI), within the per-file cap, and inside the variant's
- * pixel box (upstream fits photos to the box, so widths vary). One bad file rejects that person's pair; the rest still load. Files are read
- * one person at a time, so memory stays O(one pair).
+ * Validates each person's images before anything is stored. A file must be a complete JPEG
+ * (SOI ... EOI), within the per-file cap, and inside its variant's pixel box (upstream fits
+ * photos to the box, so widths vary). It is then copied without its metadata (EXIF/XMP, comments,
+ * thumbnails; never re-encoded) and the stripped bytes are validated again; the stored sha256 is
+ * the stripped file's, the downloaded file's sha256 is kept as provenance. The 225x275 file is
+ * required, the 450x550 (the 2x source) optional. One bad file rejects that person (an earlier
+ * good pair is kept by the loader); the rest still load. Files are read one person at a time,
+ * so memory stays O(one pair).
  */
 export async function* parseMemberPhotos(
   snapshot: RawSnapshot,
@@ -84,13 +97,12 @@ export async function* parseMemberPhotos(
     ctx.signal?.throwIfAborted();
     const found = byPerson.get(bioguide);
     if (!found) continue;
-    const missing = VARIANTS.filter((v) => !found.has(v.folder));
-    if (missing.length > 0) {
+    if (!found.has('225x275')) {
       yield {
         kind: 'rejected',
         bioguide,
-        reason: 'incomplete_pair',
-        detail: `missing ${missing.map((v) => v.folder).join(', ')}`,
+        reason: 'missing_1x',
+        detail: 'has a 450x550 file but no 225x275 file',
       };
       continue;
     }
@@ -120,13 +132,24 @@ export async function* parseMemberPhotos(
           );
           break;
         }
+        const stripped = stripJpegMetadata(bytes);
+        const after = inspectJpeg(stripped.bytes);
+        if (after.width !== info.width || after.height !== info.height) {
+          throw new JpegError('stripping changed the image size');
+        }
         files.push({
           variant: variant.folder,
-          bytes,
-          width: info.width,
-          height: info.height,
-          sha256: createHash('sha256').update(bytes).digest('hex'),
+          bytes: stripped.bytes,
+          width: after.width,
+          height: after.height,
+          sha256: createHash('sha256').update(stripped.bytes).digest('hex'),
+          originSha256: createHash('sha256').update(bytes).digest('hex'),
+          originBytes: bytes.byteLength,
           originUrl: originUrl(variant.folder, bioguide),
+          removedBytes: stripped.removedBytes,
+          hadExif: stripped.hadExif,
+          hadGps: stripped.hadGps,
+          hadThumbnail: stripped.hadThumbnail,
         });
       } catch (error) {
         if (!(error instanceof JpegError)) throw error;

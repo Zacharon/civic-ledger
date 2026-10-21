@@ -54,7 +54,7 @@ export async function checkPortrait(
   await expect(figure).toHaveCount(1);
   if (!portrait) {
     await expect(figure).toHaveAttribute('data-portrait', 'missing');
-    await expect(figure).toContainText('No official portrait published yet');
+    await expect(figure).toContainText('No official portrait on file');
     await expect(figure.locator('img')).toHaveCount(0);
     return;
   }
@@ -68,7 +68,7 @@ export async function checkPortrait(
   if (two) await expect(image).toHaveAttribute('srcset', `${portrait.url} 1x, ${two.url} 2x`);
   await expect(figure.locator('figcaption')).toContainText(portrait.credit);
   await expect(figure.locator('figcaption')).toContainText(
-    'Official portrait · GPO Member Guide · public domain',
+    'Official portrait · public domain · via unitedstates/images',
   );
 }
 

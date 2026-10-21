@@ -1,5 +1,5 @@
 {
-  "id": "ca6063cb-4e20-4766-b2cd-8e7aa1a0d6a6",
+  "id": "c706d1e8-ca85-4821-b610-f40ee0e3d9cc",
   "prevId": "046539fa-bc5c-40b1-8135-1070866c4c94",
   "version": "7",
   "dialect": "postgresql",
@@ -4966,6 +4966,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "origin_sha256": {
+          "name": "origin_sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origin_byte_length": {
+          "name": "origin_byte_length",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
         "origin_url": {
           "name": "origin_url",
           "type": "text",
@@ -4998,21 +5010,6 @@
         }
       },
       "indexes": {
-        "person_portrait_person_idx": {
-          "name": "person_portrait_person_idx",
-          "columns": [
-            {
-              "expression": "person_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "person_portrait_source_idx": {
           "name": "person_portrait_source_idx",
           "columns": [
@@ -5103,7 +5100,24 @@
         }
       },
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "person_portrait_content_type_check": {
+          "name": "person_portrait_content_type_check",
+          "value": "\"person_portrait\".\"content_type\" = 'image/jpeg'"
+        },
+        "person_portrait_length_check": {
+          "name": "person_portrait_length_check",
+          "value": "octet_length(\"person_portrait\".\"data\") = \"person_portrait\".\"byte_length\""
+        },
+        "person_portrait_sha256_check": {
+          "name": "person_portrait_sha256_check",
+          "value": "\"person_portrait\".\"sha256\" ~ '^[0-9a-f]{64}$'"
+        },
+        "person_portrait_origin_sha256_check": {
+          "name": "person_portrait_origin_sha256_check",
+          "value": "\"person_portrait\".\"origin_sha256\" ~ '^[0-9a-f]{64}$'"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.ideology_score": {

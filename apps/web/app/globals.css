@@ -295,20 +295,38 @@
   }
 
   /*
-   * Official portrait in a member record header. Floated left of the identity lines so the
-   * header's markup is unchanged; the facts list clears it. 4:5 frame, same size and weight
-   * with or without a photo; the missing tile is the sunk surface with one line of text.
+   * Official portrait in a member record header. The portrait comes after the h1 in the DOM (a
+   * screen reader reads the name first) and is placed to its left with grid: the portrait column
+   * spans the identity rows, the last of which is `1fr` so a tall portrait never stretches the
+   * text rows. The facts list and anything after it use the full width, below the portrait.
+   * 4:5 frame, same size and weight with or without a photo; the missing tile is the sunk
+   * surface with one line of text.
    */
-  .member-portrait {
-    float: left;
-    width: 6.5rem;
-    margin: 1.5rem 1rem 0.75rem 0;
+  .profile-header {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    grid-template-rows: auto repeat(5, auto) 1fr;
+    column-gap: 1rem;
   }
   @media (min-width: 640px) {
-    .member-portrait {
-      width: 10.5rem;
-      margin-right: 1.5rem;
+    .profile-header {
+      grid-template-columns: 10.5rem minmax(0, 1fr);
+      column-gap: 1.5rem;
     }
+  }
+  .profile-header > * {
+    grid-column: 2;
+  }
+  .profile-header > nav,
+  .profile-header > dl,
+  .profile-header > dl ~ * {
+    grid-column: 1 / -1;
+  }
+  .profile-header > .member-portrait {
+    grid-column: 1;
+    grid-row: 2 / 8;
+    margin-top: 1.5rem;
+    align-self: start;
   }
   .member-portrait-frame {
     aspect-ratio: 4 / 5;
@@ -340,8 +358,8 @@
     line-height: var(--text-xs--line-height);
     color: var(--ink-3);
   }
-  .member-portrait ~ dl {
-    clear: both;
+  .member-portrait-spacer {
+    visibility: hidden;
   }
 
   /* In-page section navigation (anchor links, not tabs). */

@@ -16,7 +16,7 @@ Each source joins rows loaded by the ones before it, so a full refresh runs in t
 | 3 | `fec-bulk` | `--cycle 2026` | cn, cm, ccl, weball, pas2 zips + IE CSV + candidate summary CSV | 20 MB | 80 s |
 | 4 | `govinfo-billstatus` | `--congress 119` | 8 BILLSTATUS type zips | 54 MB | 89 s |
 | 5 | `curated` | none (all) | `data/curated/**` YAML | <1 MB | 33 s |
-| 6 | `member-photos` | none (all) | GitHub tree listing + `225x275` and `450x550` JPEG per member in scope (1,076 files) | 117 MB | first load ~12 min, rerun ~4 min (2026-10-20, PGlite, machine shared with other builds; see below) |
+| 6 | `member-photos` | none (all) | GitHub tree listing + `225x275` and `450x550` JPEG per member in scope (1,078 files) | 106 MB stored (117 MB downloaded) | first load ~12 min, rerun ~4 min (2026-10-20, PGlite, machine shared with other builds; see below) |
 
 Full first load before `member-photos`: 6 min 10 s. An unchanged rerun (`pnpm ingest all`): 10 s, all files 304,
 every source deduplicated. Defaults: `--congress` = current congress, `--cycle` = current
@@ -30,15 +30,24 @@ the snapshot checksum), and needs the network only for one GitHub API call (the 
 unauthenticated calls per hour per address) plus the image files.
 
 * **Selection:** people with a Bioguide id and a term ending after 2025-01-03 (555 on 2026-10-20). Only
-  people with both sizes in the listing are fetched; a missing portrait is normal (16 of 555: the 15 newest
-  members and one former member).
+  people with at least the 225x275 file in the listing are fetched (the 450x550 file is optional); a
+  missing portrait is normal (16 of 555: the 15 newest members and one former member).
 * **Downloads:** 6 in parallel, each file capped at 2 MiB, the whole selection capped at
   `INGEST_MAX_PORTRAIT_TOTAL_BYTES` (default 400 MiB, checked against the listing before anything is
   fetched), conditional GET with `ETag` from `data/raw/member-photos/http-cache.json`, raw files and
-  `manifest.json` (sha256 per file, source URL) under `data/raw/member-photos/<date>/`.
-* **Validation (per person, both sizes):** complete JPEG (grayscale, colour or CMYK), inside the variant's pixel
-  box and at least 20% of its area. A bad pair is skipped and counted (`rejected_*`, `files_rejected`);
-  if that person had a good pair from an earlier run it is kept (`rejected_kept_previous`).
+  `manifest.json` (sha256 per file, source URL, tree id) under `data/raw/member-photos/<date>/`. Every
+  file, and every cached copy offered for a 304, is checked against the git blob SHA-1 in the listing; the
+  upstream tree id is in the receipt's `note`. `GITHUB_TOKEN`, when set, lifts the API rate limit (listing
+  request only, never logged).
+* **Validation (per person):** complete JPEG (grayscale, colour or CMYK), inside the variant's pixel
+  box and at least 20% of its area. A bad file rejects the person: counted (`rejected_*`,
+  `files_rejected`), and a good pair from an earlier run is kept (`rejected_kept_previous`).
+* **Metadata stripping (no re-encoding):** EXIF/XMP, Photoshop/IPTC, comments, JFXX and other APPn
+  segments are dropped, the JFIF thumbnail zeroed; JFIF, ICC and Adobe segments and all image data are
+  copied byte for byte, and the result is validated again. The stored sha256 (ETag, cache key) is of the
+  stripped bytes; the downloaded file's sha256 and size are kept in `origin_sha256` / `origin_byte_length`.
+  Counters: `origin_bytes`, `portrait_bytes`, `metadata_bytes_removed`, `files_with_exif`,
+  `files_with_gps`, `files_with_thumbnail`.
 * **Load:** upsert on `(person_id, variant)` with provenance, in batches of 10 people; portraits no longer
   asserted are deleted (`stale_portraits_deleted`) under the shrink guard (dataset `person_portrait`).
 * **Offline reload:** `pnpm ingest member-photos --snapshot data/raw/member-photos/<date>` reads that
@@ -48,9 +57,13 @@ unauthenticated calls per hour per address) plus the image files.
   117 MB); rerun after an adapter version bump, every file answered 304: 4 min 6 s. An unchanged rerun with the
   same adapter version stops after the 304s with `"deduplicated": true`.
 * **Receipt counters:** `portraits` (rows, two per person), `people_with_portrait`, `people_in_scope`,
-  `people_without_portrait`, `portrait_bytes`, `files_rejected` and `rejected_{bad_name,incomplete_pair,
-  too_large,not_jpeg,wrong_size,unreadable}`, `bioguide_not_in_legislators`, `rejected_kept_previous`,
-  `stale_portraits_deleted`. Expected 2026-10-20 (to be confirmed by the final run): 1,078 / 539 / 555 / 16 / ~117 MB / 0.
+  `people_without_portrait`, `people_without_450`, `portrait_bytes`, `files_rejected` and
+  `rejected_{bad_name,missing_1x,too_large,not_jpeg,wrong_size,unreadable}`,
+  `bioguide_not_in_legislators`, `rejected_kept_previous`, `stale_portraits_deleted` and the metadata counters
+  above. Run 2026-10-20 (`member-photos@4`): 1,078 portraits, 539 people, 555 in scope, 16 without, 0 rejected,
+  stored 105,855,819 bytes from 117,303,947 downloaded (11,448,128 removed; 508 files with EXIF/XMP, 386 with
+  a thumbnail, 0 with GPS), 1,078 files verified against their git blob SHA-1, 5 min 43 s with every file a 304
+  (machine shared with other builds).
 
 ## Commands
 

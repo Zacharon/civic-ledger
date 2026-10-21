@@ -178,28 +178,35 @@ Dark: worst adjacent CVD ΔE 8.9, normal-vision 16.5, all ≥ 3:1 on dark `--sur
 
 ## Portraits
 
-The official portrait of a member (public domain, GPO Member Guide, stored by `member-photos`,
-DECISIONS A72) appears in **one** place: the header of a member record
+The official portrait of a member (public domain, from the unitedstates/images collection, mainly the
+GPO Member Guide; stored by `member-photos`, DECISIONS A72) appears in **one** place: the header of a member record
 (`app/people/[slug]/page.tsx`, component `MemberPortrait`).
 
 - **Where, and where not.** Member records only. **Never on race pages**: most challengers have no
   official photo, so showing only incumbents' photos would tilt those pages. Not in Explore rows or
   cards, search results, or framework results either: a photo column would give some rows weight
   others cannot have. (Compare headers could carry one later; not built.)
-- **Frame.** 4:5, floated left of the eyebrow, name, status and actions; 168px wide from 640px, 104px
+- **Frame.** 4:5, at the left of the eyebrow, name, status and actions; 168px wide from 640px, 104px
   on phones. 1px `--rule` border, square corners, no shadow, `--surface-sunk` behind the image. The
-  facts list below clears the float. Upstream fits each photo into a 225x275 box keeping its proportions
+  facts list below uses the full width under it.
+- **Reading order.** The figure comes after the `h1` in the DOM, so assistive technology reads the
+  name first; CSS grid (`.profile-header`: a portrait column, text in the second column, the last
+  portrait row `1fr` so a tall portrait never stretches the text rows) places it at the left. Upstream fits each photo into a 225x275 box keeping its proportions
   (most are 9:11, about 1 in 8 are narrower such as 183x275), so the image is shown with
   `object-fit: contain` on the sunk surface: never cropped, stretched, filtered or recolored.
 - **Image.** Explicit `width`/`height` of the file (225x275, so no layout shift), `srcset` 1x (225)
   and 2x (450), `alt="Official portrait of {name}"`, same origin only. It is the top of the page, so
   it loads eagerly with high priority; the component takes `lazy` for any lower placement.
 - **Credit.** Directly under the image, in the caption size and `--ink-3`:
-  "Official portrait · GPO Member Guide · public domain", with a source mark to the header's Sources
-  list (retrieval date, run). Same words for every member.
-- **Missing.** A tile of the same frame: `--surface-sunk`, the text "No official portrait published
-  yet" centered in `--ink-2` at 14px, nothing else. No initials, no silhouette, no generated avatar, no
-  credit line (there is nothing to credit). Layout and weight are equal for everyone.
+  "Official portrait · public domain · via unitedstates/images", with a source mark to the header's
+  Sources list (retrieval date, run). The words are true of every file: most come from the GPO Member
+  Guide, but the collection also accepts other official public-domain photos (O000172 is credited to
+  the House Office of Photography), so the line names the collection. Same words for every member.
+- **Missing.** A tile of the same frame: `--surface-sunk`, the text "No official portrait on file"
+  centered in `--ink-2` at 14px, nothing else. "On file" stays true whatever the reason (never
+  published, a former member, a file we rejected). No initials, no silhouette, no generated avatar, no
+  visible credit line; an invisible (`visibility: hidden`, `aria-hidden`) copy of the credit gives the
+  figure the same caption height, so the rest of the header lines up with or without a photo.
 - **Contrast.** The credit is `--ink-3` on `--paper` (5.6:1 light, 7.1:1 dark); the tile text is
   `--ink-2` on `--surface-sunk` (axe checks both modes on a member with and one without a portrait).
 

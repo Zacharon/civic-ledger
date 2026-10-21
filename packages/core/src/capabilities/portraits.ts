@@ -15,8 +15,13 @@ export const VARIANT_FOR_SIZE: Record<PortraitSize, PortraitVariant> = {
   450: '450x550',
 };
 
-/** Shown under every portrait; the same words on every record (DESIGN.md "Portraits"). */
-export const PORTRAIT_CREDIT = 'Official portrait · GPO Member Guide · public domain';
+/**
+ * Shown under every portrait; the same words on every record (DESIGN.md "Portraits"). It is
+ * true of every file: most come from the GPO Member Guide, but the collection also accepts other
+ * official public-domain photos (e.g. O000172 is credited to the House Office of Photography), so
+ * the line names the collection, not one origin.
+ */
+export const PORTRAIT_CREDIT = 'Official portrait · public domain · via unitedstates/images';
 
 /** Cache-busting key: the first characters of the file's sha256. */
 export const PORTRAIT_CACHE_KEY_LENGTH = 12;
@@ -130,7 +135,7 @@ export const peoplePortrait = defineCapability({
   audience: 'public',
   transport: 'binary',
   summary:
-    'The official portrait image (JPEG) of a member, 225 or 450 px wide. Public domain, from the GPO Member Guide; get its credit and facts from people.get.',
+    'The official portrait image (JPEG, metadata removed) of a member, 225 or 450 px wide. Public domain, via the unitedstates/images collection; get its credit and facts from people.get.',
   input: PeoplePortraitInput,
   output: PeoplePortraitOutput,
   async handler({ db }, { slug, size }) {
