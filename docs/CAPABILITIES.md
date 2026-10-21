@@ -24,6 +24,7 @@ for public reads; it does not need to.
 |---|---|---|---|
 | `people.search@1` | read | Search box, Explore filters | `GET /api/v1/people.search`, MCP `people_search` |
 | `people.get@1` | read | Profile page | `GET /api/v1/people.get`, MCP `people_get` |
+| `people.portrait@1` | read (binary) | Member profile header image (`/people/<slug>/portrait`) | `GET /api/v1/people.portrait`, MCP `people_portrait` (image block) |
 | `people.glance@1` | read | Profile overview and its evidence links | `GET /api/v1/people.glance`, MCP `people_glance` |
 | `districts.shape@1` | read | District locator map in the profile's Source records panel (`DistrictLocator`; reusable by other pages) | `GET /api/v1/districts.shape?slug=mike-collins-c001129` (member) or `?state=GA&district=10` (place), MCP `districts_shape` |
 | `explainers.list@1` | read | Methodology definitions and profile explanations | `GET /api/v1/explainers.list`, MCP `explainers_list` |
@@ -127,6 +128,13 @@ the 119th Congress lines as the states provided them by 2024-05-31; they are not
 redistricting (DECISIONS A75, DATA_SOURCES section 8). Anonymous public read: strict input, no
 write, no approval step, no idempotency key. Human and agent callers get the same payload; the
 UI draws it with `DistrictLocator`, an agent reads the same paths, description and dates.
+
+`people.get` also states the member's official portrait facts (`portrait`, or `null`), and
+`people.portrait` returns the image itself. Both are anonymous public reads over files our own
+ingest stored (`member-photos`, DECISIONS A81): no write, no approval, no idempotency key. The
+image is a binary capability: HTTP sends it as `image/jpeg` with an ETag equal to its sha256,
+MCP as an image block; the web route `/people/<slug>/portrait` forwards to the same
+handler. Portraits appear on member records only, never on race pages (DESIGN.md "Portraits").
 
 Operator backup, restore, retention and monitor commands are documented in
 [DEPLOY_RENDER.md](DEPLOY_RENDER.md). They are trusted-machine CLI capabilities;

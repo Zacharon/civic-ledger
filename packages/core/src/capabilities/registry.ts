@@ -11,6 +11,7 @@ import { peopleGlance } from './glance';
 import { moneySummary } from './money';
 import { peopleCompare, peopleGet, peopleSearch } from './people';
 import { policyAreas } from './policy';
+import { peoplePortrait } from './portraits';
 import { promisesList } from './promises';
 import { scoresList } from './scores';
 import { sourcesStatus } from './sources';
@@ -27,6 +28,7 @@ export const registry = {
   'people.compare': peopleCompare,
   'people.glance': peopleGlance,
   'districts.shape': districtsShape,
+  'people.portrait': peoplePortrait,
   'explore.table': exploreTable,
   'explore.facets': exploreFacets,
   'money.summary': moneySummary,

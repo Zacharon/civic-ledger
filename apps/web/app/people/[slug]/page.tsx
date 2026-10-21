@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { type ReactNode, Suspense } from 'react';
 import { CareerTimeline } from '@/components/charts/career-timeline';
 import { PositionStrip } from '@/components/charts/position-strip';
+import { MemberPortrait } from '@/components/member-portrait';
 import { PartyChip } from '@/components/party-chip';
 import { GlanceSection } from '@/components/profile/glance';
 import { MemberDistrictMap } from '@/components/profile/member-district-map';
@@ -104,6 +105,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
   const headerNotes = new SourceNotes('summary', sources);
   const personMark = headerNotes.cite(person.provenance);
   const termMark = headerNotes.cite(terms[0]?.provenance);
+  const portraitMark = headerNotes.cite(profile.portrait?.provenance);
   const title = memberTitle(card.chamber);
   const seat = seatLabel(card.chamber, card.state, card.district);
   const careerNotes = new SourceNotes('career', sources);
@@ -112,7 +114,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
   return (
     <div className="page-frame pt-6 sm:pt-8">
       <div className="grid gap-x-10 gap-y-8 lg:grid-cols-12">
-        <header className="min-w-0 lg:col-span-8">
+        <header className="profile-header min-w-0 lg:col-span-8">
           <nav aria-label="Breadcrumb" className="text-sm text-ink-2">
             <Link href={exploreHref(ids)} className="link">
               Explore
@@ -127,6 +129,13 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
             {person.fullName}
             <SourceMark notes={headerNotes} n={personMark} />
           </h1>
+          {/* After the h1 in the DOM so assistive tech reads the name first; CSS grid puts it at left. */}
+          <MemberPortrait
+            portrait={profile.portrait}
+            name={person.fullName}
+            notes={headerNotes}
+            mark={portraitMark}
+          />
           <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-lg text-ink-2">
             <span
               className={card.isCurrent ? 'record-status' : 'record-status record-status-plain'}

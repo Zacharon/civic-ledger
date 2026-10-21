@@ -68,12 +68,24 @@ describe('OpenAPI document', () => {
       const path = doc.paths[`/api/v1/${capability.name}`];
       const operation = path?.get ?? path?.post;
       expect(operation?.operationId, capability.name).toBe(capability.name.replaceAll('.', '_'));
-      expect(operation?.responses['200']?.content?.['application/json']?.schema).toBeDefined();
+      // A binary capability documents the file it sends, not a JSON body.
+      const media = capability.transport === 'binary' ? 'image/jpeg' : 'application/json';
+      expect(operation?.responses['200']?.content?.[media]?.schema, capability.name).toBeDefined();
       for (const status of ['400', '404', '429', '500']) {
         expect(operation?.responses[status], `${capability.name} ${status}`).toBeDefined();
       }
     }
     expect(doc.components.schemas.ErrorBody.properties.error).toBeDefined();
+  });
+
+  it('marks people.portrait as a binary image/jpeg operation, not a JSON one', () => {
+    const operation = doc.paths['/api/v1/people.portrait']?.get as unknown as {
+      'x-transport': string;
+      responses: { '200': { content: Record<string, { schema: { format?: string } }> } };
+    };
+    expect(operation['x-transport']).toBe('binary');
+    expect(Object.keys(operation.responses['200'].content)).toEqual(['image/jpeg']);
+    expect(operation.responses['200'].content['image/jpeg']?.schema.format).toBe('binary');
   });
 
   it('has no unresolved references', () => {

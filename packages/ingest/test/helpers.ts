@@ -20,6 +20,7 @@ export const SCOPES: Record<keyof typeof ADAPTERS, IngestScope> = {
   'govinfo-billstatus': { kind: 'congress', congress: 119 },
   curated: { kind: 'all' },
   'census-boundaries': { kind: 'all' },
+  'member-photos': { kind: 'all' },
 };
 
 export async function freshDb(): Promise<DbHandle> {

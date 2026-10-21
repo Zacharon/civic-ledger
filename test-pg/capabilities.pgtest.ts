@@ -67,6 +67,7 @@ beforeAll(async () => {
       { party: 'Harbor Party', limit: 3 },
     ],
     'people.get': [{ slug: a }, { slug: b }],
+    'people.portrait': [{ slug: a }, { slug: a, size: 450 }],
     'people.glance': [{ slug: a }, { slug: b }],
     'explainers.list': [{}, { id: 'pac' }],
     'districts.shape': [
@@ -117,6 +118,15 @@ afterAll(async () => {
 });
 
 const names = publicCapabilities().map((c) => c.name);
+const binary = new Set(
+  publicCapabilities()
+    .filter((c) => c.transport === 'binary')
+    .map((c) => c.name),
+);
+interface MediaOutput {
+  bytes: Uint8Array;
+  sha256: string;
+}
 
 describe('public capabilities on real Postgres', () => {
   it('has representative inputs for every public capability', () => {
@@ -129,6 +139,23 @@ describe('public capabilities on real Postgres', () => {
       logger: createLogger({ level: 'silent' }),
     });
     for (const input of cases[name] ?? []) {
+      if (binary.has(name)) {
+        // Image bytes: identical on both engines and byte-identical over HTTP.
+        const pgFile = (await dispatchByName(name, input, pgCtx)) as MediaOutput;
+        const liteFile = (await dispatchByName(name, input, liteCtx)) as MediaOutput;
+        expect(Buffer.from(pgFile.bytes).equals(Buffer.from(liteFile.bytes))).toBe(true);
+        expect(pgFile.sha256).toBe(liteFile.sha256);
+        const served = await handler(
+          new Request(`${ORIGIN}/api/v1/${name}?${toQuery(input)}`, { method: 'GET' }),
+          name,
+        );
+        expect(served.status, `${name} over HTTP`).toBe(200);
+        expect(served.headers.get('etag')).toBe(`"${pgFile.sha256}"`);
+        expect(Buffer.from(await served.arrayBuffer()).equals(Buffer.from(pgFile.bytes))).toBe(
+          true,
+        );
+        continue;
+      }
       const onPg = plain(await dispatchByName(name, input, pgCtx));
       const onLite = plain(await dispatchByName(name, input, liteCtx));
       expect(stamps(onPg), `${name} ${JSON.stringify(input)}: Postgres vs PGlite`).toEqual(

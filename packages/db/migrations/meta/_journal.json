@@ -50,6 +50,13 @@
       "when": 1792542421663,
       "tag": "0006_district_map",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792557440797,
+      "tag": "0007_person_portraits",
+      "breakpoints": true
     }
   ]
 }

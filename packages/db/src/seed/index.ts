@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import type { Db } from '../client';
 import { refreshPersonCard } from '../read-model';
@@ -12,8 +13,10 @@ import {
   SEED_MAP_VINTAGE,
 } from './district-maps';
 import { buildSeedData, SEED_CONGRESS, type SeedData } from './fixtures';
+import { syntheticGreyJpeg } from './synthetic-jpeg';
 
 export { SEED_MID_CONGRESS_START } from './fixtures';
+export { syntheticGreyJpeg } from './synthetic-jpeg';
 
 export const DEV_SEED_SOURCE_ID = 'dev-seed';
 export const DEV_SEED_VERSION = 'dev-seed@1';
@@ -103,6 +106,7 @@ async function loadAll(
 ): Promise<Record<string, number>> {
   await loadVocabularies(db, provenance);
   const personIds = await loadPeople(db, data, provenance);
+  const portraits = await loadPortraits(db, data, personIds, provenance);
   await loadMoney(db, data, personIds, provenance);
   const votes = await loadLegislation(db, data, personIds, provenance);
   await loadScores(db, data, personIds, provenance);
@@ -110,6 +114,7 @@ async function loadAll(
   const districtMaps = await loadDistrictMaps(db, provenance);
   return {
     people: data.people.length,
+    portraits,
     terms: data.terms.length,
     committees: data.committees.length,
     contributions: data.contributions.length,
@@ -145,6 +150,52 @@ async function loadDistrictMaps(db: Db, provenance: Provenance): Promise<number>
       set: conflictUpdateSet(s.districtMap),
     });
   return maps.length;
+}
+
+/**
+ * Every fourth seed member (positions 3, 7, ...) has no portrait, so the missing-portrait
+ * path is exercised by the UI, API and e2e tests. Former members have none either.
+ */
+export const hasSeedPortrait = (index: number): boolean => index % 4 !== 3;
+
+/** Flat grey, face-free JPEGs; the seed people are fictional, so no real photo is ever attached. */
+async function loadPortraits(
+  db: Db,
+  data: SeedData,
+  personIds: Map<string, number>,
+  provenance: Provenance,
+): Promise<number> {
+  const rows = data.people.flatMap((p, index) =>
+    hasSeedPortrait(index)
+      ? s.PORTRAIT_VARIANTS.map((variant) => {
+          const [width = 0, height = 0] = variant.split('x').map(Number);
+          const bytes = syntheticGreyJpeg(width, height);
+          return {
+            personId: required(personIds, p.slug),
+            variant,
+            contentType: 'image/jpeg',
+            data: bytes,
+            byteLength: bytes.byteLength,
+            width,
+            height,
+            sha256: createHash('sha256').update(bytes).digest('hex'),
+            // Generated files carry no metadata, so the stored bytes are the origin bytes.
+            originSha256: createHash('sha256').update(bytes).digest('hex'),
+            originByteLength: bytes.byteLength,
+            originUrl: `${EXAMPLE}/portraits/${variant}/${p.bioguide}.jpg`,
+            ...provenance(`portrait:${p.bioguide}:${variant}`),
+          };
+        })
+      : [],
+  );
+  await db
+    .insert(s.personPortrait)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: [s.personPortrait.personId, s.personPortrait.variant],
+      set: conflictUpdateSet(s.personPortrait),
+    });
+  return rows.length;
 }
 
 async function loadVocabularies(db: Db, provenance: Provenance): Promise<void> {

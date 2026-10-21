@@ -6,6 +6,8 @@ const PAGES = [
   '/explore',
   '/explore?chamber=senate&sort=total.desc&cols=tenure,total,pac,small,industries,coverage,outsideFor,outsideAgainst,missed,eligible,dim1,dim2,kept,rated',
   '/people/avery-ashvale',
+  // A member with no official portrait: the neutral tile must pass in both modes too.
+  '/people/dana-dunmere',
   '/compare',
   '/compare?ids=avery-ashvale,blair-brindlemoor,cameron-corrowind',
   '/policy',
@@ -62,7 +64,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
 test.describe('axe (mobile, 390px)', () => {
   test.use({ viewport: { width: 390, height: 844 } });
-  for (const path of ['/', '/explore', '/people/avery-ashvale']) {
+  for (const path of ['/', '/explore', '/people/avery-ashvale', '/people/dana-dunmere']) {
     test(`${path} has no violations on a phone`, async ({ page }) => {
       await page.goto(path);
       expect(await violations(page)).toEqual([]);

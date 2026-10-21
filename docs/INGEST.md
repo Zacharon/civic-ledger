@@ -17,14 +17,59 @@ Each source joins rows loaded by the ones before it, so a full refresh runs in t
 | 4 | `govinfo-billstatus` | `--congress 119` | 8 BILLSTATUS type zips | 54 MB | 89 s |
 | 5 | `curated` | none (all) | `data/curated/**` YAML | <1 MB | 33 s |
 | 6 | `census-boundaries` | none (all) | Census `cb_2025_us_cd119_500k.zip` + `cb_2025_us_state_500k.zip` (shapefiles) | 10 MB | 13 s with the files on disk; 66 s with the 10 MB of downloads, both 2026-10-20 (the 66 s on a loaded machine) |
+| 7 | `member-photos` | none (all) | GitHub tree listing + `225x275` and `450x550` JPEG per member in scope (1,078 files) | 106 MB stored (117 MB downloaded) | first load ~12 min, rerun ~4 min (2026-10-20, PGlite, machine shared with other builds; see below) |
 
 Full first load of sources 1-5: 6 min 10 s (2026-10-16, quiet machine); the sixth adds 13-66 s, so
 about 6 min 25 s to 7 min 20 s. The first load of all six on 2026-10-20 took 19 minutes, but two other
 agents' ingests and test suites were running on the same machine, so that is a loaded-machine
 figure, not a baseline. An unchanged rerun (`pnpm ingest all`): about 10 s for the first five
 (all files 304, every source deduplicated) plus about 20 s for `census-boundaries` measured on the
-loaded machine (two conditional GETs, then hashing 10 MB; it does not reparse). Defaults: `--congress` = current congress, `--cycle` = current
+loaded machine (two conditional GETs, then hashing 10 MB; it does not reparse). `member-photos` adds about 12 minutes on a
+first load and about 4 minutes on a rerun (see below). Defaults: `--congress` = current congress, `--cycle` = current
 two-year cycle.
+
+### member-photos (official portraits)
+
+Self-hosted portraits for member records (DECISIONS A81-A85; source notes in
+[DATA_SOURCES.md](DATA_SOURCES.md) 6b). It runs last, depends on `congress-legislators` (its run id is in
+the snapshot checksum), and needs the network only for one GitHub API call (the repository tree, 60
+unauthenticated calls per hour per address) plus the image files.
+
+* **Selection:** people with a Bioguide id and a term ending after 2025-01-03 (555 on 2026-10-20). Only
+  people with at least the 225x275 file in the listing are fetched (the 450x550 file is optional); a
+  missing portrait is normal (16 of 555: the 15 newest members and one former member).
+* **Downloads:** 6 in parallel, each file capped at 2 MiB, the whole selection capped at
+  `INGEST_MAX_PORTRAIT_TOTAL_BYTES` (default 400 MiB, checked against the listing before anything is
+  fetched), conditional GET with `ETag` from `data/raw/member-photos/http-cache.json`, raw files and
+  `manifest.json` (sha256 per file, source URL, tree id) under `data/raw/member-photos/<date>/`. Every
+  file, and every cached copy offered for a 304, is checked against the git blob SHA-1 in the listing; the
+  upstream tree id is in the receipt's `note`. `GITHUB_TOKEN`, when set, lifts the API rate limit (listing
+  request only, never logged).
+* **Validation (per person):** complete JPEG (grayscale, colour or CMYK), inside the variant's pixel
+  box and at least 20% of its area. A bad file rejects the person: counted (`rejected_*`,
+  `files_rejected`), and a good pair from an earlier run is kept (`rejected_kept_previous`).
+* **Metadata stripping (no re-encoding):** EXIF/XMP, Photoshop/IPTC, comments, JFXX and other APPn
+  segments are dropped, the JFIF thumbnail zeroed; JFIF, ICC and Adobe segments and all image data are
+  copied byte for byte, and the result is validated again. The stored sha256 (ETag, cache key) is of the
+  stripped bytes; the downloaded file's sha256 and size are kept in `origin_sha256` / `origin_byte_length`.
+  Counters: `origin_bytes`, `portrait_bytes`, `metadata_bytes_removed`, `files_with_exif`,
+  `files_with_gps`, `files_with_thumbnail`.
+* **Load:** upsert on `(person_id, variant)` with provenance, in batches of 10 people; portraits no longer
+  asserted are deleted (`stale_portraits_deleted`) under the shrink guard (dataset `person_portrait`).
+* **Offline reload:** `pnpm ingest member-photos --snapshot data/raw/member-photos/<date>` reads that
+  directory's files instead of the network.
+* **Timings** (2026-10-20, PGlite, while three other agents were building and ingesting on the same PC, so
+  read them as upper bounds): first load 11 min 59 s (about 10 min of downloads, 2 min to validate and store
+  117 MB); rerun after an adapter version bump, every file answered 304: 4 min 6 s. An unchanged rerun with the
+  same adapter version stops after the 304s with `"deduplicated": true`.
+* **Receipt counters:** `portraits` (rows, two per person), `people_with_portrait`, `people_in_scope`,
+  `people_without_portrait`, `people_without_450`, `portrait_bytes`, `files_rejected` and
+  `rejected_{bad_name,missing_1x,too_large,not_jpeg,wrong_size,unreadable}`,
+  `bioguide_not_in_legislators`, `rejected_kept_previous`, `stale_portraits_deleted` and the metadata counters
+  above. Run 2026-10-20 (`member-photos@4`): 1,078 portraits, 539 people, 555 in scope, 16 without, 0 rejected,
+  stored 105,855,819 bytes from 117,303,947 downloaded (11,448,128 removed; 508 files with EXIF/XMP, 386 with
+  a thumbnail, 0 with GPS), 1,078 files verified against their git blob SHA-1, 5 min 43 s with every file a 304
+  (machine shared with other builds).
 
 ## Commands
 
@@ -94,6 +139,10 @@ re-codes new committees and re-resolves framework targets even when the YAML is 
 | receipt `status: cancelled` | Ctrl-C or the run deadline (`--deadline-minutes`, `INGEST_RUN_DEADLINE_MS`) stopped the run before its commit, at the next record or phase boundary; inside the FEC loader, before its next statement (stage, dedupe, page and each sweep statement; DECISIONS A52). A statement already running finishes first; other loaders finish the batch in hand. Nothing was committed. | Rerun when ready (a longer deadline if it timed out). |
 | `failed`, `error: snapshot_superseded: …` | You replayed a snapshot an older run loaded, after a later run loaded other data. Replay is not a restore. | Rerun with `--force-replay` if you really want that snapshot back; the receipt records `replayOf`. |
 | `failed`, `error: … download cap` / `… decompression cap` | A downloaded file, a cached copy that would be reused, or a zip entry is larger than `INGEST_MAX_DOWNLOAD_BYTES` / `INGEST_MAX_DECOMPRESSED_BYTES`. | Check the upstream file; raise the cap only if the size is genuine. |
+| `failed`, `error: … GitHub API … HTTP 403` (member-photos) | The unauthenticated API rate limit (60 per hour per address) or a block. | Wait an hour and rerun; nothing was loaded. |
+| `failed`, `error: … repository listing is truncated` (member-photos) | The tree answer exceeded GitHub's limit, so the list would be partial. | Do not load; switch the plan to per-folder trees. |
+| `failed`, `error: … INGEST_MAX_PORTRAIT_TOTAL_BYTES cap` | The selected photos total more than the cap (the listing grew or the scope widened). | Check the selection; raise the cap only if the size is genuine. |
+| counter `files_rejected` > 0 (member-photos) | A pair failed validation; the log line `portrait rejected` names the file and why. | Inspect the file upstream; the previous good pair, if any, was kept. |
 | `failed`, `error: … manifest schema_version N is not supported` | `--snapshot` points at a snapshot written by a newer build. | Use a build that reads that version. |
 | receipt `status: failed`, `error: GET … HTTP 404` | File moved or not published yet (new cycle/congress). | Check the URL in DATA_SOURCES.md; nothing was loaded. |
 | `failed` after retries on 5xx / timeout | Source down or slow. | Rerun later; nothing was loaded. |

@@ -213,6 +213,40 @@ never used for votes.
 - Z-index scale (only these): `sticky cells 1`, `sticky header 2`, `site header 10`,
   `popover 20`, `skip link 30`.
 
+## Portraits
+
+The official portrait of a member (public domain, from the unitedstates/images collection, mainly the
+GPO Member Guide; stored by `member-photos`, DECISIONS A81) appears in **one** place: the header of a member record
+(`app/people/[slug]/page.tsx`, component `MemberPortrait`).
+
+- **Where, and where not.** Member records only. **Never on race pages**: most challengers have no
+  official photo, so showing only incumbents' photos would tilt those pages. Not in Explore rows or
+  cards, search results, or framework results either: a photo column would give some rows weight
+  others cannot have. (Compare headers could carry one later; not built.)
+- **Frame.** 4:5, at the left of the eyebrow, name, status and actions; 168px wide from 640px, 104px
+  on phones. 1px `--rule` border, square corners, no shadow, `--surface-sunk` behind the image. The
+  facts list below uses the full width under it.
+- **Reading order.** The figure comes after the `h1` in the DOM, so assistive technology reads the
+  name first; CSS grid (`.profile-header`: a portrait column, text in the second column, the last
+  portrait row `1fr` so a tall portrait never stretches the text rows) places it at the left. Upstream fits each photo into a 225x275 box keeping its proportions
+  (most are 9:11, about 1 in 8 are narrower such as 183x275), so the image is shown with
+  `object-fit: contain` on the sunk surface: never cropped, stretched, filtered or recolored.
+- **Image.** Explicit `width`/`height` of the file (225x275, so no layout shift), `srcset` 1x (225)
+  and 2x (450), `alt="Official portrait of {name}"`, same origin only. It is the top of the page, so
+  it loads eagerly with high priority; the component takes `lazy` for any lower placement.
+- **Credit.** Directly under the image, in the caption size and `--ink-3`:
+  "Official portrait · public domain · via unitedstates/images", with a source mark to the header's
+  Sources list (retrieval date, run). The words are true of every file: most come from the GPO Member
+  Guide, but the collection also accepts other official public-domain photos (O000172 is credited to
+  the House Office of Photography), so the line names the collection. Same words for every member.
+- **Missing.** A tile of the same frame: `--surface-sunk`, the text "No official portrait on file"
+  centered in `--ink-2` at 14px, nothing else. "On file" stays true whatever the reason (never
+  published, a former member, a file we rejected). No initials, no silhouette, no generated avatar, no
+  visible credit line; an invisible (`visibility: hidden`, `aria-hidden`) copy of the credit gives the
+  figure the same caption height, so the rest of the header lines up with or without a photo.
+- **Contrast.** The credit is `--ink-3` on `--paper` (5.6:1 light, 7.1:1 dark); the tile text is
+  `--ink-2` on `--surface-sunk` (axe checks both modes on a member with and one without a portrait).
+
 ## Motion
 
 Minimal-functional. Two motions exist: 120–150ms color/opacity transitions on
@@ -233,6 +267,7 @@ under 2 s with 600 members.
 | Component | File | Notes |
 |---|---|---|
 | Site header / footer | `src/components/site-header.tsx`, `site-footer.tsx` | Serif wordmark with a teal dot, nav and member search on a 2px ink rule. Nav is one line ≥ 1024px, a scroll row below; search is always visible (its own full-width row on phones) and submits `GET /explore?q=` (the `explore.table` name filter). Footer carries data freshness. |
+| Member portrait | `src/components/member-portrait.tsx` | 4:5 official portrait (or the neutral tile) floated left of the identity lines in the record header; see "Portraits". Member records only. |
 | Record header + evidence | `app/people/[slug]/page.tsx` | Identity, status pill, party chip, seat, actions and summary facts in 8 columns; **Source records** aside in 4 (external identifiers + header footnotes); stacks identity, sources, section nav on phones. |
 | District locator | `components/district-locator.tsx` (+ `components/profile/member-district-map.tsx`) | Inline-SVG map of a state with one district or the whole state highlighted (`districts.shape@1`). State `--surface-sunk` + `--line-control` outline, highlight `--ink-2` + `--ink` outline: never party or vote colour. `role="img"` named "Map of Georgia with congressional district 10 highlighted"; caption states publisher, vintage and as-of date; intrinsic `width`/`height` (no layout shift), scales down with `max-width: 100%`, outline stays 1 px (`vector-effect`); no animation. First item of the Source records panel; reusable by other pages. Which seats get a map is decided in core (`districts.shape` member mode, A80); the wrapper renders nothing for a seat without one and for any failure. |
 | Section nav | `.section-nav` | Horizontal anchor links under a record header (all widths; fades while scrolled). Anchors, not tabs. |
@@ -303,3 +338,4 @@ retry) and populated.
 | 2026-10-20 | Party in a roll call = the member's party on the vote date | The term data carries the party per term, so a member who switched party is counted with the party they held then. A position with no term in force takes the latest earlier term (end dates can precede a member's last recorded vote). |
 | 2026-10-20 | Attendance uses the Explore definitions: eligible = recorded positions in the Congress, missed = Not voting, Present separate | One number everywhere; the month strip totals equal the profile's missed-vote rate (tested for every seeded member). |
 | 2026-10-20 | District locator map in the Source records panel, neutral ink and surface tokens only, captioned with publisher, vintage and as-of date | A seat's geography is a sourced fact, not a judgment; no party or vote colour, no hover or animation, and the caption says what the vintage does not show (A75-A79). |
+| 2026-10-20 | Official portrait in the member record header only; neutral same-size tile when none; never on race pages | Owner rule (A84): most challengers have no official photo, so photos on race pages would tilt them toward incumbents. The tile keeps every header the same size. |

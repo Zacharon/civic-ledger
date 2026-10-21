@@ -58,6 +58,10 @@ member finder leads to the existing state/district/chamber Explore filters.
 Research crawlers, if trialed later, can collect review evidence; they cannot
 approve curated claims or bypass source-adapter validation.
 
+Binary output (a portrait image) follows the same rule: the capability returns bytes, content
+type and sha256 and declares `transport: 'binary'`; each adapter carries them in its own way (HTTP
+file with ETag, MCP image block) and none queries the database. See DECISIONS A83.
+
 ### Repository layout
 
 ```text
@@ -143,6 +147,7 @@ interface SourceAdapter {
 4. GovInfo BILLSTATUS → bills, policy areas, subjects; join rollcalls to bills.
 5. Curated YAML → industry map, frameworks, promises, platforms.
 6. Census cartographic boundaries → `district_map` (projected, simplified SVG paths for the profile's district locator; independent of the sources above, DECISIONS A75).
+7. `member-photos` (last; reads the people from step 1): self-hosted official portraits, DECISIONS A81.
 7. Phase 3: OpenStates (state legislators, bills, votes), cleared scorecards.
 
 OpenSecrets is a link target and later enrichment, not a dependency (bulk access
@@ -167,6 +172,7 @@ The capability list and the seven-gate evidence plan are in
 |---|---|
 | `/` | Search-first home: one search box, three example questions, data freshness strip. |
 | `/explore` | The multi-axis table: filter by chamber, state, party, policy area; sort by any money, ideology, scorecard, promise column. All state in the URL (shareable). |
+| `/people/[slug]/portrait` | The member's official portrait file (`?size=225|450&v=<cache key>`), forwarded to `people.portrait`. |
 | `/people/[slug]` | Profile: header (office, party, tenure), Money, Votes by policy area, Scores side by side, Promises, Platform vs record, Career across campaigns. |
 | `/compare?ids=` | 2–4 people in aligned columns. |
 | `/policy/[area]` | Key votes in an area, how every member voted, money from related industries. |

@@ -9,6 +9,11 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 
 ### Added
 
+- Official member portraits (A81-A85): ingest source `member-photos` (public-domain GPO Member
+  Guide photos via unitedstates/images, self-hosted in `person_portrait`, migration 0007),
+  `people.portrait@1` (binary public read; file over HTTP, image block over MCP),
+  `portrait` facts on `people.get`, `/people/<slug>/portrait`, and a 4:5 portrait or a neutral
+  tile in the member record header. Member records only; never on race pages.
 - Monorepo: `packages/db` (Drizzle schema, forward-only SQL migrations, read-model
   materialized views), `packages/core` (the capability registry: 13 public read
   capabilities plus the operator-only `ingest.run` and `curated.validate`),
