@@ -18,6 +18,43 @@ Branch `claude/district-maps-20261020` (based on `fda8c59`), worktree
 
 Decisions: DECISIONS A72-A76. Source details and the vintage notes: DATA_SOURCES section 8.
 
+## Independent review fixes (2026-10-20, commit `ff2d536`)
+
+Review verdict was "merge after fixes". All twelve items are done:
+
+1. **Wrong district after 2027-01-03 (blocker).** `district_map.congress` (119) is stored and returned.
+   `districts.shape` member mode (`{slug}`) draws a House district only when the member is current
+   and their current term began in that Congress; a term starting 2027-01-03 is the 120th and gets
+   no map. Senate and whole-state maps are unaffected. Tests: `congressOfDate` dates, and seeded
+   members with terms starting 2027-01-03 (House: `not_found` naming the 120th and 119th; Senate:
+   whole-state map; a term ending 2027-01-03: former), run with the clock set to 2027-02-01 (PGlite
+   honours it), plus a mid-Congress special-election term that still draws.
+2. **Eligibility in core.** The rule moved out of the web wrapper into the capability; UI, API and MCP
+   call the same `{slug}` input. Documented in the capability summary, CAPABILITIES, API, DATA_SOURCES.
+3. **Unknown district.** A House seat with a null district gets no map (core); `district` 0 is
+   `not_found` for a state with numbered districts. The wrapper no longer defaults to 0.
+4. **Fail-soft.** `loadMemberDistrictShape` logs (`web.district_map`, no driver text) and renders
+   nothing for any failure except the silent `not_found`; unit-tested with a missing-table error.
+   Migrations README rollback corrected (source/ingest_run rows stay; older `SourceIdSchema` in
+   `ledger.ts` `toReceipt` does not know the source).
+5. **Strict archives.** Exactly one `.shp` and one `.dbf` (and at most one `.shp.iso.xml`) at the root
+   with the expected base name; `.shp` and `.dbf` record counts must match; truncated `.shp` fails.
+6. **Memory.** 64 MiB per-entry cap (the smaller of it and the generic cap); no `ArrayBuffer` copy.
+7. **Freshness.** `/api/health` and the operator monitor allow `census-boundaries` about 400 days;
+   tests at day 400 and 401, and in the monitor at 399 and 401 days.
+8. **Path validation** at load and in the output schema (`M L l Z`, digits, dots, minus, spaces; 60,000
+   characters), tested with a hostile stored value and a hostile generated value.
+9. **`stateProvenance`** returned next to `provenance`.
+10. **Parser errors** for a district whose STATEFP has no state, a feature with no geometry (named by
+    GEOID), and a duplicate district number.
+11. **As-of reading** documented (DATA_SOURCES section 8): a data cutoff, not a validity promise.
+12. **INGEST timing** for the sixth source corrected, with the loaded-machine caveat.
+
+The real files still load through the stricter reader (run 9, `--force-replay`, same counts as before:
+483 shapes, 54 states, 429 districts), which also confirms the no-copy `Uint8Array` read.
+Migration `0006` was regenerated in place (unreleased, one file) to add `congress`; the local
+`.pglite/live` table was dropped and re-created from it.
+
 ## Vintage, as-of date and redistricting (what the Census file says)
 
 * Used `GENZ2025` 500k (`cb_2025_us_cd119_500k.zip`, `cb_2025_us_state_500k.zip`, published
@@ -33,8 +70,10 @@ Decisions: DECISIONS A72-A76. Source details and the vintage notes: DATA_SOURCES
   (reported for Texas, California, Missouri and North Carolina, with more in litigation) are
   not in the file. The maps fit the members now sitting (elected under the 2024 lines) and are
   not the lines for the November 2026 ballot. Every map says so in its caption, the capability
-  returns `vintage`, `asOf` and `caveat`, and maps are drawn for **current members only** (a
-  former member's district number can mean a different area). The product never claims a map
+  returns `congress`, `vintage`, `asOf` and `caveat`, and core draws maps for **current members
+  only**, and a House district only when the member's term began in the Congress the lines are for
+  (so from 2027-01-03 a member elected under a redrawn map gets no map until 120th-Congress lines
+  are loaded). The product never claims a map
   is current and does not track which states redrew.
 * Race pages (other branch) need a different source of 2026 lines: owner decision.
 
@@ -96,9 +135,9 @@ shrinks path text further; not measured.)
 | `pnpm lint` (biome) | pass |
 | `pnpm typecheck` | pass |
 | `pnpm vitest run packages/ingest/test/census-boundaries.test.ts` | 28 tests pass |
-| `pnpm test` (all workspaces, PGlite, no network) | 60 files, 519 tests pass (inside `pnpm check`) |
-| `pnpm check` (lint, typecheck, test, build) | pass (exit 0): biome 341 files clean, typecheck, 519 tests, `next build`; run on the final code at commit `65446ce` |
-| `E2E_PORT=3340 E2E_SCALE_PORT=3341 pnpm --filter web test:e2e` | first run: 75 passed, 1 failed (`shared-values.spec.ts:291`, `Postgres fixture startup timeout` while the machine was loaded by other agents), 8 not run. Rerun of only that spec: 7 of 7 passed; performance project (`--no-deps`): 2 of 2 passed. Nothing was skipped or weakened. |
+| `pnpm test` (all workspaces, PGlite, no network) | 61 files, 543 tests pass (inside `pnpm check`) |
+| `pnpm check` (lint, typecheck, test, build) | pass (exit 0) on the review-fix commit `ff2d536`: biome 343 files clean, typecheck, 543 tests, `next build` |
+| `E2E_PORT=3340 E2E_SCALE_PORT=3341 pnpm --filter web test:e2e` | review-fix commit: 84 passed (82 desktop incl. `district-locator.spec.ts`, `design-system.spec.ts`, `a11y.spec.ts`, `shared-values.spec.ts`; 2 performance), 0 failed, no retries. (The earlier run on `65446ce` had one load-related Postgres fixture startup timeout in `shared-values.spec.ts`, which passed on a rerun of that spec.) |
 
 Unit tests added: geometry and path formatting (round trip, collapsed rings), shapefile reading
 from committed fixture zips, as-of parsing (and loud failure), vintage labels, viewBox and
