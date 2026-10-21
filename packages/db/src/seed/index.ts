@@ -7,6 +7,7 @@ import { SEED_INDUSTRIES, SEED_POLICY_AREAS, SEED_PUBLISHERS } from './catalog';
 import {
   buildSeedDistrictMaps,
   SEED_MAP_AS_OF,
+  SEED_MAP_CONGRESS,
   SEED_MAP_PUBLISHER,
   SEED_MAP_VINTAGE,
 } from './district-maps';
@@ -133,6 +134,7 @@ async function loadDistrictMaps(db: Db, provenance: Provenance): Promise<number>
         vintage: SEED_MAP_VINTAGE,
         publisher: SEED_MAP_PUBLISHER,
         asOf: SEED_MAP_AS_OF,
+        congress: SEED_MAP_CONGRESS,
         ...provenance(`districtmap:${m.state}:${m.district ?? 'state'}`),
       })),
     )

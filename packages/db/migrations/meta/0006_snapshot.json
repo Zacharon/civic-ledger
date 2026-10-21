@@ -1,5 +1,5 @@
 {
-  "id": "3925d035-3ba9-40b9-a558-b12ff0fdaf97",
+  "id": "db136147-9c71-41a9-824f-372d72c450ab",
   "prevId": "046539fa-bc5c-40b1-8135-1070866c4c94",
   "version": "7",
   "dialect": "postgresql",
@@ -1053,6 +1053,12 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
+        },
+        "congress": {
+          "name": "congress",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
         },
         "view_box_width": {
           "name": "view_box_width",

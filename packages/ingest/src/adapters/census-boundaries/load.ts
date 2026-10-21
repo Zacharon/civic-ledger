@@ -1,3 +1,4 @@
+import { PATH_DATA_MAX_LENGTH, PATH_DATA_PATTERN } from '@civic-ledger/core';
 import { conflictUpdateSet, districtMap } from '@civic-ledger/db';
 import { and, eq, ne } from 'drizzle-orm';
 import type { LoadContext, LoadCounts } from '../../adapter';
@@ -31,7 +32,18 @@ export async function loadBoundaries(
       vintage: r.vintage,
       publisher: r.publisher,
       asOf: r.asOf,
+      congress: r.congress,
     };
+    for (const [label, path] of [
+      [`${r.state} outline`, r.statePath],
+      ...r.districts.map((d) => [`${r.state}-${d.district}`, d.path] as const),
+    ] as const) {
+      if (path.length > PATH_DATA_MAX_LENGTH || !PATH_DATA_PATTERN.test(path)) {
+        throw new Error(
+          `${label}: generated path data is not plain drawing commands within ${PATH_DATA_MAX_LENGTH} characters`,
+        );
+      }
+    }
     const rows = [
       { ...base, district: null, path: r.statePath, ...provenance(ctx, r.stateSourceKey) },
       ...r.districts.map((d) => ({

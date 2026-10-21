@@ -49,12 +49,12 @@ test('a former member gets no map: a district number can mean a different area',
   await expect(page.locator('figure.district-locator')).toHaveCount(0);
 });
 
-test('the map is the same fact API and MCP return (accessible name and paths)', async ({
+test('the map is the same fact API and MCP return for the member (accessible name and paths)', async ({
   page,
   request,
 }) => {
   await page.goto(HOUSE);
-  const shape = await (await request.get('/api/v1/districts.shape?state=ZV&district=3')).json();
+  const shape = await (await request.get('/api/v1/districts.shape?slug=emerson-elderquay')).json();
   const svg = page.locator('figure.district-locator svg');
   await expect(svg).toHaveAttribute('aria-label', shape.description);
   await expect(svg).toHaveAttribute('viewBox', shape.viewBox);
@@ -64,6 +64,7 @@ test('the map is the same fact API and MCP return (accessible name and paths)', 
   await expect(paths.nth(0)).toHaveAttribute('d', shape.statePath);
   await expect(paths.nth(1)).toHaveAttribute('d', shape.districtPath);
   expect(shape.asOf).toBe('2026-10-01');
+  expect(shape.congress).toBe(119);
   expect(shape.provenance.sourceId).toBe('dev-seed');
 });
 

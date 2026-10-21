@@ -7,6 +7,9 @@ import { provenanceColumns, provenanceIndexes } from './provenance';
  * `view_box`. At-large seats and delegate districts have no row of their own; they are the
  * whole state (`district` 0 in `office`, `98` in the Census file).
  *
+ * `congress` says which Congress's districts the numbers mean: a member's district number
+ * is only drawn on a map of the same Congress (DECISIONS A77).
+ *
  * `path` is an SVG path (`d` attribute) already projected and simplified for a map about
  * 240 px wide, so the web side only inlines it. `vintage`, `publisher` and `as_of` say
  * which boundary file the shape came from and the date its district lines are current to;
@@ -19,6 +22,8 @@ export const districtMap = pgTable(
     state: text('state').notNull(),
     stateName: text('state_name').notNull(),
     district: integer('district'),
+    /** Congress whose district lines these are (119 for the Census 2025 files). */
+    congress: integer('congress').notNull(),
     viewBoxWidth: integer('view_box_width').notNull(),
     viewBoxHeight: integer('view_box_height').notNull(),
     path: text('path').notNull(),

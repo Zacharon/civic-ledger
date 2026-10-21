@@ -9,6 +9,7 @@ import { SEED_STATES } from './catalog';
 export const SEED_MAP_WIDTH = 240;
 export const SEED_MAP_HEIGHT = 180;
 export const SEED_MAP_DISTRICTS = 5;
+export const SEED_MAP_CONGRESS = 119;
 export const SEED_MAP_VINTAGE = 'fictional demonstration geometry (not a real map)';
 export const SEED_MAP_PUBLISHER = 'Civic Ledger development seed (fictional)';
 export const SEED_MAP_AS_OF = '2026-10-01';

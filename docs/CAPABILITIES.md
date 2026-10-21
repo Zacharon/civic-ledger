@@ -25,7 +25,7 @@ for public reads; it does not need to.
 | `people.search@1` | read | Search box, Explore filters | `GET /api/v1/people.search`, MCP `people_search` |
 | `people.get@1` | read | Profile page | `GET /api/v1/people.get`, MCP `people_get` |
 | `people.glance@1` | read | Profile overview and its evidence links | `GET /api/v1/people.glance`, MCP `people_glance` |
-| `districts.shape@1` | read | District locator map in the profile's Source records panel (`DistrictLocator`; reusable by other pages) | `GET /api/v1/districts.shape?state=GA&district=10`, MCP `districts_shape` |
+| `districts.shape@1` | read | District locator map in the profile's Source records panel (`DistrictLocator`; reusable by other pages) | `GET /api/v1/districts.shape?slug=mike-collins-c001129` (member) or `?state=GA&district=10` (place), MCP `districts_shape` |
 | `explainers.list@1` | read | Methodology definitions and profile explanations | `GET /api/v1/explainers.list`, MCP `explainers_list` |
 | `people.compare@1` | read | Compare page | `GET /api/v1/people.compare`, MCP `people_compare` |
 | `explore.table@1` | read | Explore table (sort/filter/paginate; scope current by default, or all incl. former members) | `GET /api/v1/explore.table`, MCP `explore_table` |
@@ -64,12 +64,23 @@ returns the same definitions rendered on Methodology; these are editorial
 definitions, not stored claims about a person. Both are anonymous public reads,
 with strict schemas, no writes, no approval step and no idempotency key required.
 
-`districts.shape` takes `{state, district?}` and returns the state outline and, for a numbered
-House district, that district as SVG path data in one shared `viewBox` (`width`, `height`),
-plus `scope` (`district` or `state`), the accessible `description` the UI uses as the map's
-name, and the boundary `vintage`, `publisher`, `asOf` date, a `caveat` saying what the vintage
-does not show, and `provenance`. Omit `district` (a Senate seat) or pass `0` (an at-large seat or
-a delegate) for the whole state; `districtPath` is then `null`. A state or district without a
+`districts.shape` has two modes. **Member mode**, `{slug}`, is what the profile uses and
+what an agent should use for "where is this member's seat": core checks the rules, so UI and
+agents cannot disagree. A map is returned only for a **current** member; a Senator gets the
+whole state; a House member gets their numbered district only when their current term began in
+the Congress the boundaries are for (the 119th for the Census 2025 files: a term beginning
+2027-01-03 or later is the 120th, so its district number is not drawn on 119th-Congress lines);
+a House seat with no district number on record gets no map; at-large seats and delegates
+(`district` 0) get the whole state. Everything else is `not_found`, with the reason in the
+message. **Place mode**, `{state, district?}`, returns the map as of the boundary vintage with
+no member checks. Both return the state outline and, for a numbered district, that district as
+SVG path data in one shared `viewBox` (`width`, `height`), `scope` (`district` or `state`), the
+accessible `description` the UI uses as the map's name, `congress`, the boundary `vintage`,
+`publisher`, `asOf` date, a `caveat` saying what the vintage does not show, `provenance` (the
+drawn shape) and `stateProvenance` (the outline). Path data is validated (`M`, `L`, `l`, `Z`, digits,
+dots, minus, spaces; at most 60,000 characters) when written and again in the output schema.
+Omit `district` (a Senate seat) or pass `0` (an at-large seat or a delegate) for the whole
+state; `districtPath` is then `null`; `0` is `not_found` for a state that has numbered districts. A state or district without a
 shape, such as American Samoa or the Northern Mariana Islands, or any state before the
 `census-boundaries` source has run, is `not_found` and the profile draws no map. The shapes are
 the 119th Congress lines as the states provided them by 2024-05-31; they are not later

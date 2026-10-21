@@ -53,7 +53,8 @@ beforeAll(async () => {
     'districts.shape': [
       { state: 'ZV', district: 3 },
       { state: 'ZX' },
-      { state: 'ZZ', district: 0 },
+      { slug: 'emerson-elderquay' },
+      { slug: 'avery-ashvale' },
     ],
     'people.compare': [
       { slugs: [a, b] },
@@ -126,6 +127,10 @@ const INVALID: Array<[string, Record<string, unknown>, 'invalid_input' | 'not_fo
   ['districts.shape', {}, 'invalid_input'],
   ['districts.shape', { state: 'ZV', district: 'ten' }, 'invalid_input'],
   ['districts.shape', { state: 'GA', district: 10 }, 'not_found'],
+  ['districts.shape', { state: 'ZV', district: 0 }, 'not_found'],
+  ['districts.shape', { slug: 'cornelius-oakhurst' }, 'not_found'],
+  ['districts.shape', { slug: 'nobody-by-this-name' }, 'not_found'],
+  ['districts.shape', { slug: 'avery-ashvale', state: 'ZV' }, 'invalid_input'],
   ['people.glance', {}, 'invalid_input'],
   ['people.glance', { slug: 'nobody-by-this-name' }, 'not_found'],
   ['explainers.list', { id: 'No Spaces' }, 'invalid_input'],

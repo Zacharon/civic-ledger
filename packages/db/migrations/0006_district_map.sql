@@ -3,6 +3,7 @@ CREATE TABLE "district_map" (
 	"state" text NOT NULL,
 	"state_name" text NOT NULL,
 	"district" integer,
+	"congress" integer NOT NULL,
 	"view_box_width" integer NOT NULL,
 	"view_box_height" integer NOT NULL,
 	"path" text NOT NULL,

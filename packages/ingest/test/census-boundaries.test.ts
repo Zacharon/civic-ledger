@@ -16,22 +16,33 @@ import {
   toPathData,
   windForD3,
 } from '../src/adapters/census-boundaries/geometry';
+import { loadBoundaries } from '../src/adapters/census-boundaries/load';
 import {
   asOfFromMetadata,
   buildBoundaryRecords,
+  DISTRICT_BASE,
+  STATE_BASE,
   UNMAPPED_TERRITORIES,
   vintageLabel,
 } from '../src/adapters/census-boundaries/parse';
-import { readBoundaryZip } from '../src/adapters/census-boundaries/read';
+import {
+  countShpRecords,
+  MAX_BOUNDARY_ENTRY_BYTES,
+  readBoundaryZip,
+} from '../src/adapters/census-boundaries/read';
 import type { HttpDeps } from '../src/runtime/http';
+import { silentLogger } from '../src/runtime/logger';
 import { runIngest } from '../src/runtime/run';
 import { MANIFEST_FILE } from '../src/runtime/snapshot';
 import { FIXTURES, freshDb, rows, SCOPES, testRuntime } from './helpers';
 import {
+  dbfBuffer,
   FIXTURE_DISTRICT_ZIP,
   FIXTURE_METADATA,
   FIXTURE_STATE_ZIP,
+  FIXTURE_STATES,
   fixtureZips,
+  shpBuffer,
   zipEntries,
 } from './support/census-fixture';
 
@@ -45,8 +56,8 @@ const META = {
 };
 
 async function fixtureRecords() {
-  const districts = await readBoundaryZip(FIXTURE_DIR, FIXTURE_DISTRICT_ZIP);
-  const states = await readBoundaryZip(FIXTURE_DIR, FIXTURE_STATE_ZIP);
+  const districts = await readBoundaryZip(FIXTURE_DIR, FIXTURE_DISTRICT_ZIP, DISTRICT_BASE);
+  const states = await readBoundaryZip(FIXTURE_DIR, FIXTURE_STATE_ZIP, STATE_BASE);
   return { districts, states };
 }
 
@@ -158,14 +169,89 @@ describe('Census shapefile reading', () => {
 
   it('refuses an archive over the decompression cap and one without the shapefile pair', async () => {
     await expect(
-      readBoundaryZip(FIXTURE_DIR, FIXTURE_STATE_ZIP, { maxBytes: 100 }),
+      readBoundaryZip(FIXTURE_DIR, FIXTURE_STATE_ZIP, STATE_BASE, { maxBytes: 100 }),
     ).rejects.toThrow(/exceeds the 100-byte decompression cap/);
     const dir = await mkdtemp(join(tmpdir(), 'civic-cb-'));
     await writeFile(
       join(dir, 'bare.zip'),
       zipEntries([{ name: 'readme.txt', content: Buffer.from('x') }]),
     );
-    await expect(readBoundaryZip(dir, 'bare.zip')).rejects.toThrow(/has no \.shp and \.dbf pair/);
+    await expect(readBoundaryZip(dir, 'bare.zip', STATE_BASE)).rejects.toThrow(
+      /has no cb_2025_us_state_500k.shp and/,
+    );
+  });
+});
+
+describe('archive layout is strict', () => {
+  const base = STATE_BASE;
+  const pair = (features = FIXTURE_STATES) => [
+    { name: `${base}.shp`, content: shpBuffer(features) },
+    { name: `${base}.dbf`, content: dbfBuffer(features) },
+  ];
+  async function readZip(entries: Array<{ name: string; content: Buffer }>, expected = base) {
+    const dir = await mkdtemp(join(tmpdir(), 'civic-cb-layout-'));
+    await writeFile(join(dir, 'x.zip'), zipEntries(entries));
+    return readBoundaryZip(dir, 'x.zip', expected);
+  }
+
+  it('reads exactly one .shp and one .dbf with the expected base name at the root', async () => {
+    const file = await readZip(pair());
+    expect(file.features).toHaveLength(FIXTURE_STATES.length);
+    expect(file.metadata).toBeNull();
+  });
+
+  it('rejects a second .shp, a duplicate entry, a folder, or another base name', async () => {
+    await expect(
+      readZip([...pair(), { name: 'other.shp', content: shpBuffer(FIXTURE_STATES) }]),
+    ).rejects.toThrow(/unexpected entry "other.shp"/);
+    await expect(
+      readZip([...pair(), { name: `sub/${base}.shp`, content: shpBuffer(FIXTURE_STATES) }]),
+    ).rejects.toThrow(/unexpected entry "sub\/cb_2025_us_state_500k.shp"/);
+    await expect(readZip([...pair(), ...pair()])).rejects.toThrow(/duplicate entry/);
+    await expect(readZip(pair(), 'cb_2025_us_cd119_500k')).rejects.toThrow(/unexpected entry/);
+    await expect(
+      readZip([{ name: `${base}.dbf`, content: dbfBuffer(FIXTURE_STATES) }]),
+    ).rejects.toThrow(/has no cb_2025_us_state_500k\.shp and/);
+  });
+
+  it('rejects a .dbf whose record count differs from the .shp', async () => {
+    await expect(
+      readZip([
+        { name: `${base}.shp`, content: shpBuffer(FIXTURE_STATES) },
+        { name: `${base}.dbf`, content: dbfBuffer(FIXTURE_STATES.slice(1)) },
+      ]),
+    ).rejects.toThrow(/the \.shp has 6 records but the \.dbf has 5/);
+  });
+
+  it('rejects a truncated .shp, and a feature without geometry, naming it', async () => {
+    const shp = shpBuffer(FIXTURE_STATES);
+    expect(() => countShpRecords(shp.subarray(0, shp.length - 5), 'x.zip')).toThrow(/truncated/);
+    // Append a "null shape" record (type 0) and a matching .dbf row.
+    const nullRecord = Buffer.alloc(12);
+    nullRecord.writeInt32BE(FIXTURE_STATES.length + 1, 0);
+    nullRecord.writeInt32BE(2, 4);
+    const withNull = Buffer.concat([shp, nullRecord]);
+    withNull.writeInt32BE(withNull.length / 2, 24);
+    const dbf = dbfBuffer([
+      ...FIXTURE_STATES,
+      FIXTURE_STATES[0] as (typeof FIXTURE_STATES)[number],
+    ]);
+    await expect(
+      readZip([
+        { name: `${base}.shp`, content: withNull },
+        { name: `${base}.dbf`, content: dbf },
+      ]),
+    ).rejects.toThrow(/feature 7 \(90\) has no geometry/);
+  });
+
+  it('applies a 64 MiB per-entry cap that is lower than the generic one', async () => {
+    expect(MAX_BOUNDARY_ENTRY_BYTES).toBe(64 * 1024 * 1024);
+    const dir = await mkdtemp(join(tmpdir(), 'civic-cb-cap-'));
+    await writeFile(join(dir, 'x.zip'), zipEntries(pair()));
+    await expect(
+      readBoundaryZip(dir, 'x.zip', base, { maxBytes: 2 * 1024 ** 3 }),
+    ).resolves.toBeDefined();
+    await expect(readBoundaryZip(dir, 'x.zip', base, { maxBytes: 50 })).rejects.toThrow(/50-byte/);
   });
 });
 
@@ -406,6 +492,59 @@ describe('at-large seats, delegates and unmapped territories', () => {
     expect(records.some((r) => r.state === 'AS')).toBe(false);
   });
 
+  it('rejects a district whose state is not in the state file, and a duplicate district number', async () => {
+    const { districts, states } = await fixtureRecords();
+    const orphan = {
+      ...(districts.features[0] as (typeof districts.features)[number]),
+      properties: { ...districts.features[0]?.properties, STATEFP: '77', GEOID: '7701' },
+    };
+    expect(() =>
+      buildBoundaryRecords([...districts.features, orphan], states.features, META, undefined, TINY),
+    ).toThrow(/district 7701 has STATEFP 77, which is not in cb_2025_us_state_500k/);
+    expect(() =>
+      buildBoundaryRecords(
+        [...districts.features, districts.features[0] as (typeof districts.features)[number]],
+        states.features,
+        META,
+        undefined,
+        TINY,
+      ),
+    ).toThrow(/duplicate district 9001/);
+  });
+
+  it('refuses to store path data that is not plain drawing commands', async () => {
+    const { districts, states } = await fixtureRecords();
+    const [record] = buildBoundaryRecords(
+      districts.features,
+      states.features,
+      META,
+      undefined,
+      TINY,
+    );
+    const hostile = {
+      ...(record as NonNullable<typeof record>),
+      statePath: 'M0 0l1 1" onload="x Z',
+    };
+    async function* one() {
+      yield hostile;
+    }
+    const handle = await freshDb();
+    try {
+      await expect(
+        loadBoundaries(one(), {
+          db: handle.db,
+          sourceId: 'census-boundaries',
+          ingestRunId: 1,
+          retrievedAt: new Date(),
+          scope: { kind: 'all' },
+          logger: silentLogger,
+        }),
+      ).rejects.toThrow(/ZA outline: generated path data is not plain drawing commands/);
+    } finally {
+      await handle.close();
+    }
+  });
+
   it('rejects files that look cut off, and districts from another Congress', async () => {
     const { districts, states } = await fixtureRecords();
     expect(() => [...buildBoundaryRecords(districts.features, states.features, META)]).toThrow(
@@ -455,12 +594,13 @@ describe('ingest.run for census-boundaries (fixture zips, PGlite)', () => {
       vintage: string;
       publisher: string;
       as_of: string;
+      congress: number;
       source_id: string;
       source_key: string;
       ingest_run_id: number;
     }>(
       handle.db,
-      sql`select state, district, vintage, publisher, as_of::text, source_id, source_key, ingest_run_id from district_map order by state, district nulls first`,
+      sql`select state, district, congress, vintage, publisher, as_of::text, source_id, source_key, ingest_run_id from district_map order by state, district nulls first`,
     );
     expect(table.map((r) => `${r.state}:${r.district ?? 'state'}`)).toEqual([
       'ZA:state',
@@ -478,6 +618,7 @@ describe('ingest.run for census-boundaries (fixture zips, PGlite)', () => {
       vintage: '2025 cartographic boundary files, 119th Congress',
       publisher: 'U.S. Census Bureau',
       as_of: '2024-05-31',
+      congress: 119,
       source_id: 'census-boundaries',
       source_key: 'cb_2025_us_state_500k:90',
       ingest_run_id: receipt.runId,

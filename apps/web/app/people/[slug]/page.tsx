@@ -240,12 +240,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
             <p className="mt-1 text-sm text-ink-2">
               Official records for this member, and the sources behind the header.
             </p>
-            <MemberDistrictMap
-              state={card.state}
-              chamber={card.chamber}
-              district={card.district}
-              isCurrent={card.isCurrent}
-            />
+            <MemberDistrictMap slug={slug} />
             {identifiers.length > 0 ? (
               <ol className="mt-4 border-t border-rule">
                 {identifiers.map((id, i) => {

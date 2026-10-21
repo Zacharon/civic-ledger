@@ -14,6 +14,8 @@ export const CENSUS_CONGRESS = 119;
 export const CENSUS_BASE_URL = `https://www2.census.gov/geo/tiger/GENZ${CENSUS_VINTAGE_YEAR}/shp/`;
 export const DISTRICT_ZIP = `cb_${CENSUS_VINTAGE_YEAR}_us_cd${CENSUS_CONGRESS}_500k.zip`;
 export const STATE_ZIP = `cb_${CENSUS_VINTAGE_YEAR}_us_state_500k.zip`;
+export const DISTRICT_BASE = DISTRICT_ZIP.replace(/\.zip$/, '');
+export const STATE_BASE = STATE_ZIP.replace(/\.zip$/, '');
 export const BOUNDARY_FILES = [DISTRICT_ZIP, STATE_ZIP] as const;
 export const PUBLISHER = 'U.S. Census Bureau';
 
@@ -35,6 +37,7 @@ export interface BoundaryRecord {
   vintage: string;
   publisher: string;
   asOf: string;
+  congress: number;
   stats: { verticesIn: number; verticesOut: number; ringsDropped: number };
   /** Census district records without a numbered district (at-large `00`, delegate `98`). */
   wholeStateDistricts: number;
@@ -125,8 +128,19 @@ export function* iterateBoundaryRecords(
       );
     }
     const list = districtsByState.get(props.STATEFP) ?? [];
+    if (list.some((entry) => entry.props.CD119FP === props.CD119FP)) {
+      throw new Error(`${meta.districtFile}: duplicate district ${props.GEOID}`);
+    }
     list.push({ props, f });
     districtsByState.set(props.STATEFP, list);
+  }
+  const knownStates = new Set(stateFeatures.map((f) => StateProps.parse(f.properties).STATEFP));
+  for (const [statefp, list] of districtsByState) {
+    if (!knownStates.has(statefp)) {
+      throw new Error(
+        `${meta.districtFile}: district ${list[0]?.props.GEOID} has STATEFP ${statefp}, which is not in ${meta.stateFile}`,
+      );
+    }
   }
 
   const seen = new Set<string>();
@@ -172,6 +186,7 @@ export function* iterateBoundaryRecords(
       vintage: meta.vintage,
       publisher: PUBLISHER,
       asOf: meta.asOf,
+      congress: CENSUS_CONGRESS,
       stats: shapes.stats,
       wholeStateDistricts: entries.length - numbered.length,
     };
@@ -196,8 +211,13 @@ export async function* parseBoundaries(
   minimums: BoundaryMinimums = FULL_FILE_MINIMUMS,
 ): AsyncGenerator<BoundaryRecord> {
   const zipLimits = { maxBytes: ctx.limits?.maxDecompressedBytes };
-  const districtFile = await readBoundaryZip(snapshot.directory, DISTRICT_ZIP, zipLimits);
-  const stateFile = await readBoundaryZip(snapshot.directory, STATE_ZIP, zipLimits);
+  const districtFile = await readBoundaryZip(
+    snapshot.directory,
+    DISTRICT_ZIP,
+    DISTRICT_BASE,
+    zipLimits,
+  );
+  const stateFile = await readBoundaryZip(snapshot.directory, STATE_ZIP, STATE_BASE, zipLimits);
   const asOf = asOfFromMetadata(districtFile.metadata);
   const records = iterateBoundaryRecords(
     districtFile.features,
