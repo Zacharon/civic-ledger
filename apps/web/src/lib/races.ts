@@ -1,5 +1,5 @@
-import { ordinal } from '@/lib/format';
-import { STATE_NAMES } from '@/lib/states';
+import { ordinal } from './format';
+import { STATE_NAMES } from './states';
 
 /** The notice every race view carries: registration is not a ballot (DECISIONS A72). */
 export const REGISTRATION_NOTICE =
