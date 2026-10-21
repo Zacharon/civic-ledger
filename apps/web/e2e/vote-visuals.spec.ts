@@ -190,21 +190,28 @@ test.describe('how each party voted', () => {
     await profile(page, 'avery-ashvale');
     const first = page.locator('#votes tr[data-rollcall]').first();
     const block = first.locator('[data-party-breakdown]');
-    await expect(block.locator('table')).toBeHidden();
+    const lines = block.locator('li[data-party]');
+    // Folded by default; the lines are counts-only plain text and need no script.
+    await expect(lines.first()).toBeHidden();
     await block.locator('summary').press('Enter');
-    await expect(block.locator('table')).toBeVisible();
+    await expect(lines.first()).toBeVisible();
     const votes = await api<CapabilityOutput<'votes.list'>>(request, 'votes.list', {
       slug: 'avery-ashvale',
       limit: 1,
     });
     const item = votes.items[0];
     if (!item) throw new Error('seed member has no votes');
-    const rows = await block
-      .locator('tbody tr')
-      .evaluateAll((trs) =>
-        trs.map((tr) => [...tr.querySelectorAll('td')].map((td) => Number(td.textContent))),
+    expect(await lines.count()).toBe(item.byParty.length);
+    for (const [i, p] of item.byParty.entries()) {
+      await expect(lines.nth(i)).toHaveText(
+        `${p.party}: Yea ${p.yea}, Nay ${p.nay}, Present ${p.present}, Not voting ${p.notVoting}`,
       );
-    expect(rows).toEqual(item.byParty.map((p) => [p.yea, p.nay, p.present, p.notVoting]));
+    }
+    const t = item.tally;
+    await expect(block.locator('[data-party-total]')).toHaveText(
+      `All parties: Yea ${t.yea}, Nay ${t.nay}, Present ${t.present}, Not voting ${t.notVoting}`,
+    );
+    await expect(block).toHaveAttribute('data-reconciles', 'true');
   });
 });
 
@@ -268,10 +275,9 @@ test.describe('attendance by month', () => {
       await expect(cell).toContainText('0 not voting');
       await expect(cell).not.toHaveClass(/attend-cell-none/);
     }
-    // Screen readers get a full sentence per month, not colors.
-    await expect(noVotes.locator('.sr-only')).toContainText(
-      `No votes held in ${monthLabel('2025-06')}`,
-    );
+    // The state is words, not colors: the visible cell text is the accessible text.
+    await expect(noVotes).toContainText(`Jun 2025`);
+    expect(monthLabel('2025-06')).toBe('June 2025');
   });
 
   test('the table twin is keyboard reachable and carries the same numbers', async ({
@@ -297,11 +303,11 @@ test.describe('attendance by month', () => {
       .evaluateAll((trs) =>
         trs.map((tr) => [
           tr.getAttribute('data-month'),
-          JSON.parse(tr.getAttribute('data-value') ?? 'null'),
+          ...[...tr.querySelectorAll('td')].slice(0, 4).map((td) => Number(td.textContent)),
         ]),
       );
     expect(rows).toEqual(
-      attendance.months.map((m) => [m.month, [m.status, m.eligible, m.missed, m.present]]),
+      attendance.months.map((m) => [m.month, m.eligible, m.missed, m.present, m.rollcallsHeld]),
     );
     const footer = (await table.locator('tfoot td').allTextContents()).slice(0, 3);
     expect(footer.map((t) => Number(t.replaceAll(',', '')))).toEqual([

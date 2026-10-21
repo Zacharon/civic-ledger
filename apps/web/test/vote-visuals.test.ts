@@ -5,7 +5,6 @@ import {
   attendanceSummary,
   missedShare,
   monthLabel,
-  monthSentence,
   monthStatusLabel,
 } from '../src/lib/attendance';
 import { partyBreakdown, partyRowLabel } from '../src/lib/party-breakdown';
@@ -78,27 +77,15 @@ const month = (over: Partial<AttendanceMonth> & { month: string }): AttendanceMo
 });
 
 describe('attendance wording', () => {
-  it('states the denominator for a served month', () => {
-    expect(monthSentence(month({ month: '2025-03', eligible: 12, missed: 2, present: 1 }))).toBe(
-      'Of 12 eligible votes in March 2025, 2 not voting and 1 present.',
-    );
-    expect(monthSentence(month({ month: '2025-03', eligible: 1, missed: 0 }))).toContain(
-      'Of 1 eligible vote in March 2025',
-    );
-  });
-
-  it('words each non-voting status differently and never as zero', () => {
-    const sentences = (
+  it('gives every non-served status its own visible label, never a zero', () => {
+    const labels = (
       ['no_votes_held', 'not_yet_serving', 'no_longer_serving', 'not_serving', 'no_record'] as const
-    ).map((status) =>
-      monthSentence(month({ month: '2025-06', status, eligible: 0, missed: 0, rollcallsHeld: 3 })),
-    );
-    expect(new Set(sentences).size).toBe(5);
-    expect(sentences[0]).toBe("No votes held in June 2025 in this member's chamber.");
-    expect(sentences[1]).toBe('Not yet serving in June 2025; 3 roll calls held.');
-    expect(monthStatusLabel('no_votes_held')).toBe('No votes held');
-    expect(monthStatusLabel('not_yet_serving')).toBe('Not yet serving');
-    for (const sentence of sentences) expect(sentence).not.toMatch(/\b0 eligible/);
+    ).map((status) => monthStatusLabel(status));
+    expect(new Set(labels).size).toBe(5);
+    expect(labels[0]).toBe('No votes held');
+    expect(labels[1]).toBe('Not yet serving');
+    expect(monthStatusLabel('served')).toBe('');
+    for (const label of labels) expect(label).not.toContain('0');
   });
 
   it('computes the missed share only from eligible votes', () => {

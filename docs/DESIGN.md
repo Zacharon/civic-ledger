@@ -138,15 +138,17 @@ never encode a vote; `src/lib/vote.ts` is the only mapping):
   vote date (their term then); the UI says so, and a position with no party on file is its
   own labelled row. Open on wide screens, folded behind a 44px "How each party voted"
   disclosure on phones after hydration (native `<details>`, so it works without script); in
-  the member votes table it is folded per row at every width.
+  the member votes table it is a compact counts-only version (one text line per party and an
+  "All parties" line, no meter, no client component) folded per row at every width, to keep
+  the profile light (20 rows per page); every number of the full table is in those lines.
 - **Attendance by month** (`AttendanceStrip`, member profile): one cell per month of the
   Congress. A served month states its denominator ("Of N eligible votes"), draws the missed
   share as the `--vote-not-voting` grey on a sunk track, and prints Not voting and Present
   (hatched key) counts. "No votes held" is a dashed outline, "Not yet serving" / "No longer
   serving" a sunk fill, "No record on file" a dotted outline; none of them is drawn as a zero.
-  Greys only: no red, no party color, no Yea or Nay color. Every cell has a sentence for
-  assistive technology, and the same numbers sit in a table behind a keyboard-reachable
-  disclosure.
+  Greys only: no red, no party color, no Yea or Nay color. Cell state is visible text (no
+  colour-only cue), and the same numbers, plus roll calls held, sit in a table behind a
+  keyboard-reachable disclosure.
 - Known overlap: the money palette's slot 1 green and slot 2 amber sit near Yea and Nay.
   They are separate, labeled charts in different sections (Money vs Votes) and neither is
   red or blue; retuning the validated money palette is a separate decision.

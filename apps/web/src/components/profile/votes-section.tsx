@@ -104,6 +104,12 @@ export async function VotesSection({
           ))}
       </nav>
 
+      <p className="mt-6 max-w-3xl text-sm text-ink-3">
+        “How each party voted” under a roll call counts its recorded positions by each member’s
+        party on the vote date, from their term records; the party lines add up to the “All parties”
+        line, the roll call’s total.
+      </p>
+
       {votes.items.length === 0 ? (
         <p className="mt-6 text-ink-2">
           No roll calls {activeArea ? `on ${activeArea.name} bills ` : ''}for this member.

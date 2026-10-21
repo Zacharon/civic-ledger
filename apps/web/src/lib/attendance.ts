@@ -36,29 +36,6 @@ export const monthStatusLabel = (status: AttendanceMonth['status']) => STATUS_LA
 const count = (n: number, one: string, many = `${one}s`) =>
   `${formatNumber(n)} ${n === 1 ? one : many}`;
 
-/**
- * The full text for one month, also used for assistive technology and the table twin.
- * States the denominator: "Of N eligible votes in <month>".
- */
-export function monthSentence(m: AttendanceMonth): string {
-  const name = monthLabel(m.month);
-  const held = m.rollcallsHeld > 0 ? `; ${count(m.rollcallsHeld, 'roll call')} held` : '';
-  switch (m.status) {
-    case 'served':
-      return `Of ${count(m.eligible, 'eligible vote')} in ${name}, ${formatNumber(m.missed)} not voting and ${formatNumber(m.present)} present.`;
-    case 'no_votes_held':
-      return `No votes held in ${name} in this member's chamber.`;
-    case 'not_yet_serving':
-      return `Not yet serving in ${name}${held}.`;
-    case 'no_longer_serving':
-      return `No longer serving in ${name}${held}.`;
-    case 'not_serving':
-      return `Not serving in ${name}${held}.`;
-    case 'no_record':
-      return `${count(m.rollcallsHeld, 'roll call')} held in ${name} while serving, but no positions are on file for this member.`;
-  }
-}
-
 /** Share of eligible votes recorded as not voting in a month, 0 when none are eligible. */
 export function missedShare(m: AttendanceMonth): number {
   return m.eligible > 0 ? m.missed / m.eligible : 0;

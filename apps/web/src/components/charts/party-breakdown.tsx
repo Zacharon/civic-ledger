@@ -20,11 +20,36 @@ export function PartyBreakdown({
 }: {
   byParty: readonly (Tally & { party: string })[];
   tally: Tally;
-  /** `list`: open on wide screens, folded on phones. `row`: folded everywhere. */
+  /** `list`: full table, open on wide screens and folded on phones. `row`: compact lines, folded. */
   placement: 'list' | 'row';
 }) {
   const model = partyBreakdown(byParty, tally);
   if (model.rows.length === 0) return null;
+  if (placement === 'row') {
+    // Compact, counts-only markup for long lists (the member votes table renders up to 20
+    // of these): plain text lines, no per-party meter, no client component. Every number
+    // of the full table is here and works without JavaScript.
+    const line = (label: string, parts: { key: string; label: string; count: number }[]) =>
+      `${label}: ${parts.map((p) => `${p.label} ${formatNumber(p.count)}`).join(', ')}`;
+    return (
+      <details
+        className="disclosure party-lines"
+        data-party-breakdown
+        data-total={model.total.total}
+        data-reconciles={model.reconciles}
+      >
+        <summary>How each party voted</summary>
+        <ul>
+          {model.rows.map(({ party, summary }) => (
+            <li key={party} data-party={party}>
+              {line(partyRowLabel(party), summary.parts)}
+            </li>
+          ))}
+          <li data-party-total>{line('All parties', model.total.parts)}</li>
+        </ul>
+      </details>
+    );
+  }
   return (
     <div
       className="mt-3"
@@ -32,11 +57,7 @@ export function PartyBreakdown({
       data-total={model.total.total}
       data-reconciles={model.reconciles}
     >
-      <PartyDisclosure
-        summary="How each party voted"
-        defaultOpen={placement === 'list'}
-        closeOnPhone={placement === 'list'}
-      >
+      <PartyDisclosure summary="How each party voted" defaultOpen closeOnPhone>
         <table className="w-full text-sm">
           <caption className="sr-only">
             Positions by party; the party rows add up to the roll call total

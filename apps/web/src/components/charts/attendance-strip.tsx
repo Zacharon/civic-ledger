@@ -6,7 +6,6 @@ import {
   attendanceSummary,
   missedShare,
   monthLabel,
-  monthSentence,
   monthShort,
   monthStatusLabel,
 } from '@/lib/attendance';
@@ -63,59 +62,41 @@ export function AttendanceStrip({ attendance }: { attendance: Attendance }) {
       <details className="disclosure mt-4">
         <summary>Attendance by month as a table</summary>
         <ScrollRegion label="Attendance by month table" className="mt-2">
-          <table className="w-full min-w-[34rem] text-sm">
+          <table className="attend-table">
             <caption className="sr-only">
-              Eligible, not voting and present roll-call votes per month, {ordinal(congress)}{' '}
+              Eligible, not voting, present and roll calls held per month, {ordinal(congress)}{' '}
               Congress
             </caption>
             <thead>
-              <tr className="border-b border-control text-left text-ink-2">
-                <th scope="col" className="py-2 pr-4 font-semibold">
-                  Month
-                </th>
-                <th scope="col" className="py-2 pr-4 text-right font-semibold">
-                  Eligible
-                </th>
-                <th scope="col" className="py-2 pr-4 text-right font-semibold">
-                  Not voting
-                </th>
-                <th scope="col" className="py-2 pr-4 text-right font-semibold">
-                  Present
-                </th>
-                <th scope="col" className="py-2 font-semibold">
-                  Note
-                </th>
+              <tr>
+                <th scope="col">Month</th>
+                <th scope="col">Eligible</th>
+                <th scope="col">Not voting</th>
+                <th scope="col">Present</th>
+                <th scope="col">Roll calls held</th>
+                <th scope="col">Note</th>
               </tr>
             </thead>
             <tbody>
               {months.map((m) => (
-                <tr
-                  key={m.month}
-                  data-month={m.month}
-                  data-value={JSON.stringify([m.status, m.eligible, m.missed, m.present])}
-                  className="border-b border-rule"
-                >
-                  <th scope="row" className="py-2 pr-4 text-left font-normal whitespace-nowrap">
-                    {monthLabel(m.month)}
-                  </th>
-                  <td className="num py-2 pr-4 text-right">{formatNumber(m.eligible)}</td>
-                  <td className="num py-2 pr-4 text-right">{formatNumber(m.missed)}</td>
-                  <td className="num py-2 pr-4 text-right">{formatNumber(m.present)}</td>
-                  <td className="py-2 text-ink-2">{monthStatusLabel(m.status) || 'Votes held'}</td>
+                <tr key={m.month} data-month={m.month}>
+                  <th scope="row">{monthLabel(m.month)}</th>
+                  <td>{formatNumber(m.eligible)}</td>
+                  <td>{formatNumber(m.missed)}</td>
+                  <td>{formatNumber(m.present)}</td>
+                  <td>{formatNumber(m.rollcallsHeld)}</td>
+                  <td>{monthStatusLabel(m.status) || 'Votes held'}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t border-ink font-semibold" data-attendance-total>
-                <th scope="row" className="py-2 pr-4 text-left">
-                  Whole Congress
-                </th>
-                <td className="num py-2 pr-4 text-right">{formatNumber(totals.eligible)}</td>
-                <td className="num py-2 pr-4 text-right">{formatNumber(totals.missed)}</td>
-                <td className="num py-2 pr-4 text-right">{formatNumber(totals.present)}</td>
-                <td className="py-2 font-normal text-ink-2">
-                  {formatShare(totals.missedRate, 1) ?? 'No data'} not voting
-                </td>
+              <tr data-attendance-total>
+                <th scope="row">Whole Congress</th>
+                <td>{formatNumber(totals.eligible)}</td>
+                <td>{formatNumber(totals.missed)}</td>
+                <td>{formatNumber(totals.present)}</td>
+                <td />
+                <td>{formatShare(totals.missedRate, 1) ?? 'No data'} not voting</td>
               </tr>
             </tfoot>
           </table>
@@ -126,7 +107,8 @@ export function AttendanceStrip({ attendance }: { attendance: Attendance }) {
 }
 
 function MonthCell({ m }: { m: AttendanceMonth }) {
-  const year = m.month.slice(0, 4);
+  // Lean markup: this renders up to 24 cells per profile. Visible text only (no hidden
+  // duplicate sentence); every number is in the text and in the table.
   return (
     <li
       className={CELL_CLASS[m.status]}
@@ -134,41 +116,32 @@ function MonthCell({ m }: { m: AttendanceMonth }) {
       data-status={m.status}
       data-value={JSON.stringify([m.status, m.eligible, m.missed, m.present])}
     >
-      <p className="font-semibold">
-        {monthShort(m.month)} <span className="num">{year}</span>
-      </p>
+      <b>
+        {monthShort(m.month)} {m.month.slice(0, 4)}
+      </b>
       {m.status === 'served' ? (
         <>
-          <p className="mt-1 text-sm" aria-hidden="true">
-            Of <span className="num font-semibold">{formatNumber(m.eligible)}</span> eligible{' '}
-            {m.eligible === 1 ? 'vote' : 'votes'}
-          </p>
-          <div className="attend-track mt-2" aria-hidden="true">
-            <div
+          <span>
+            Of <b>{formatNumber(m.eligible)}</b> eligible {m.eligible === 1 ? 'vote' : 'votes'}
+          </span>
+          <i className="attend-track">
+            <i
               className="attend-fill"
               style={{ '--v': `${missedShare(m) * 100}%` } as CSSProperties}
             />
-          </div>
-          <p
-            className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm"
-            aria-hidden="true"
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <span className="vote-key vote-not-voting" />
-              <span className="num font-semibold">{formatNumber(m.missed)}</span> not voting
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="vote-key vote-present" />
-              <span className="num font-semibold">{formatNumber(m.present)}</span> present
-            </span>
-          </p>
+          </i>
+          <span>
+            <s className="vote-key vote-not-voting" /> <b>{formatNumber(m.missed)}</b> not voting
+          </span>
+          <span>
+            <s className="vote-key vote-present" /> <b>{formatNumber(m.present)}</b> present
+          </span>
         </>
       ) : (
-        <p className="mt-1 text-sm font-semibold text-ink-2" aria-hidden="true">
-          {monthStatusLabel(m.status)}
-        </p>
+        <span>
+          <b>{monthStatusLabel(m.status)}</b>
+        </span>
       )}
-      <p className="sr-only">{monthSentence(m)}</p>
     </li>
   );
 }

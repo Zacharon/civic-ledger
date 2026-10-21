@@ -14,9 +14,9 @@ apply: reads only, no user data, no external effect). No schema change, no new d
 
 | Command | Result |
 |---|---|
-| `pnpm check` (lint, typecheck, test, build) | pass: 60 test files, 522 tests, lint clean, build ok (the Turbopack "dynamic filesystem access" warning in `packages/db/src/client.ts` is pre-existing) |
+| `pnpm check` (lint, typecheck, test, build) | pass (rerun after the size cut): 60 test files, 521 tests, lint clean, build ok (the Turbopack "dynamic filesystem access" warning in `packages/db/src/client.ts` is pre-existing) |
 | `pnpm test:pg` (real Postgres 17) | 70 of 71 passed first run; the one failure was `readonly-credentials` serving every public capability without an input for `votes.attendance` (a test gap, fixed: input added); that file then passed 3 of 3. Capability results on Postgres equal PGlite for the new capabilities. |
-| `E2E_PORT=3330 E2E_SCALE_PORT=3331 pnpm --filter @civic-ledger/web test:e2e` | first run: 90 passed, 1 failed (`shared-values` "actual ingest publication ... restarts", a 180 s timeout while other agents were running suites; 5 dependent tests did not run). Rerun of `shared-values.spec.ts` alone: 7 of 7 passed (that test took 41 s). `--project=performance --no-deps`: 2 of 2 passed (Explore, 600 members: cold LCP 1352 ms, warm 616 ms, CLS 0). Nothing skipped or weakened. |
+| `E2E_PORT=3330 E2E_SCALE_PORT=3331 pnpm --filter @civic-ledger/web test:e2e` | first run: 90 passed, 1 failed (`shared-values` "actual ingest publication ... restarts", a 180 s timeout while other agents were running suites; 5 dependent tests did not run). Rerun of `shared-values.spec.ts` alone: 7 of 7 passed (that test took 41 s). `--project=performance --no-deps`: 2 of 2 passed (Explore, 600 members: cold LCP 1352 ms, warm 616 ms, CLS 0). After the size cut: `vote-visuals`, `design-system`, `shared-values` and `a11y` specs, 74 of 74 passed. Nothing skipped or weakened. |
 | `apps/web/e2e/vote-visuals.spec.ts` (23 tests, in the run above) | axe WCAG 2.2 AA in light and dark on `/`, `/policy/health`, `/people/avery-ashvale`, `/people/jules-kindlewood`; the same four at 390 px with no sideways scroll; keyboard: the phone fold opens with Enter, the attendance table twin opens with Enter and its scroll region is focusable; every number compared with `/api/v1`. |
 | `apps/web/e2e/design-system.spec.ts` | `/people/jules-kindlewood` added to `ROUTES` (reflow at 320 to 1440 px). |
 | API / MCP parity | `apps/web/test/parity.test.ts` (direct dispatch = HTTP = MCP for `votes.attendance` x4 inputs and `chamber.composition`, and identical errors); `e2e/support/supplemental-values.ts` adds attendance (per profile) and seat chart (Home) comparisons that run against HTTP and MCP before and after a data change and a restart (`shared-values.spec.ts`). |
@@ -85,12 +85,23 @@ Page level (`curl`, built app on port 3332, median of 7, warm). Before = base we
 (`fda8c59`) on the same core; after = this branch. The before run happened while the machine
 was busier, so a difference under about 0.2 s is not meaningful:
 
-| Page | Before | After | HTML bytes before / after (gzip) |
+| Page | Before (raw / gzip) | First version (raw / gzip) | Lean version, final (raw / gzip) |
 |---|---|---|---|
-| `/` | 0.72 s | 0.65 to 0.87 s | 56 KB to 136 KB (13.1 to 21.5 KB) |
-| `/policy/health` | 1.18 s | 0.83 to 1.36 s | 704 KB to 729 KB (28.4 to 30.3 KB) |
-| `/people/lisa-murkowski-m001153` | 1.13 s | 0.86 to 1.29 s | 275 KB to 533 KB (37.8 to 49.5 KB) |
-| `/people/jon-ossoff-o000174` | 1.30 s | 0.82 to 1.33 s | 371 KB to 629 KB |
+| `/` | 56.5 KB / 13.1 KB | 135.8 / 21.5 KB | 135.8 / 21.5 KB |
+| `/policy/health` | 704.0 KB / 28.4 KB | 728.8 / 30.3 KB | 728.8 / 30.3 KB |
+| `/people/lisa-murkowski-m001153` | 274.7 KB / 37.8 KB | 532.7 / 49.5 KB | **342.9 / 43.4 KB** (+68 KB raw) |
+| `/people/jon-ossoff-o000174` | 371.3 KB / n/a | 629.3 / n/a | **439.4 / 51.0 KB** (+68 KB raw) |
+
+Profile weight: the first version rendered a full table with meters in each of the 20
+roll-call rows and a verbose attendance strip, and every element is sent twice (HTML and the
+RSC payload). The final version renders the per-row breakdown as compact counts-only lines
+(plain `<details>`, no client component, no per-party meter; about 570 bytes per row instead
+of 3.2 KB), prints the basis note once per section, and trims the attendance strip and its
+table twin (visible text only, short markup and shared CSS classes; the strip has a "Roll
+calls held" column so no number was dropped). Every number is still on the page without
+JavaScript, and `/api/v1` and MCP output did not change. The policy page keeps the full
+table with meters. The home page's +79 KB is the 600 or so seat squares (about 34 bytes each,
+sent twice); it was not part of this cut.
 
 No index was added, so there is nothing to report as a schema change. `vote_position` has
 `(rollcall_id, person_id)` and `(person_id)` indexes and `term` has a `(person_id, ...)`
@@ -106,8 +117,8 @@ built app on the live database.
 
 ## Limitations
 
-- The attendance strip's cells are not individually focusable (they are plain text with a
-  sentence per month); the keyboard route is the table twin disclosure and its focusable
+- The attendance strip's cells are not individually focusable (they are plain
+  visible text); the keyboard route is the table twin disclosure and its focusable
   scroll region.
 - Other (non Democrat, Republican, Independent) parties in the seat chart are told apart by
   pattern and by the legend; three patterns repeat for a fourth party.
