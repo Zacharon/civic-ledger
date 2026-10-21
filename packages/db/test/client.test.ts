@@ -1,6 +1,12 @@
 import { join, resolve } from 'node:path';
+import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { BATCH_POOL_DEFAULTS, dbConfigFromEnv, INTERACTIVE_POOL_DEFAULTS } from '../src/client';
+import {
+  BATCH_POOL_DEFAULTS,
+  createDb,
+  dbConfigFromEnv,
+  INTERACTIVE_POOL_DEFAULTS,
+} from '../src/client';
 
 const URL = 'postgres://owner:pw@db.example/civic';
 const READ_URL = 'postgres://civic_web:pw@db.example/civic';
@@ -84,5 +90,21 @@ describe('dbConfigFromEnv', () => {
     expect(dbConfigFromEnv({ DATABASE_URL_READONLY: READ_URL }, { readOnly: true }).kind).toBe(
       'pg',
     );
+  });
+});
+
+describe('createDb (PGlite)', () => {
+  it('evaluates dates in UTC, like hosted Postgres, whatever the host zone', async () => {
+    const handle = createDb({ kind: 'pglite' });
+    try {
+      const result = await handle.db.execute(
+        sql`select current_setting('TimeZone') as tz, current_date::text as today`,
+      );
+      const [row] = (result as unknown as { rows: { tz: string; today: string }[] }).rows;
+      expect(row?.tz).toBe('UTC');
+      expect(row?.today).toBe(new Date().toISOString().slice(0, 10));
+    } finally {
+      await handle.close();
+    }
   });
 });

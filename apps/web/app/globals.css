@@ -360,6 +360,20 @@
     margin-top: 1.5rem;
     align-self: start;
   }
+  /*
+   * Phones: the eyebrow and the name take the full width, so a long single-word surname never
+   * pushes the page sideways; the portrait sits beside the lines under the name instead.
+   */
+  @media (max-width: 639.98px) {
+    .profile-header > .eyebrow,
+    .profile-header > .page-title {
+      grid-column: 1 / -1;
+    }
+    .profile-header > .member-portrait {
+      grid-row: 4 / 8;
+      margin-top: 1.25rem;
+    }
+  }
   .member-portrait-frame {
     aspect-ratio: 4 / 5;
     width: 100%;

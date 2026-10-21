@@ -228,7 +228,9 @@ GPO Member Guide; stored by `member-photos`, DECISIONS A81) appears in **one** p
   facts list below uses the full width under it.
 - **Reading order.** The figure comes after the `h1` in the DOM, so assistive technology reads the
   name first; CSS grid (`.profile-header`: a portrait column, text in the second column, the last
-  portrait row `1fr` so a tall portrait never stretches the text rows) places it at the left. Upstream fits each photo into a 225x275 box keeping its proportions
+  portrait row `1fr` so a tall portrait never stretches the text rows) places it at the left. Below
+  640px the eyebrow and the name take the full width and the portrait sits beside the lines under the
+  name, so a long single-word surname never scrolls the page sideways at 320px. Upstream fits each photo into a 225x275 box keeping its proportions
   (most are 9:11, about 1 in 8 are narrower such as 183x275), so the image is shown with
   `object-fit: contain` on the sunk surface: never cropped, stretched, filtered or recolored.
 - **Image.** Explicit `width`/`height` of the file (225x275, so no layout shift), `srcset` 1x (225)

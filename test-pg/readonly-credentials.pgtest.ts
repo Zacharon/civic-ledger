@@ -79,6 +79,7 @@ describe('production read-only credentials on Postgres 17', () => {
         'people.get': { slug },
         'people.glance': { slug },
         'people.portrait': { slug },
+        'districts.shape': { slug },
         'money.summary': { slug },
         'scores.list': { slug },
         'votes.attendance': { slug },

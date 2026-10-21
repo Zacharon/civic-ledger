@@ -93,6 +93,9 @@ export function createDb(config: DbConfig): DbHandle {
   if (config.kind === 'pglite') {
     if (config.dataDir) mkdirSync(config.dataDir, { recursive: true });
     const client = config.dataDir ? new PGlite(config.dataDir) : new PGlite();
+    // UTC like hosted Postgres: `current_date` decides who is currently serving, and PGlite
+    // otherwise follows the host's zone. One in-order connection, so this runs before any query.
+    void client.exec("SET TIME ZONE 'UTC'");
     return { kind: 'pglite', db: drizzlePglite({ client }), client, close: () => client.close() };
   }
   const limits = { ...INTERACTIVE_POOL_DEFAULTS, ...definedOnly(config) };
