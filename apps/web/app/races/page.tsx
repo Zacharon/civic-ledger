@@ -374,9 +374,9 @@ function SeatTable({
                 i.activeCandidates,
                 i.candidatesWithMoneyReports,
               ])}
-              className="border-b border-rule align-top"
+              className="rt-row"
             >
-              <th scope="row" className="py-3 pr-4 text-left font-normal">
+              <th scope="row" className="rt-head">
                 <Link href={raceHref(cycle, i.seat.key)} className="link text-base">
                   {firstColumn === 'State'
                     ? stateName(i.seat.state)
@@ -385,7 +385,7 @@ function SeatTable({
                       : `District ${i.seat.district}`}
                 </Link>
               </th>
-              <td className="py-3 pr-4">
+              <td className="rt-cell">
                 {i.incumbents.length > 0 ? (
                   <ul className="space-y-1">
                     {i.incumbents.map((m) => (
@@ -401,9 +401,9 @@ function SeatTable({
                   <span className="nodata">No sitting member up</span>
                 )}
               </td>
-              <td className="num py-3 pr-4 text-right">{formatNumber(i.registrations)}</td>
-              <td className="num py-3 pr-4 text-right">{formatNumber(i.activeCandidates)}</td>
-              <td className="num py-3 text-right">{formatNumber(i.candidatesWithMoneyReports)}</td>
+              <td className="rt-num">{formatNumber(i.registrations)}</td>
+              <td className="rt-num">{formatNumber(i.activeCandidates)}</td>
+              <td className="rt-num">{formatNumber(i.candidatesWithMoneyReports)}</td>
             </tr>
           ))}
         </tbody>

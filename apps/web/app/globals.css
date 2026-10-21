@@ -481,6 +481,24 @@
    * 100 rows × ~15 cells twice (table and cards) plus the RSC payload, so markup
    * size is a performance budget (DESIGN.md). Values arrive as CSS variables.
    */
+  /* Race seat tables: short classes, because /races renders about 500 rows (DESIGN.md). */
+  .rt-row {
+    @apply border-b border-rule align-top;
+  }
+  .rt-head {
+    @apply py-3 pr-4 text-left font-normal;
+  }
+  .rt-cell {
+    @apply py-3 pr-4;
+  }
+  .rt-num {
+    @apply py-3 pr-4 text-right;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .rt-num:last-child {
+    padding-right: 0;
+  }
+
   .xt-cell {
     @apply border-b border-rule px-3 py-2.5 text-right whitespace-nowrap;
   }
