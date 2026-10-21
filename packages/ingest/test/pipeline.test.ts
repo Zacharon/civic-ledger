@@ -126,6 +126,7 @@ describe('fec-bulk', () => {
       candidates: 19,
       candidate_rows: 16,
       candidates_other_election_year_skipped: 2,
+      candidates_without_state_skipped: 0,
       candidates_other_office_skipped: 1,
     });
     const all = await q<{

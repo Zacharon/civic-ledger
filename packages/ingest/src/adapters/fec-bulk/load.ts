@@ -68,6 +68,7 @@ const COUNT_KEYS = [
   'candidate_rows',
   'candidate_rows_matched_to_person',
   'candidates_other_election_year_skipped',
+  'candidates_without_state_skipped',
   'candidates_other_office_skipped',
   'candidacies',
   'candidacies_presidential_skipped',
@@ -312,8 +313,12 @@ async function loadCandidateRows(s: State, rows: CandidateRecord[]) {
       s.counts.add('candidates_other_office_skipped');
       continue;
     }
-    if (r.electionYear !== s.cycle || !r.state) {
+    if (r.electionYear !== s.cycle) {
       s.counts.add('candidates_other_election_year_skipped');
+      continue;
+    }
+    if (!r.state) {
+      s.counts.add('candidates_without_state_skipped');
       continue;
     }
     const personId = s.personByFec.get(r.id) ?? null;
@@ -321,12 +326,15 @@ async function loadCandidateRows(s: State, rows: CandidateRecord[]) {
     values.push({
       fecCandidateId: r.id,
       cycle: s.cycle,
-      nameAsFiled: r.name || r.id,
+      // An empty CAND_NAME stays empty (null): the id is not a name.
+      nameAsFiled: r.name || null,
       partyCode: r.party,
       electionYear: r.electionYear,
       office: r.office,
       state: r.state,
-      district: r.office === 'S' ? null : (r.district ?? 0),
+      // As filed: a blank House district stays null and "00" stays 0. Whether that is an
+      // at-large seat, a typo or no seat at all is decided at read time (races capabilities).
+      district: r.office === 'S' ? null : r.district,
       incumbency: r.incumbency,
       status: r.status,
       principalCommitteeId: r.principalCommitteeId,

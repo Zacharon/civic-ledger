@@ -62,7 +62,64 @@ describe('candidate table reload', () => {
     const emptied = await fecFixtureWithCn([]);
     const receipt = await ingestFixture(rt, 'fec-bulk', emptied);
     expect(receipt.status).toBe('failed');
-    expect(receipt.error).toMatch(/^shrink guard: .*candidate/s);
+    expect(receipt.error).toMatch(/^shrink guard: .*rows in candidate for cycle:2026/s);
     expect(await names()).toEqual(before);
+  });
+
+  it('stores a blank House district as null, a "00" as 0 and an empty name as null', async () => {
+    const rt = await testRuntime(handle);
+    await ingestFixture(rt, 'congress-legislators');
+    const dir = await fecFixtureWithCn([
+      cn('H6AZ08210', '', 'H', 'AZ', ''),
+      cn('H6GA00001', 'ZERO, GEORGIA', 'H', 'GA', '00'),
+      cn('H6GA00002', 'TWENTYTHREE, GEORGIA', 'H', 'GA', '23'),
+      cn('S6GA00001', 'SENATE, GEORGIA', 'S', 'GA', '00'),
+    ]);
+    const receipt = await ingestFixture(rt, 'fec-bulk', dir);
+    expect(receipt.status).toBe('succeeded');
+    const stored = await rows<{ id: string; name: string | null; district: number | null }>(
+      handle.db,
+      sql`select fec_candidate_id as id, name_as_filed as name, district from candidate order by 1`,
+    );
+    expect(stored).toEqual([
+      { id: 'H6AZ08210', name: null, district: null },
+      { id: 'H6GA00001', name: 'ZERO, GEORGIA', district: 0 },
+      { id: 'H6GA00002', name: 'TWENTYTHREE, GEORGIA', district: 23 },
+      { id: 'S6GA00001', name: 'SENATE, GEORGIA', district: null },
+    ]);
+  });
+
+  it('reloads an already-loaded snapshot when the adapter version changes (idempotency key)', async () => {
+    const rt = await testRuntime(handle);
+    await ingestFixture(rt, 'congress-legislators');
+    const first = await ingestFixture(rt, 'fec-bulk');
+    expect(first.deduplicated).toBe(false);
+    // Same version and snapshot: answered from the ledger, nothing reloaded.
+    const again = await ingestFixture(rt, 'fec-bulk');
+    expect(again.deduplicated).toBe(true);
+
+    // The state before fec-bulk@3: the table did not exist, so it is empty after migration.
+    await handle.db.execute(sql`delete from candidate`);
+    expect(await names()).toHaveLength(0);
+    const again2 = await ingestFixture(rt, 'fec-bulk');
+    expect(again2.deduplicated).toBe(true);
+    expect(await names()).toHaveLength(0);
+
+    // A new adapter version is a new idempotency key: the same bytes load again.
+    const bumped = await testRuntime(handle, {
+      adapters: {
+        ...rt.adapters,
+        'fec-bulk': { ...rt.adapters['fec-bulk'], version: 'fec-bulk@next' },
+      } as typeof rt.adapters,
+    });
+    const reloaded = await ingestFixture(bumped, 'fec-bulk');
+    expect(reloaded.status).toBe('succeeded');
+    expect(reloaded.deduplicated).toBe(false);
+    expect(await names()).toHaveLength(16);
+  });
+
+  it('ships the adapter at a version that includes the candidate table', async () => {
+    const { fecBulkAdapter } = await import('../src/adapters/fec-bulk');
+    expect(fecBulkAdapter.version).toBe('fec-bulk@3');
   });
 });

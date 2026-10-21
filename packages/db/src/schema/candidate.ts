@@ -19,15 +19,15 @@ export const candidate = pgTable(
     fecCandidateId: text('fec_candidate_id').notNull(),
     /** Cycle of the FEC bulk file this row came from (equals `election_year` for rows kept). */
     cycle: integer('cycle').notNull(),
-    /** CAND_NAME as filed: "LAST, FIRST MIDDLE SUFFIX", upper case. */
-    nameAsFiled: text('name_as_filed').notNull(),
+    /** CAND_NAME as filed: "LAST, FIRST MIDDLE SUFFIX", upper case. Null when the FEC row has none. */
+    nameAsFiled: text('name_as_filed'),
     /** CAND_PTY_AFFILIATION: FEC party code such as DEM, REP, LIB, IND, NPA. */
     partyCode: text('party_code'),
     electionYear: integer('election_year').notNull(),
     /** CAND_OFFICE: 'H' or 'S'. */
     office: text('office').notNull(),
     state: text('state').notNull(),
-    /** House district; 0 = at-large (FEC "00"). Null for Senate. */
+    /** House district as filed: 0 = FEC "00"; null = blank (and every Senate row). */
     district: integer('district'),
     /** CAND_ICI: I = incumbent, C = challenger, O = open seat; null when the FEC leaves it blank. */
     incumbency: text('incumbency'),

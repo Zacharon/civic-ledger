@@ -1,5 +1,5 @@
 {
-  "id": "dfb59e96-a741-4141-a5e9-16c59201cc58",
+  "id": "473f327c-8a28-4411-bff5-26dfe32f6dd5",
   "prevId": "046539fa-bc5c-40b1-8135-1070866c4c94",
   "version": "7",
   "dialect": "postgresql",
@@ -41,7 +41,7 @@
           "name": "name_as_filed",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "party_code": {
           "name": "party_code",
