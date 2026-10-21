@@ -34,6 +34,8 @@ in `packages/core/src/capabilities`):
 | `votes.list` | `items[].byParty[]` `{party, yea, nay, present, notVoting}` | One row per party present, party at the vote date, alphabetical, `Unknown` last; rows sum to `tally` |
 | `votes.attendance` | input `slug`, optional `congress`; output `months[]`, `totals`, `throughMonth` | Month-by-month eligible, missed (not voting) and present for one Congress; `status` keeps "no votes held" and "not yet serving" apart from zero misses; totals equal the Explore `votesEligible` / `missedVoteRate` |
 | `chamber.composition` | empty input; output `chambers[]` `{chamber, seats, members, voting[], nonVoting, vacancies}`, `asOf`, `provenance` | Current composition by party in the documented order; delegates counted apart from the 435; `vacancies` is `null` for a partial roster |
+| `races.list` | input `cycle` (even year), `chamber`, `state`, `person`; output `notice`, `items[]` `{seat, seatUp, incumbents, registrations, activeCandidates, candidatesWithMoneyReports}`, `unplaced[]` (registrations with no seat, as filed), `totals`, `sources` | Seats ordered by state, Senate first, then district; never by money. Counts are FEC registrations (`cn`) for the cycle; a money report is a row in the FEC all-candidates summary. Example: `/api/v1/races.list?input={"state":"GA","chamber":"senate"}` |
+| `races.get` | input `seat` (`ga-senate`, `ga-10`, `ak-al`), `cycle`, `sort` (`name` default, `receipts` opt-in); output `candidates[]` with `displayName`, `nameAsFiled`, `person`, `party {code, name}`, `incumbency(Label)`, `status(Label)`, `money` (`null` = no report; cash on hand as filed, may be negative), `outsideSpending {supportCents, opposeCents, expenditures}`, `fecUrl`, `registration` (provenance), `alsoRegisteredFor[]`, `sharedCommitteeWith[]`, `sameNameAsFiledAs[]`; top-level `notice` | `not_found` for a seat with no registration and no member up; `invalid_input` for a key that is not canonical (`zv-01`, `ZV-1`). Outside totals are per FEC candidate id |
 | `sources.status` | runs: `scope`, `counts`, `error` | Ingest scope as stored (`all`, `cycle:2026`, `congress:119`) and the run's own counters |
 
 ## JSON API
@@ -44,7 +46,7 @@ machine-readable contract is generated from the zod schemas at
 
 | Capability | Method | Cache class |
 |---|---|---|
-| `people.search`, `people.get`, `people.glance`, `people.compare`, `explore.table`, `money.summary`, `votes.list`, `votes.attendance`, `chamber.composition`, `scores.list`, `promises.list` | GET | data: `s-maxage=300, stale-while-revalidate=3600` |
+| `people.search`, `people.get`, `people.glance`, `people.compare`, `explore.table`, `money.summary`, `votes.list`, `votes.attendance`, `chamber.composition`, `scores.list`, `promises.list`, `races.list`, `races.get` | GET | data: `s-maxage=300, stale-while-revalidate=3600` |
 | `policy.areas`, `frameworks.list`, `explainers.list`, `districts.shape` | GET | reference: `s-maxage=3600, stale-while-revalidate=86400` |
 | `sources.status` | GET | status: `s-maxage=60, stale-while-revalidate=300` |
 | `people.portrait` | GET | binary: see below (`ETag` = sha256; `immutable` only with a matching `v`) |
@@ -156,7 +158,7 @@ repeated keys, and every GET also accepts `input`.
 per public capability. Tool names replace the dot with an underscore: `people_search`,
 `people_get`, `people_compare`, `explore_table`, `money_summary`, `votes_list`, `votes_attendance`, `chamber_composition`,
 `scores_list`, `promises_list`, `policy_areas`, `frameworks_list`, `frameworks_evaluate`,
-`sources_status`, `explore_facets`, `explainers_list`, `people_glance` and `people_portrait` (plus the tools above; one tool per public capability; `people_portrait` returns an image block).
+`sources_status`, `explore_facets`, `explainers_list`, `people_glance`, `races_list`, `races_get` and `people_portrait` (plus the tools above; one tool per public capability; `people_portrait` returns an image block).
 
 * `inputSchema` and `outputSchema` are JSON Schema generated from the capability's own
   zod schemas. Results are `structuredContent` plus the same JSON as a text block.

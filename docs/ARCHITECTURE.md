@@ -89,6 +89,7 @@ upsert. All fact tables carry the provenance columns
 | Identity spine | `person`, `person_identifier(scheme, value)` | Schemes: `bioguide`, `fec_candidate`, `icpsr`, `opensecrets`, `govtrack`, `openstates`, `wikidata`. Seeded from congress-legislators. |
 | Offices | `office`, `term(person, office, party, start, end)` | Office = level (federal/state) + chamber + state + district. |
 | Campaigns | `candidacy(person, cycle, office, fec_candidate_id, party, outcome)` | Cross-campaign history for the same person. |
+| Races | `candidate(fec_candidate_id, cycle, name_as_filed, party_code, office, state, district, incumbency, status, person_id?)` | Every House/Senate candidate on a cycle's ballot from the FEC candidate master, as filed; `person_id` only for Bioguide matches (A21 amendment, A86). |
 | Money | `committee`, `committee_link(candidate↔committee)`, `candidate_cycle_totals`, `committee_contribution(pas2)`, `independent_expenditure` | FEC bulk: `cn`, `cm`, `ccl`, `weball`, `pas2`, IE CSV. Amounts in integer cents. |
 | Industry coding | `industry`, `committee_industry(committee, industry, method, confidence)` | In-house map from `data/curated/industry_map`; coverage % reported. |
 | Legislation | `bill(congress, type, number)`, `bill_policy_area`, `bill_subject` | GovInfo BILLSTATUS (policy area = Congress.gov's ~32-area taxonomy, the neutral base). |
@@ -175,6 +176,7 @@ The capability list and the seven-gate evidence plan are in
 | `/people/[slug]/portrait` | The member's official portrait file (`?size=225|450&v=<cache key>`), forwarded to `people.portrait`. |
 | `/people/[slug]` | Profile: header (office, party, tenure), Money, Votes by policy area, Scores side by side, Promises, Platform vs record, Career across campaigns. |
 | `/compare?ids=` | 2–4 people in aligned columns. |
+| `/races`, `/races/<cycle>/<seat>` | Seats by state with registration and money-report counts; one seat with every FEC-registered candidate, money as filed and outside support / oppose (`races.list`, `races.get`; A86-A92). |
 | `/policy/[area]` | Key votes in an area, how every member voted, money from related industries. |
 | `/frameworks` | Pick or build a framework; see "X of Y" with the exact votes per member. |
 | `/sources`, `/methodology` | Every source, terms, last successful run, coverage %. |

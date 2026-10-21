@@ -26,7 +26,9 @@ import {
   seatLabel,
   serviceYears,
 } from '@/lib/format';
-import { readOrNotFound } from '@/server/capabilities';
+import { raceHref, raceTitle } from '@/lib/races';
+import { apiLogger } from '@/server/api/runtime';
+import { read, readOrNotFound } from '@/server/capabilities';
 import { comparedNames } from '@/server/compare-names';
 import { sourceInfos } from '@/server/sources';
 
@@ -77,10 +79,19 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
   const query = await searchParams;
   const slug = safeSlug(rawSlug);
   const chosen = parseCompareIds(firstParam(query.compare));
-  const [profile, sources, compared] = await Promise.all([
+  const [profile, sources, compared, races] = await Promise.all([
     readOrNotFound('people.get', { slug }),
     sourceInfos(),
     comparedNames(chosen),
+    // The member's election-cycle races (registered there, or sitting there with the seat up).
+    read('races.list', { person: slug }).catch((error: unknown) => {
+      // The race link is extra: fail soft, but never silently.
+      apiLogger().warn(
+        { err: error, capability: 'races.list' },
+        'races.list unavailable on a profile',
+      );
+      return null;
+    }),
   ]);
   // Comparison in progress (carried from Compare through Explore): add to it, don't restart.
   const others = compared.filter((m) => m.slug !== slug);
@@ -172,6 +183,20 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
             >
               Find in table
             </Link>
+            {races && races.items.length > 0 ? (
+              <p className="w-full text-sm text-ink-2" data-race-links>
+                {races.cycle} {races.items.length === 1 ? 'race' : 'races'}:{' '}
+                {races.items.map((r, i) => (
+                  <span key={r.seat.key}>
+                    {i > 0 ? ', ' : ''}
+                    <Link href={raceHref(races.cycle, r.seat.key)} className="link">
+                      {raceTitle(r.seat)}
+                    </Link>
+                  </span>
+                ))}
+                . <span className="text-ink-3">FEC registration is not a ballot listing.</span>
+              </p>
+            ) : null}
             {others.length > 0 ? (
               <p className="w-full text-sm text-ink-2" data-compare={ids.join(',')}>
                 {inComparison ? 'In your comparison with ' : 'Comparing '}

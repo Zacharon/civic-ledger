@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, like } from 'drizzle-orm';
 import type { Db } from '../client';
 import { refreshPersonCard } from '../read-model';
 import * as s from '../schema';
@@ -13,6 +13,7 @@ import {
   SEED_MAP_VINTAGE,
 } from './district-maps';
 import { buildSeedData, SEED_CONGRESS, type SeedData } from './fixtures';
+import { SEED_RACE_CYCLE } from './races';
 import { syntheticGreyJpeg } from './synthetic-jpeg';
 
 export { SEED_MID_CONGRESS_START } from './fixtures';
@@ -108,6 +109,7 @@ async function loadAll(
   const personIds = await loadPeople(db, data, provenance);
   const portraits = await loadPortraits(db, data, personIds, provenance);
   await loadMoney(db, data, personIds, provenance);
+  await loadRaces(db, data, personIds, provenance);
   const votes = await loadLegislation(db, data, personIds, provenance);
   await loadScores(db, data, personIds, provenance);
   await loadCurated(db, data, personIds, votes, provenance);
@@ -119,6 +121,9 @@ async function loadAll(
     committees: data.committees.length,
     contributions: data.contributions.length,
     outsideSpending: data.outsideSpending.length,
+    raceCandidates: data.raceCandidates.length,
+    raceMoney: data.raceMoney.length,
+    raceOutside: data.raceOutside.length,
     bills: data.bills.length,
     rollcalls: data.rollcalls.length,
     votePositions: data.rollcalls.reduce((n, r) => n + r.positions.length, 0),
@@ -269,7 +274,10 @@ async function loadPeople(
         })),
         ...data.formerMembers.map((p) => ({
           slug: p.slug,
-          ids: [['bioguide', p.bioguide]] as const,
+          ids: [
+            ['bioguide', p.bioguide],
+            ...(p.fecCandidateId ? [['fec_candidate', p.fecCandidateId] as const] : []),
+          ] as const,
         })),
       ].flatMap(({ slug, ids }) => {
         const personId = required(personIds, slug);
@@ -476,6 +484,101 @@ async function loadMoney(
         purpose: e.purpose,
         ...provenance(`ie:${e.spenderFecId}:${e.fecTransactionId}`),
       })),
+    )
+    .onConflictDoUpdate({
+      target: [
+        s.independentExpenditure.spenderFecCommitteeId,
+        s.independentExpenditure.fecTransactionId,
+      ],
+      set: conflictUpdateSet(s.independentExpenditure),
+    });
+}
+
+/** The 2026 races: candidates as the FEC lists them, their money reports and outside money. */
+async function loadRaces(
+  db: Db,
+  data: SeedData,
+  personIds: Map<string, number>,
+  provenance: Provenance,
+): Promise<void> {
+  await db
+    .insert(s.candidate)
+    .values(
+      data.raceCandidates.map((c) => ({
+        fecCandidateId: c.fecCandidateId,
+        cycle: SEED_RACE_CYCLE,
+        nameAsFiled: c.nameAsFiled,
+        partyCode: c.partyCode,
+        electionYear: SEED_RACE_CYCLE,
+        office: c.office,
+        state: c.state,
+        district: c.district,
+        incumbency: c.incumbency,
+        status: c.status,
+        principalCommitteeId: c.principalCommitteeId,
+        personId: c.slug === null ? null : required(personIds, c.slug),
+        ...provenance(`cn:${c.fecCandidateId}`),
+      })),
+    )
+    .onConflictDoUpdate({
+      target: [s.candidate.fecCandidateId, s.candidate.cycle],
+      set: conflictUpdateSet(s.candidate),
+    });
+
+  await db
+    .insert(s.candidateCycleTotals)
+    .values(
+      data.raceMoney.map((m) => ({
+        fecCandidateId: m.fecCandidateId,
+        cycle: SEED_RACE_CYCLE,
+        personId: null,
+        totalReceiptsCents: m.totalReceiptsCents,
+        individualCents: Math.round(m.totalReceiptsCents * 0.7),
+        unitemizedIndividualCents: null,
+        otherCommitteeCents: Math.round(m.totalReceiptsCents * 0.2),
+        partyCents: 0,
+        candidateSelfCents: Math.round(m.totalReceiptsCents * 0.05),
+        totalDisbursementsCents: m.totalDisbursementsCents,
+        cashOnHandCents: m.cashOnHandCents,
+        debtsCents: 0,
+        coverageEndDate: m.coverageEndDate,
+        ...provenance(`weball:${m.fecCandidateId}:${SEED_RACE_CYCLE}`),
+      })),
+    )
+    .onConflictDoUpdate({
+      target: [s.candidateCycleTotals.fecCandidateId, s.candidateCycleTotals.cycle],
+      set: conflictUpdateSet(s.candidateCycleTotals),
+    });
+
+  const spenders = await db
+    .select({ id: s.committee.id, fecId: s.committee.fecCommitteeId, name: s.committee.name })
+    .from(s.committee)
+    .where(and(eq(s.committee.committeeType, 'O'), like(s.committee.fecCommitteeId, 'C99%')))
+    .orderBy(s.committee.fecCommitteeId);
+  const slugByFec = new Map(data.raceCandidates.map((c) => [c.fecCandidateId, c.slug]));
+  await db
+    .insert(s.independentExpenditure)
+    .values(
+      data.raceOutside.map((e) => {
+        const spender = spenders[e.spenderIndex];
+        if (!spender) throw new Error(`Seed outside spender ${e.spenderIndex} not found`);
+        const slug = slugByFec.get(e.fecCandidateId) ?? null;
+        return {
+          spenderFecCommitteeId: spender.fecId,
+          fecTransactionId: e.fecTransactionId,
+          spenderCommitteeId: spender.id,
+          spenderName: spender.name,
+          candidateFecId: e.fecCandidateId,
+          personId: slug === null ? null : required(personIds, slug),
+          supportOppose: e.supportOppose,
+          cycle: SEED_RACE_CYCLE,
+          amountCents: e.amountCents,
+          expenditureDate: e.expenditureDate,
+          purpose:
+            e.supportOppose === 'support' ? 'Digital ads (fictional)' : 'Mailers (fictional)',
+          ...provenance(`ie:${spender.fecId}:${e.fecTransactionId}`),
+        };
+      }),
     )
     .onConflictDoUpdate({
       target: [

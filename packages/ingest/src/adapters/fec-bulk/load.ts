@@ -1,5 +1,6 @@
 import {
   candidacy,
+  candidate,
   candidateCycleSummary,
   candidateCycleTotals,
   committee,
@@ -57,12 +58,18 @@ export const SWEPT_CYCLE_TABLES = [
   { table: 'candidate_cycle_totals', loaded: 'totals', swept: 'stale_totals_deleted' },
   { table: 'committee_link', loaded: 'committee_links', swept: 'stale_committee_links_deleted' },
   { table: 'candidate_cycle_summary', loaded: 'summaries', swept: 'stale_summaries_deleted' },
+  { table: 'candidate', loaded: 'candidate_rows', swept: 'stale_candidates_deleted' },
 ] as const;
 
 const COUNT_KEYS = [
   'committees',
   'candidates',
   'candidates_matched_to_person',
+  'candidate_rows',
+  'candidate_rows_matched_to_person',
+  'candidates_other_election_year_skipped',
+  'candidates_without_state_skipped',
+  'candidates_other_office_skipped',
   'candidacies',
   'candidacies_presidential_skipped',
   'committee_links',
@@ -101,6 +108,7 @@ const COUNT_KEYS = [
   'stale_totals_deleted',
   'stale_committee_links_deleted',
   'stale_summaries_deleted',
+  'stale_candidates_deleted',
 ] as const;
 type FecCounts = Counts<(typeof COUNT_KEYS)[number]>;
 
@@ -293,9 +301,68 @@ function officeOf(r: CandidateRecord): OfficeKey | null {
     : { chamber: 'house', state: r.state, district: r.district ?? 0 };
 }
 
+/**
+ * The candidate table (DECISIONS A21 amendment): every House or Senate candidate of this
+ * cycle's ballot, as filed, whether or not a Bioguide person matches. Rows of another
+ * election year (the file keeps past and future registrants) and presidential rows stay out.
+ */
+async function loadCandidateRows(s: State, rows: CandidateRecord[]) {
+  const values: (typeof candidate.$inferInsert)[] = [];
+  for (const r of rows) {
+    if (r.office !== 'H' && r.office !== 'S') {
+      s.counts.add('candidates_other_office_skipped');
+      continue;
+    }
+    if (r.electionYear !== s.cycle) {
+      s.counts.add('candidates_other_election_year_skipped');
+      continue;
+    }
+    if (!r.state) {
+      s.counts.add('candidates_without_state_skipped');
+      continue;
+    }
+    const personId = s.personByFec.get(r.id) ?? null;
+    if (personId !== null) s.counts.add('candidate_rows_matched_to_person');
+    values.push({
+      fecCandidateId: r.id,
+      cycle: s.cycle,
+      // An empty CAND_NAME stays empty (null): the id is not a name.
+      nameAsFiled: r.name || null,
+      partyCode: r.party,
+      electionYear: r.electionYear,
+      office: r.office,
+      state: r.state,
+      // As filed: a blank House district stays null and "00" stays 0. Whether that is an
+      // at-large seat, a typo or no seat at all is decided at read time (races capabilities).
+      district: r.office === 'S' ? null : r.district,
+      incumbency: r.incumbency,
+      status: r.status,
+      principalCommitteeId: r.principalCommitteeId,
+      personId,
+      ...provenance(s.ctx, `cn:${r.id}`),
+    });
+  }
+  const unique = lastPerKey(values, (v) => `${v.fecCandidateId}|${v.cycle}`);
+  if (unique.length === 0) return;
+  for (let i = 0; i < unique.length; i += 1_000) {
+    const chunk = unique.slice(i, i + 1_000);
+    await savepoint(s, (tx) =>
+      tx
+        .insert(candidate)
+        .values(chunk)
+        .onConflictDoUpdate({
+          target: [candidate.fecCandidateId, candidate.cycle],
+          set: conflictUpdateSet(candidate),
+        }),
+    );
+  }
+  s.counts.add('candidate_rows', unique.length);
+}
+
 async function loadCandidates(s: State, rows: CandidateRecord[]) {
   s.counts.add('candidates', rows.length);
   for (const r of rows) s.electionYear.set(r.id, r.electionYear);
+  await loadCandidateRows(s, rows);
   const matched = rows.flatMap((r) => {
     const personId = s.personByFec.get(r.id);
     return personId === undefined ? [] : [{ r, personId }];
@@ -679,7 +746,7 @@ function recordStats(s: State, stats: StatsRecord) {
  * The bulk files are the complete record for the cycle, so this cycle's money rows not
  * re-asserted by this run (superseded by an amendment since the last load) are removed.
  * Runs only after every batch loaded; a failed run leaves the previous rows in place.
- * One savepoint, five DELETEs, a checkpoint before each (H3R3): an abort seen after one
+ * One savepoint, six DELETEs, a checkpoint before each (H3R3): an abort seen after one
  * DELETE stops the sweep before the next, and the load transaction rolls all back.
  */
 async function deleteStaleCycleRows(s: State) {
@@ -691,6 +758,7 @@ async function deleteStaleCycleRows(s: State) {
       | typeof independentExpenditure
       | typeof candidateCycleTotals
       | typeof candidateCycleSummary
+      | typeof candidate
       | typeof committeeLink,
   ) =>
     and(eq(table.sourceId, sourceId), eq(table.cycle, s.cycle), ne(table.ingestRunId, ingestRunId));
@@ -721,11 +789,17 @@ async function deleteStaleCycleRows(s: State) {
       .delete(candidateCycleSummary)
       .where(stale(candidateCycleSummary))
       .returning({ id: candidateCycleSummary.id });
+    check();
+    const f = await tx.delete(candidate).where(stale(candidate)).returning({ id: candidate.id });
+    s.counts.set('stale_candidates_deleted', f.length);
     s.counts.set('stale_contributions_deleted', a.length);
     s.counts.set('stale_independent_expenditures_deleted', b.length);
     s.counts.set('stale_totals_deleted', c.length);
     s.counts.set('stale_committee_links_deleted', d.length);
     s.counts.set('stale_summaries_deleted', e.length);
-    s.counts.set('stale_rows_deleted', a.length + b.length + c.length + d.length + e.length);
+    s.counts.set(
+      'stale_rows_deleted',
+      a.length + b.length + c.length + d.length + e.length + f.length,
+    );
   });
 }

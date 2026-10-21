@@ -1,3 +1,4 @@
+export * from './candidate';
 export * from './curated';
 export * from './geography';
 export * from './identity';

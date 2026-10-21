@@ -14,6 +14,9 @@ tagged; the first tag waits for the production-readiness gate and owner approval
   `people.portrait@1` (binary public read; file over HTTP, image block over MCP),
   `portrait` facts on `people.get`, `/people/<slug>/portrait`, and a 4:5 portrait or a neutral
   tile in the member record header. Member records only; never on race pages.
+- Races: `candidate` table (migration 0008, `fec-bulk@3`), `races.list` / `races.get`
+  capabilities (API and MCP), `/races` and `/races/<cycle>/<seat>` pages, a race line on
+  member profiles and a Races nav link (DECISIONS A21 amendment, A86-A95).
 - Monorepo: `packages/db` (Drizzle schema, forward-only SQL migrations, read-model
   materialized views), `packages/core` (the capability registry: 13 public read
   capabilities plus the operator-only `ingest.run` and `curated.validate`),

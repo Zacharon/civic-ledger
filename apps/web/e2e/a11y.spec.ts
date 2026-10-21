@@ -12,6 +12,12 @@ const PAGES = [
   '/compare?ids=avery-ashvale,blair-brindlemoor,cameron-corrowind',
   '/policy',
   '/policy/health',
+  '/races',
+  '/races?state=ZV',
+  '/races/2026/zv-senate',
+  '/races/2026/zv-senate?sort=receipts',
+  '/races/2026/zz-3',
+  '/races/2026/zw-3',
   '/frameworks',
   '/frameworks?build=1',
   '/sources',
@@ -64,7 +70,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
 test.describe('axe (mobile, 390px)', () => {
   test.use({ viewport: { width: 390, height: 844 } });
-  for (const path of ['/', '/explore', '/people/avery-ashvale', '/people/dana-dunmere']) {
+  for (const path of [
+    '/',
+    '/explore',
+    '/people/avery-ashvale',
+    '/people/dana-dunmere',
+    '/races',
+    '/races/2026/zv-senate',
+  ]) {
     test(`${path} has no violations on a phone`, async ({ page }) => {
       await page.goto(path);
       expect(await violations(page)).toEqual([]);

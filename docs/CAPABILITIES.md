@@ -31,6 +31,8 @@ for public reads; it does not need to.
 | `people.compare@1` | read | Compare page | `GET /api/v1/people.compare`, MCP `people_compare` |
 | `explore.table@1` | read | Explore table (sort/filter/paginate; scope current by default, or all incl. former members) | `GET /api/v1/explore.table`, MCP `explore_table` |
 | `explore.facets@1` | read | Explore filter options (states, parties, chambers, scope counts, per-field data coverage) | `GET /api/v1/explore.facets`, MCP `explore_facets` |
+| `races.list@1` | read | Races index (`/races`), the race line on profiles | `GET /api/v1/races.list`, MCP `races_list` |
+| `races.get@1` | read | Race page (`/races/<cycle>/<seat>`) | `GET /api/v1/races.get`, MCP `races_get` |
 | `money.summary@1` | read | Profile → Money | `GET /api/v1/money.summary`, MCP `money_summary` |
 | `votes.list@1` | read | Profile → Votes, Policy page (roll calls with "How each party voted") | `GET /api/v1/votes.list`, MCP `votes_list` |
 | `votes.attendance@1` | read | Profile → Votes → Attendance by month (strip and table) | `GET /api/v1/votes.attendance`, MCP `votes_attendance` |
@@ -87,6 +89,22 @@ these capabilities, so the page, `/api/v1` and MCP return the same values.
 
 All three are anonymous public reads with strict schemas, no writes, no approval step and no
 idempotency key (gates 1-4 apply; gates 5-7 do not, there is no user data or external effect).
+
+`races.list` and `races.get` (DECISIONS A21 amendment, A86-A92) read the FEC candidate
+master. `races.list` input: `cycle` (default: latest cycle with registrations), `chamber`,
+`state`, `person` (seats that member is registered in or sitting in with the seat up);
+output: `notice` (registration is not a ballot), per seat `seat {key, chamber, state, district}`, `seatUp`, `incumbents` (slug, name,
+party, `termEnd`), `registrations`, `activeCandidates` (FEC status C),
+`candidatesWithMoneyReports`, `unplaced` (registrations that belong to no seat, as filed: a district that does not exist, none filed where there are several, a Senate row where nobody sits), plus `totals` (including those without a report and `unplacedRegistrations`) and
+`sources` provenance (candidates, money reports, outside spending, terms). Seats are placed by DECISIONS A93; single-seat states put every House row at large. `races.get`
+input: `seat` (`ga-senate`, `ga-10`, `ak-al`), `cycle`, `sort` (`name` default, or
+`receipts`, opt-in); output: counts, and for every registered candidate `displayName`,
+`nameAsFiled`, `person` (slug when matched), party code and name, FEC incumbency and
+status codes with labels, `registration` (cn provenance), `money` (receipts, cash on hand as filed, coverage end, provenance;
+`null` = no report), `outsideSpending` (support, oppose, count), the fec.gov URL and the duplicate links `alsoRegisteredFor`, `sharedCommitteeWith`, `sameNameAsFiledAs`; `displayName` and `nameAsFiled` are null when the FEC row has no name. `cycle` must be an even year.
+Seats are never ranked by money; candidates are alphabetical unless the caller asks. Both
+are anonymous public reads with strict schemas and no writes. The web race pages use the
+same two capabilities with the same inputs.
 
 `frameworks.evaluate` is stateless: the framework spec travels in the request
 (or URL for the UI), so no stored user data exists.

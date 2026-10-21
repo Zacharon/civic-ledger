@@ -57,6 +57,13 @@
       "when": 1792557440797,
       "tag": "0007_person_portraits",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792560338456,
+      "tag": "0008_candidate",
+      "breakpoints": true
     }
   ]
 }

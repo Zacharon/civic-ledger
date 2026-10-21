@@ -37,6 +37,8 @@ export const CACHE_CLASS: Partial<Record<CapabilityName, CacheClass>> = {
   'scores.list': 'data',
   'promises.list': 'data',
   'policy.areas': 'reference',
+  'races.list': 'data',
+  'races.get': 'data',
   'frameworks.list': 'reference',
   'frameworks.evaluate': 'none',
   'sources.status': 'status',

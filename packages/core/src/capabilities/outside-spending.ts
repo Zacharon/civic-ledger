@@ -1,5 +1,5 @@
 import { type Db, independentExpenditure } from '@civic-ledger/db';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { CentsSchema, IsoDateSchema, ProvenanceSchema } from '../schemas/common';
 import { provenanceFields, withProvenance } from '../schemas/provenance';
@@ -99,4 +99,47 @@ export async function loadOutsideSpending(
       .slice(0, OUTSIDE_ITEMS_LIMIT)
       .map(({ spenderFecCommitteeId: _id, ...r }) => withProvenance(r)),
   };
+}
+
+export interface OutsideTotals {
+  supportCents: number;
+  opposeCents: number;
+  /** Expenditures kept after the ingest dedupe and amendment rules. */
+  expenditures: number;
+}
+
+/**
+ * Support / oppose totals per FEC candidate id for one cycle: the race view of the same
+ * `independent_expenditure` rows `loadOutsideSpending` sums per person. The dedupe and
+ * amendment rules (superseded filings, duplicate reports, implausible amounts; DECISIONS
+ * A12, A13, A53) run once at ingest, so both views read already-reconciled rows and
+ * differ only in the key: a person (all of their FEC ids) versus one FEC candidate id.
+ */
+export async function loadOutsideTotalsByFecId(
+  db: Db,
+  fecCandidateIds: readonly string[],
+  cycle: number,
+): Promise<Map<string, OutsideTotals>> {
+  const out = new Map<string, OutsideTotals>();
+  if (fecCandidateIds.length === 0) return out;
+  const ie = independentExpenditure;
+  const sum = sql<number>`coalesce(sum(${ie.amountCents}), 0)::bigint`.mapWith(Number);
+  const rows = await db
+    .select({
+      fecCandidateId: ie.candidateFecId,
+      supportOppose: ie.supportOppose,
+      amountCents: sum,
+      expenditures: sql<number>`count(*)::int`.mapWith(Number),
+    })
+    .from(ie)
+    .where(and(inArray(ie.candidateFecId, [...fecCandidateIds]), eq(ie.cycle, cycle)))
+    .groupBy(ie.candidateFecId, ie.supportOppose);
+  for (const r of rows) {
+    const t = out.get(r.fecCandidateId) ?? { supportCents: 0, opposeCents: 0, expenditures: 0 };
+    if (r.supportOppose === 'support') t.supportCents += r.amountCents;
+    else t.opposeCents += r.amountCents;
+    t.expenditures += r.expenditures;
+    out.set(r.fecCandidateId, t);
+  }
+  return out;
 }

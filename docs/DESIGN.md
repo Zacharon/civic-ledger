@@ -294,6 +294,10 @@ under 2 s with 600 members.
 | Seat chart | `components/charts/seat-chart.tsx`, `lib/seat-grid.ts` | House and Senate waffle from `chamber.composition`; the only party-colored fill. |
 | Scroll region | `components/scroll-region.tsx` | Named, focusable wrapper for wide tables. |
 | Pagination | `components/pagination.tsx` | Links, work without JavaScript. |
+| Race notice | `app/races/**` (`role="note"`, left ink rule on `--surface-sunk`) | The fixed sentence that FEC registration is not a ballot; on every race view. |
+| Money bar (shared scale) | `.share .share-wide` | Raised as text plus a 96px neutral `--bar` meter; the scale is the largest receipts in that race, so bars compare within one race only. No party or vote color. |
+| Candidate table | `app/races/[cycle]/[seat]/page.tsx` | One table, names alphabetical by default (opt-in amount order); party through `PartyChip`; negative cash printed with "as filed"; a registration with no money report is a row reading "No report on file" (nobody is collapsed by money); duplicate-registration notes under the name; bars omit shared-committee rows. No photos. |
+| Seat table | `app/races/page.tsx` | Default: Senate table plus one line per state for the House (about 60 KB); `?state=XX` shows that state's seat tables and registrations that match no seat; the state and chamber filter is a GET form. |
 
 Component paths are relative to `apps/web/src/`.
 
@@ -331,6 +335,7 @@ retry) and populated.
 | 2026-10-20 | Swiss x Editorial restyle: concept palette (paper `#F7F5EF`, ink `#20251F`, teal accent `#086F63`), shared 1280px frame, 2px ink rules, square panels, non-sticky masthead with member search, sans section titles | Owner-approved concept; a calmer research tool. Same two fonts, so no new dependency. Muted text keeps a separately tested `--ink-3` (5.6:1) instead of the concept's single muted grey. |
 | 2026-10-20 | Vote colors: Yea teal, Nay amber, Not voting grey, Present hatched grey; never red or blue; `--vote-*` separate from `--party-*` and `--status-*` | Owner rule. The previous tally borrowed the money palette (amber Yea, purple Nay). |
 | 2026-10-20 | Concept weaknesses not copied: 11-12px table text, search hidden below 900px, one color name for both absent and not voting | Readability (data stays 14px+), usable mobile search, and Present is not Not voting. |
+| 2026-10-20 | Race pages: no photos, neutral money bar on one scale per race, name order by default, party only on chips | Most challengers have no official photo; incumbent-only photos would tilt the page (DECISIONS A90). |
 | 2026-10-20 | Explore and Compare share the 1280px frame (was 1440px) | Masthead and content align; their tables already scroll in labeled regions. |
 | 2026-10-20 | Owner approved party colour in the chamber seat chart | The seat chart is the one place party color fills a mark: Democrat and Republican squares use the muted chip inks, Independent and other parties are neutral. Everywhere else party stays a chip, and party color never encodes a vote. The test suite pins this. |
 | 2026-10-20 | Seat chart order: Democrat, Independent, Republican, then other parties alphabetically | A neutral, documented rule (alphabetical, not size or ideology); one function (`compareSeatParties` in core) so the UI, API and MCP agree. Printed on the page. |
