@@ -218,8 +218,8 @@ under 2 s with 600 members.
 | Pagination | `components/pagination.tsx` | Links, work without JavaScript. |
 | Race notice | `app/races/**` (`role="note"`, left ink rule on `--surface-sunk`) | The fixed sentence that FEC registration is not a ballot; on every race view. |
 | Money bar (shared scale) | `.share .share-wide` | Raised as text plus a 96px neutral `--bar` meter; the scale is the largest receipts in that race, so bars compare within one race only. No party or vote color. |
-| Candidate table + no-report disclosure | `app/races/[cycle]/[seat]/page.tsx` | Names alphabetical by default (opt-in amount order), party through `PartyChip`, negative cash printed with "as filed", candidates with no money report in a native `<details>` (works without JS). No photos. |
-| Seat table | `app/races/page.tsx` | Senate by state, House as one small table per state; state and chamber filter is a GET form. |
+| Candidate table | `app/races/[cycle]/[seat]/page.tsx` | One table, names alphabetical by default (opt-in amount order); party through `PartyChip`; negative cash printed with "as filed"; a registration with no money report is a row reading "No report on file" (nobody is collapsed by money); duplicate-registration notes under the name; bars omit shared-committee rows. No photos. |
+| Seat table | `app/races/page.tsx` | Default: Senate table plus one line per state for the House (about 60 KB); `?state=XX` shows that state's seat tables and registrations that match no seat; the state and chamber filter is a GET form. |
 
 Component paths are relative to `apps/web/src/`.
 

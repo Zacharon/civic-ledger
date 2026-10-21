@@ -165,7 +165,7 @@ sharply between runs.
 | `fec-bulk.ie_implausible_amount_dropped` | 15 | New bogus filings; check none is a real buy. |
 | `fec-bulk.ie_unattributed_dropped` | ~2,500 | IEs filed without a candidate id (not attributable). |
 | `fec-bulk.contributions_unresolved_recipient` | ~24 | Recipient committee linked to several candidates. |
-| `fec-bulk.candidate_rows`, `candidate_rows_matched_to_person` | 4,379, 525 | Candidate master moved or changed shape (A72). `candidates_other_election_year_skipped` (~2,987) and `candidates_other_office_skipped` (~1,446, presidential) are expected. A sweep (`stale_candidates_deleted`) above ~10% trips the shrink guard (`candidate` is a declared dataset). |
+| `fec-bulk.candidate_rows`, `candidate_rows_matched_to_person` | 4,379, 525 | Candidate master moved or changed shape (A72). `candidates_other_election_year_skipped` (~2,987) and `candidates_other_office_skipped` (~1,446, presidential) are expected; `candidates_without_state_skipped` should be 0. The adapter version is part of the idempotency key: after a version bump the same snapshot loads again. A sweep (`stale_candidates_deleted`) above ~10% trips the shrink guard (`candidate` is a declared dataset). |
 | `fec-bulk.summaries`, `summaries_matched_to_person` | 4,482, 448 | The candidate summary file moved or changed shape (DECISIONS A31). |
 | `fec-bulk.summary_unitemized_out_of_range` | 2 | Filer errors (e.g. negative unitemized); those members' small-donor share reads "No data". |
 | `fec-bulk.summary_period_differs_from_totals` | ~300 | Normal: the summary file trails weball by up to a quarter; each share states its own date. |

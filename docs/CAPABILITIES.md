@@ -51,15 +51,15 @@ for public reads; it does not need to.
 `races.list` and `races.get` (DECISIONS A21 amendment, A72-A78) read the FEC candidate
 master. `races.list` input: `cycle` (default: latest cycle with registrations), `chamber`,
 `state`, `person` (seats that member is registered in or sitting in with the seat up);
-output: per seat `seat {key, chamber, state, district}`, `seatUp`, `incumbents` (slug, name,
+output: `notice` (registration is not a ballot), per seat `seat {key, chamber, state, district}`, `seatUp`, `incumbents` (slug, name,
 party, `termEnd`), `registrations`, `activeCandidates` (FEC status C),
-`candidatesWithMoneyReports`, plus `totals` (including those without a report) and
-`sources` provenance (candidates, money reports, outside spending, terms). `races.get`
+`candidatesWithMoneyReports`, `unplaced` (registrations that belong to no seat, as filed: a district that does not exist, none filed where there are several, a Senate row where nobody sits), plus `totals` (including those without a report and `unplacedRegistrations`) and
+`sources` provenance (candidates, money reports, outside spending, terms). Seats are placed by DECISIONS A79; single-seat states put every House row at large. `races.get`
 input: `seat` (`ga-senate`, `ga-10`, `ak-al`), `cycle`, `sort` (`name` default, or
 `receipts`, opt-in); output: counts, and for every registered candidate `displayName`,
 `nameAsFiled`, `person` (slug when matched), party code and name, FEC incumbency and
-status codes with labels, `money` (receipts, cash on hand as filed, coverage end, provenance;
-`null` = no report), `outsideSpending` (support, oppose, count) and the fec.gov URL.
+status codes with labels, `registration` (cn provenance), `money` (receipts, cash on hand as filed, coverage end, provenance;
+`null` = no report), `outsideSpending` (support, oppose, count), the fec.gov URL and the duplicate links `alsoRegisteredFor`, `sharedCommitteeWith`, `sameNameAsFiledAs`; `displayName` and `nameAsFiled` are null when the FEC row has no name. `cycle` must be an even year.
 Seats are never ranked by money; candidates are alphabetical unless the caller asks. Both
 are anonymous public reads with strict schemas and no writes. The web race pages use the
 same two capabilities with the same inputs.
