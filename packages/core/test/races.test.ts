@@ -40,10 +40,10 @@ describe('races.list@1', () => {
       activeCandidates: 4,
       candidatesWithMoneyReports: 3,
     });
-    expect(byKey.get('zv-al')).toMatchObject({
-      seat: { chamber: 'house', district: 0 },
-      seatUp: false,
-      incumbents: [],
+    expect(byKey.get('zz-3')).toMatchObject({
+      seat: { chamber: 'house', state: 'ZZ', district: 3 },
+      seatUp: true,
+      incumbents: [{ slug: 'kai-lanternfield' }],
       registrations: 3,
       candidatesWithMoneyReports: 2,
     });
@@ -68,7 +68,7 @@ describe('races.list@1', () => {
   it('orders seats by state, Senate first, then district, never by money', async () => {
     const result = await dispatch('races.list', { state: 'ZV' }, db.ctx());
     const keys = result.items.map((i) => i.seat.key);
-    expect(keys.slice(0, 3)).toEqual(['zv-senate', 'zv-al', 'zv-1']);
+    expect(keys.slice(0, 3)).toEqual(['zv-senate', 'zv-1', 'zv-2']);
     expect(keys).toEqual(
       [...keys].sort((a, b) => {
         const rank = (k: string) =>
@@ -268,11 +268,13 @@ describe('races.get@1', () => {
     ]);
   });
 
-  it('handles at-large open seats and matched challengers', async () => {
-    const open = await dispatch('races.get', { seat: 'zv-al' }, db.ctx());
-    expect(open.seat).toEqual({ key: 'zv-al', chamber: 'house', state: 'ZV', district: 0 });
-    expect(open.seatUp).toBe(false);
-    expect(open.incumbents).toEqual([]);
+  it('handles open seats and matched challengers', async () => {
+    const open = await dispatch('races.get', { seat: 'zz-3' }, db.ctx());
+    expect(open.seat).toEqual({ key: 'zz-3', chamber: 'house', state: 'ZZ', district: 3 });
+    // An open seat: the sitting member is not registered, every candidate is FEC "Open seat".
+    expect(open.seatUp).toBe(true);
+    expect(open.incumbents.map((i) => i.slug)).toEqual(['kai-lanternfield']);
+    expect(open.candidates.some((c) => c.person?.slug === 'kai-lanternfield')).toBe(false);
     expect(open.senateSeatsUp).toBeNull();
     expect(open.candidates.every((c) => c.incumbencyLabel === 'Open seat')).toBe(true);
 
@@ -296,10 +298,7 @@ describe('races.get@1', () => {
 
   it('answers not_found for a seat with no registration and no member up, and invalid_input for bad keys', async () => {
     await expectCapabilityError(dispatch('races.get', { seat: 'zy-al' }, db.ctx()), 'not_found');
-    await expectCapabilityError(
-      dispatch('races.get', { seat: 'zv-1', cycle: 2024 }, db.ctx()),
-      'not_found',
-    );
+    await expectCapabilityError(dispatch('races.get', { seat: 'zy-9' }, db.ctx()), 'not_found');
     await expectCapabilityError(dispatch('races.get', { seat: 'ZV-1' }, db.ctx()), 'invalid_input');
     await expectCapabilityError(
       dispatch('races.get', { seat: 'zv-01' }, db.ctx()),

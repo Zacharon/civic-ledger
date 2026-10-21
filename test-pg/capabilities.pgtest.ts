@@ -89,7 +89,7 @@ beforeAll(async () => {
     'promises.list': [{ slug: withPromises }, { slug: withPromises, status: 'kept' }],
     'policy.areas': [{}],
     'races.list': [{}, { state: 'ZV' }],
-    'races.get': [{ seat: 'zv-senate' }, { seat: 'zv-al', sort: 'receipts' }],
+    'races.get': [{ seat: 'zv-senate' }, { seat: 'zz-3', sort: 'receipts' }],
     'frameworks.list': [{}],
     'frameworks.evaluate': [
       { framework: spec, limit: 5 },

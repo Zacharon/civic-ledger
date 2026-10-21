@@ -38,6 +38,8 @@ export { EXPLAINERS, type Explainer, explainerById } from './explainers/content'
 export * from './frameworks/spec';
 export * from './glance/text';
 export { formatFecName } from './races/name';
+export { REGISTRATION_NOTICE } from './races/notice';
+export { placeRow, SINGLE_SEAT_STATES } from './races/placement';
 export {
   compareSeats,
   parseSeatKey,

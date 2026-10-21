@@ -94,6 +94,32 @@ describe('formatFecName', () => {
     expect(formatFecName('')).toBe('');
   });
 
+  it.each([
+    ['MISS, LUCY', 'Lucy Miss'],
+    ['O SALVESEN, JOHN', 'John O Salvesen'],
+    ['K, NEZARUS H', 'Nezarus H. K'],
+    ['DE LA O, MARIA', 'Maria De La O'],
+    ['SMITH, LT COL JOHN', 'Lt. Col. John Smith'],
+    ['TURNER, MICHAEL R REP.', 'Michael R. Turner'],
+    ['JONES, SEN KATHY', 'Kathy Jones'],
+    ['ADAMS, PFC DANA', 'PFC Dana Adams'],
+    ['LEE, CMR. TONY', 'Cmr. Tony Lee'],
+    ['GRANT, TERRY OD', 'Terry Grant OD'],
+    ['HALE, PAT ED.D.', 'Pat Hale Ed.D.'],
+    ['ROSS, DR. GENA DR', 'Dr. Gena Ross'],
+    ["KA'AHUMANU, LEILANI", "Leilani Ka'ahumanu"],
+    ["JONES, ANDREW 'AJ'", "Andrew 'AJ' Jones"],
+  ])('only reorders what it can place with confidence: %s', (filed, shown) => {
+    expect(formatFecName(filed)).toBe(shown);
+  });
+
+  it('keeps the filed order and only fixes the case when a special word sits mid-name', () => {
+    expect(formatFecName('CLEMENT, CHRISTINA LOREN REV DR TRUSTE')).toBe(
+      'Clement, Christina Loren Rev Dr Truste',
+    );
+    expect(formatFecName('SMITH, JOHN COL ALLEN')).toBe('Smith, John Col Allen');
+  });
+
   it('does not change a name that is already readable', () => {
     expect(formatFecName('Jodey Arrington')).toBe('Jodey Arrington');
   });

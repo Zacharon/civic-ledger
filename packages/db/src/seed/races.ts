@@ -65,7 +65,7 @@ const c = (
 
 const ZV_SENATE = { office: 'S', state: 'ZV', district: null } as const;
 const ZV_1 = { office: 'H', state: 'ZV', district: 1 } as const;
-const ZV_AL = { office: 'H', state: 'ZV', district: 0 } as const;
+const ZZ_3 = { office: 'H', state: 'ZZ', district: 3 } as const;
 const ZW_SENATE = { office: 'S', state: 'ZW', district: null } as const;
 const ZW_3 = { office: 'H', state: 'ZW', district: 3 } as const;
 
@@ -81,10 +81,10 @@ export const SEED_CANDIDATES: readonly SeedCandidate[] = [
   c('H6ZV01001', 'ASHGROVE, THEODORE JR.', 'PRA', ZV_1, 'C', 'C', null, 'C99002002'),
   c('H6ZV01002', 'FENWICK, ISOLDE', 'IND', ZV_1, 'C', 'C'),
   c('H6ZV01003', 'OAKHURST, CORNELIUS', 'PRA', ZV_1, 'C', 'C', 'cornelius-oakhurst'),
-  // zv-al: an at-large open seat with no incumbent.
-  c('H6ZV00001', 'BRAMBLEWICK, JUNO', 'HBR', ZV_AL, 'O', 'C'),
-  c('H6ZV00002', 'STONEHALLOW, EZRA MR.', 'PRA', ZV_AL, 'O', 'C'),
-  c('H6ZV00003', 'LARKSPUR, WINIFRED', 'IND', ZV_AL, 'O', 'C'),
+  // zz-3: an open seat: the sitting member is not running; every registrant is FEC "Open seat".
+  c('H6ZZ03011', 'BRAMBLEWICK, JUNO', 'HBR', ZZ_3, 'O', 'C'),
+  c('H6ZZ03012', 'STONEHALLOW, EZRA MR.', 'PRA', ZZ_3, 'O', 'C'),
+  c('H6ZZ03013', 'LARKSPUR, WINIFRED', 'IND', ZZ_3, 'O', 'C'),
   // zw-senate: incumbent and one challenger.
   c('S4ZW00010', 'JUNIPERFIELD, JORDAN', 'PRA', ZW_SENATE, 'I', 'C', 'jordan-juniperfield'),
   c('S6ZW00001', 'DELACROIX-HUNT, SABINE', 'HBR', ZW_SENATE, 'C', 'C'),
@@ -115,8 +115,8 @@ export const SEED_RACE_MONEY: readonly SeedRaceMoney[] = [
   money('H4ZV00003', 1_930_000, 1_240_000, 690_000),
   money('H6ZV01001', 640_200, 590_100, 50_100),
   money('H6ZV01002', 52_300, 44_200, 8_100),
-  money('H6ZV00001', 221_900, 140_300, 81_600),
-  money('H6ZV00002', 185_000, 171_400, 13_600),
+  money('H6ZZ03011', 221_900, 140_300, 81_600),
+  money('H6ZZ03012', 185_000, 171_400, 13_600),
   money('S4ZW00010', 7_430_000, 5_015_000, 2_415_000),
   money('S6ZW00001', 2_880_000, 2_100_000, 780_000),
 ];

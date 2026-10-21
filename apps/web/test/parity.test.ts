@@ -78,7 +78,7 @@ beforeAll(async () => {
     'races.get': [
       { seat: 'zv-senate' },
       { seat: 'zv-senate', sort: 'receipts' },
-      { seat: 'zv-al' },
+      { seat: 'zz-3' },
       { seat: 'zv-1', cycle: 2026 },
       { seat: 'zv-2' },
     ],

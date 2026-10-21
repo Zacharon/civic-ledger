@@ -14,7 +14,7 @@ const PAGES = [
   '/races?state=ZV',
   '/races/2026/zv-senate',
   '/races/2026/zv-senate?sort=receipts',
-  '/races/2026/zv-al',
+  '/races/2026/zz-3',
   '/races/2026/zw-3',
   '/frameworks',
   '/frameworks?build=1',
