@@ -1,4 +1,4 @@
-import type { CapabilityOutput } from '@civic-ledger/core';
+import { type CapabilityOutput, parseSeatKey } from '@civic-ledger/core';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -16,10 +16,21 @@ type Candidate = Race['candidates'][number];
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
-/** Invalid cycles and seat keys map to a key that cannot exist, so the capability answers 404. */
+/**
+ * Anything that is not an even four-digit cycle in range, or not a canonical seat key,
+ * is a 404 here; the capability would answer invalid_input.
+ */
 function inputOf(cycleParam: string, seat: string, sortParam: string | undefined) {
   const cycle = /^\d{4}$/.test(cycleParam) ? Number(cycleParam) : null;
-  if (cycle === null || !/^[a-z]{2}-(?:senate|al|[1-9][0-9]?)$/.test(seat)) notFound();
+  if (
+    cycle === null ||
+    cycle < 1976 ||
+    cycle > 2100 ||
+    cycle % 2 !== 0 ||
+    !/^[a-z]{2}-(?:senate|al|[1-9][0-9]?)$/.test(seat)
+  ) {
+    notFound();
+  }
   return {
     seat,
     cycle,
@@ -47,10 +58,15 @@ export default async function RacePage({
   const [race, sources] = await Promise.all([readOrNotFound('races.get', input), sourceInfos()]);
 
   const title = raceTitle(race.seat);
-  const withMoney = race.candidates.filter((c) => c.money !== null);
-  const withoutMoney = race.candidates.filter((c) => c.money === null);
-  // One scale for the whole race: the largest receipts reported by any candidate.
-  const scaleMax = Math.max(0, ...withMoney.map((c) => c.money?.totalReceiptsCents ?? 0));
+  // One scale for the whole race: the largest receipts reported by any candidate that has its
+  // own campaign money. Registrations that share a committee with another are left out: the
+  // FEC repeats one committee's totals under each of them.
+  const scaleMax = Math.max(
+    0,
+    ...race.candidates
+      .filter((c) => c.sharedCommitteeWith.length === 0)
+      .map((c) => c.money?.totalReceiptsCents ?? 0),
+  );
 
   const notes = new SourceNotes('race', sources);
   const candidateMark = notes.cite(race.sources.candidates);
@@ -160,7 +176,7 @@ export default async function RacePage({
       <section aria-labelledby="candidates-title" className="mt-12">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <h2 id="candidates-title" className="section-title">
-            Candidates with a money report
+            Candidates
           </h2>
           <nav aria-label="Order candidates" className="flex items-center gap-3 text-sm text-ink-2">
             <span>Order:</span>
@@ -190,51 +206,27 @@ export default async function RacePage({
         </div>
         <p className="mt-1 text-sm text-ink-2">
           {race.sort === 'name'
-            ? 'In alphabetical order by name as filed. Order is not a ranking.'
-            : 'Largest amount raised first, as you asked. Raised is money reported so far, not support or votes.'}
+            ? 'Everyone registered, in alphabetical order by name as filed. Order is not a ranking.'
+            : 'Largest amount raised first, as you asked; registrations with no report come last. Raised is money reported so far, not support or votes.'}{' '}
+          “No report on file” means the FEC has no campaign finance summary for the registration. It
+          does not mean a candidate raised nothing.
         </p>
 
-        {withMoney.length > 0 ? (
+        {race.candidates.length > 0 ? (
           <CandidateTable
-            label={`${title}: candidates with a money report`}
-            candidates={withMoney}
+            label={`${title}: every FEC registration`}
+            cycle={race.cycle}
+            candidates={race.candidates}
             scaleMax={scaleMax}
-            money
             marks={{ money: moneyMark, outside: outsideMark }}
             notes={notes}
           />
         ) : (
-          <p className="mt-6 text-ink-2" data-no-money-reports>
-            No candidate in this race has a money report on file yet.
+          <p className="mt-6 text-ink-2" data-no-registrations>
+            Nobody has registered with the FEC for this seat yet.
           </p>
         )}
       </section>
-
-      {withoutMoney.length > 0 ? (
-        <section aria-labelledby="no-report-title" className="mt-12">
-          <details open={withMoney.length === 0} data-no-report-count={withoutMoney.length}>
-            <summary className="link cursor-pointer text-base font-semibold">
-              <span id="no-report-title">
-                {formatNumber(withoutMoney.length)} registered{' '}
-                {withoutMoney.length === 1 ? 'candidate has' : 'candidates have'} no money report
-              </span>
-            </summary>
-            <p className="mt-2 max-w-3xl text-sm text-ink-2">
-              The FEC has no campaign finance summary for these registrations. That can mean the
-              campaign has not raised or spent enough to file, or has not filed yet. It does not
-              mean a candidate raised nothing.
-            </p>
-            <CandidateTable
-              label={`${title}: candidates with no money report`}
-              candidates={withoutMoney}
-              scaleMax={0}
-              money={false}
-              marks={{ money: null, outside: outsideMark }}
-              notes={notes}
-            />
-          </details>
-        </section>
-      ) : null}
 
       <section className="mt-12 max-w-3xl border-t border-rule pt-4 text-sm text-ink-2">
         <p>
@@ -285,22 +277,22 @@ function Count({
 
 function CandidateTable({
   label,
+  cycle,
   candidates,
   scaleMax,
-  money,
   marks,
   notes,
 }: {
   label: string;
+  cycle: number;
   candidates: Candidate[];
   scaleMax: number;
-  money: boolean;
   marks: { money: number | null; outside: number | null };
   notes: SourceNotes;
 }) {
   return (
     <ScrollRegion label={label} className="mt-4">
-      <table className={`w-full text-sm ${money ? 'min-w-[60rem]' : 'min-w-[40rem]'}`}>
+      <table className="w-full min-w-[60rem] text-sm">
         <caption className="sr-only">{label}</caption>
         <thead>
           <tr className="border-b border-ink text-left">
@@ -313,20 +305,16 @@ function CandidateTable({
             <th scope="col" className="py-2 pr-4 font-semibold">
               FEC status
             </th>
-            {money ? (
-              <>
-                <th scope="col" className="py-2 pr-4 text-right font-semibold">
-                  Raised
-                  <SourceMark notes={notes} n={marks.money} />
-                </th>
-                <th scope="col" className="py-2 pr-4 text-right font-semibold">
-                  Cash on hand
-                </th>
-                <th scope="col" className="py-2 pr-4 text-right font-semibold">
-                  Report through
-                </th>
-              </>
-            ) : null}
+            <th scope="col" className="py-2 pr-4 text-right font-semibold">
+              Raised
+              <SourceMark notes={notes} n={marks.money} />
+            </th>
+            <th scope="col" className="py-2 pr-4 text-right font-semibold">
+              Cash on hand
+            </th>
+            <th scope="col" className="py-2 pr-4 text-right font-semibold">
+              Report through
+            </th>
             <th scope="col" className="py-2 pr-4 text-right font-semibold">
               Outside support
               <SourceMark notes={notes} n={marks.outside} />
@@ -338,7 +326,7 @@ function CandidateTable({
         </thead>
         <tbody>
           {candidates.map((c) => (
-            <CandidateRow key={c.fecCandidateId} c={c} scaleMax={scaleMax} money={money} />
+            <CandidateRow key={c.fecCandidateId} c={c} cycle={cycle} scaleMax={scaleMax} />
           ))}
         </tbody>
       </table>
@@ -346,12 +334,19 @@ function CandidateTable({
   );
 }
 
-function CandidateRow({ c, scaleMax, money }: { c: Candidate; scaleMax: number; money: boolean }) {
+function otherSeatLabel(o: Candidate['alsoRegisteredFor'][number]) {
+  const seat = o.seat ? parseSeatKey(o.seat) : null;
+  if (seat) return raceTitle(seat);
+  return `${stateName(o.state)} ${o.chamber === 'senate' ? 'Senate' : 'House'} (no such seat)`;
+}
+
+function CandidateRow({ c, cycle, scaleMax }: { c: Candidate; cycle: number; scaleMax: number }) {
   const fecHref = safeHref(c.fecUrl);
   const receipts = c.money?.totalReceiptsCents ?? null;
   const cash = c.money?.cashOnHandCents ?? null;
+  const shared = c.sharedCommitteeWith.length > 0;
   const barStyle =
-    receipts !== null && scaleMax > 0
+    receipts !== null && scaleMax > 0 && !shared
       ? ({
           '--v': `${Math.round((Math.max(receipts, 0) / scaleMax) * 1000) / 10}%`,
         } as CSSProperties)
@@ -369,7 +364,9 @@ function CandidateRow({ c, scaleMax, money }: { c: Candidate; scaleMax: number; 
     >
       <th scope="row" className="py-3 pr-4 text-left font-normal">
         <span className="block text-base font-semibold">
-          {c.person ? (
+          {c.displayName === null ? (
+            <span className="nodata text-base">Name not filed</span>
+          ) : c.person ? (
             <Link href={`/people/${c.person.slug}`} className="link">
               {c.displayName}
             </Link>
@@ -387,9 +384,37 @@ function CandidateRow({ c, scaleMax, money }: { c: Candidate; scaleMax: number; 
             <span className="num">{c.fecCandidateId}</span>
           )}
         </span>
-        <span className="mt-0.5 block text-xs text-ink-3">
-          Filed as <span className="num">{c.nameAsFiled}</span>
-        </span>
+        {c.nameAsFiled !== null ? (
+          <span className="mt-0.5 block text-xs text-ink-3">
+            Filed as <span className="num">{c.nameAsFiled}</span>
+          </span>
+        ) : null}
+        {c.alsoRegisteredFor.length > 0 ? (
+          <span className="mt-1 block text-xs text-ink-2" data-also-registered>
+            Also registered for{' '}
+            {c.alsoRegisteredFor.map((o, i) => (
+              <span key={o.fecCandidateId}>
+                {i > 0 ? ', ' : ''}
+                {o.seat ? (
+                  <Link href={raceHref(cycle, o.seat)} className="link">
+                    {otherSeatLabel(o)}
+                  </Link>
+                ) : (
+                  otherSeatLabel(o)
+                )}{' '}
+                (<span className="num">{o.fecCandidateId}</span>)
+              </span>
+            ))}
+            {shared ? '; same committee, so its figures are shown under both.' : '.'}
+          </span>
+        ) : null}
+        {c.sameNameAsFiledAs.length > 0 ? (
+          <span className="mt-1 block text-xs text-ink-2" data-same-name>
+            The same name as filed appears under{' '}
+            {c.sameNameAsFiledAs.length === 1 ? 'another FEC id' : 'other FEC ids'} in this race:{' '}
+            <span className="num">{c.sameNameAsFiledAs.join(', ')}</span>.
+          </span>
+        ) : null}
       </th>
       <td className="py-3 pr-4">
         {c.party.code ? (
@@ -401,10 +426,10 @@ function CandidateRow({ c, scaleMax, money }: { c: Candidate; scaleMax: number; 
       <td className="py-3 pr-4">
         <span className="block">{c.statusLabel ?? c.status ?? 'Not filed'}</span>
       </td>
-      {money ? (
+      {c.money ? (
         <>
           <td className="py-3 pr-4 text-right">
-            <span className="share share-wide" style={barStyle}>
+            <span className={barStyle ? 'share share-wide' : 'num'} style={barStyle}>
               {formatCents(receipts)}
             </span>
           </td>
@@ -415,12 +440,14 @@ function CandidateRow({ c, scaleMax, money }: { c: Candidate; scaleMax: number; 
             ) : null}
           </td>
           <td className="num py-3 pr-4 text-right whitespace-nowrap">
-            {formatDate(c.money?.coverageEndDate ?? null) ?? (
-              <span className="nodata">No date</span>
-            )}
+            {formatDate(c.money.coverageEndDate) ?? <span className="nodata">No date</span>}
           </td>
         </>
-      ) : null}
+      ) : (
+        <td colSpan={3} className="py-3 pr-4 text-right" data-no-report>
+          <span className="nodata">No report on file</span>
+        </td>
+      )}
       <td className="num py-3 pr-4 text-right">
         <Outside cents={c.outsideSpending.supportCents} />
       </td>

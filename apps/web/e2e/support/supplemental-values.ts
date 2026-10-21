@@ -605,19 +605,36 @@ export async function checkRaces(page: Page, baseUrl: string, agreed: Agreed) {
     (await keyed(page.locator('tr[data-seat]'), 'data-seat')).sort((a, b) =>
       String(a[0]).localeCompare(String(b[0])),
     );
-
-  await page.goto(`${baseUrl}/races`);
-  expect(await shownRows()).toEqual(seatRows(all.items));
-  expect(await page.locator('[data-races-totals]').getAttribute('data-races-totals')).toBe(
+  const houseSummaries = (items: typeof all.items) => {
+    const byState = new Map<string, [number, number]>();
+    for (const i of items.filter((x) => x.seat.chamber === 'house')) {
+      const [seats, registrations] = byState.get(i.seat.state) ?? [0, 0];
+      byState.set(i.seat.state, [seats + 1, registrations + i.registrations]);
+    }
+    return [...byState.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  };
+  const shownSummaries = async () =>
+    (await keyed(page.locator('li[data-state-summary]'), 'data-state-summary')).sort((a, b) =>
+      String(a[0]).localeCompare(String(b[0])),
+    );
+  const totalsOf = (t: typeof all.totals) =>
     JSON.stringify([
-      all.totals.seats,
-      all.totals.registrations,
-      all.totals.activeCandidates,
-      all.totals.candidatesWithMoneyReports,
-      all.totals.candidatesWithoutMoneyReports,
-    ]),
+      t.seats,
+      t.registrations,
+      t.activeCandidates,
+      t.candidatesWithMoneyReports,
+      t.candidatesWithoutMoneyReports,
+    ]);
+
+  // Default view: the Senate table in full, the House as one line per state.
+  await page.goto(`${baseUrl}/races`);
+  expect(await shownRows()).toEqual(seatRows(all.items.filter((i) => i.seat.chamber === 'senate')));
+  expect(await shownSummaries()).toEqual(houseSummaries(all.items));
+  expect(await page.locator('[data-races-totals]').getAttribute('data-races-totals')).toBe(
+    totalsOf(all.totals),
   );
-  for (const i of all.items.filter((x) => x.incumbents.length > 0).slice(0, 3)) {
+  await expect(page.locator('[data-registration-notice]')).toHaveText(all.notice);
+  for (const i of all.items.filter((x) => x.incumbents.length > 0 && x.seat.chamber === 'senate')) {
     const row = page.locator(`tr[data-seat="${i.seat.key}"]`);
     for (const m of i.incumbents) {
       await expect(row.getByRole('link', { name: m.fullName })).toHaveAttribute(
@@ -627,14 +644,26 @@ export async function checkRaces(page: Page, baseUrl: string, agreed: Agreed) {
     }
   }
 
+  // One state: both chambers in full, plus the registrations that match no seat.
   const zv = await agreed<CapabilityOutput<'races.list'>>('races.list', { state: 'ZV' });
   await page.goto(`${baseUrl}/races?state=ZV`);
   expect(await shownRows()).toEqual(seatRows(zv.items));
+  expect(await page.locator('[data-races-totals]').getAttribute('data-races-totals')).toBe(
+    totalsOf(zv.totals),
+  );
+  expect(await page.locator('tr[data-unplaced-group]').count()).toBe(zv.unplaced.length);
+
   const senateOnly = await agreed<CapabilityOutput<'races.list'>>('races.list', {
     chamber: 'senate',
   });
   await page.goto(`${baseUrl}/races?chamber=senate`);
   expect(await shownRows()).toEqual(seatRows(senateOnly.items));
+  const houseOnly = await agreed<CapabilityOutput<'races.list'>>('races.list', {
+    chamber: 'house',
+  });
+  await page.goto(`${baseUrl}/races?chamber=house`);
+  expect(await shownSummaries()).toEqual(houseSummaries(houseOnly.items));
+  expect(await page.locator('tr[data-seat]').count()).toBe(0);
 
   const seats = all.items.filter((i) => i.registrations > 0).slice(0, 4);
   for (const { seat } of seats) {
@@ -646,13 +675,11 @@ export async function checkRaces(page: Page, baseUrl: string, agreed: Agreed) {
       await page.goto(
         `${baseUrl}/races/${race.cycle}/${seat.key}${sort === 'receipts' ? '?sort=receipts' : ''}`,
       );
-      const withMoney = race.candidates.filter((c) => c.money !== null);
-      const without = race.candidates.filter((c) => c.money === null);
       expect(
         await keyed(page.locator('tr[data-candidate]'), 'data-candidate'),
         `${seat.key} (${sort})`,
       ).toEqual(
-        [...withMoney, ...without].map((c) => [
+        race.candidates.map((c) => [
           c.fecCandidateId,
           [
             c.money?.totalReceiptsCents ?? null,
@@ -670,22 +697,19 @@ export async function checkRaces(page: Page, baseUrl: string, agreed: Agreed) {
           race.counts.withoutMoneyReports,
         ]),
       );
+      await expect(page.locator('[data-registration-notice]')).toHaveText(race.notice);
       await expect(page.locator('[data-seat-up]')).toHaveAttribute(
         'data-seat-up',
         race.seatUp ? 'true' : 'false',
       );
-      // Rows behind the disclosure have no rendered text until it is open.
-      await page.locator('details[data-no-report-count]').evaluateAll((all) => {
-        for (const d of all) (d as HTMLDetailsElement).open = true;
-      });
       for (const c of race.candidates) {
         const row = page.locator(`tr[data-candidate="${c.fecCandidateId}"]`);
-        await text(row.locator('th'), c.displayName);
-        await text(row.locator('th'), c.nameAsFiled);
+        await text(row.locator('th'), c.displayName ?? 'Name not filed');
+        if (c.nameAsFiled !== null) await text(row.locator('th'), c.nameAsFiled);
         await expect(
           row.locator('th a[href^="https://www.fec.gov/data/candidate/"]'),
         ).toHaveAttribute('href', c.fecUrl);
-        if (c.person) {
+        if (c.person && c.displayName !== null) {
           await expect(row.getByRole('link', { name: c.displayName })).toHaveAttribute(
             'href',
             `/people/${c.person.slug}`,
@@ -696,17 +720,15 @@ export async function checkRaces(page: Page, baseUrl: string, agreed: Agreed) {
           await text(row, formatCents(c.money.cashOnHandCents));
           if (c.money.cashOnHandCents < 0) await text(row, 'as filed');
           await text(row, formatDate(c.money.coverageEndDate));
+        } else {
+          await text(row, 'No report on file');
         }
         if (c.outsideSpending.supportCents > 0)
           await text(row, formatCents(c.outsideSpending.supportCents));
         if (c.outsideSpending.opposeCents > 0)
           await text(row, formatCents(c.outsideSpending.opposeCents));
-      }
-      if (without.length > 0) {
-        await expect(page.locator('details[data-no-report-count]')).toHaveAttribute(
-          'data-no-report-count',
-          String(without.length),
-        );
+        if (c.alsoRegisteredFor.length > 0) await text(row, 'Also registered for');
+        if (c.sameNameAsFiledAs.length > 0) await text(row, 'The same name as filed appears');
       }
     }
   }

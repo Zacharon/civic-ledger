@@ -25,6 +25,7 @@ import {
   serviceYears,
 } from '@/lib/format';
 import { raceHref, raceTitle } from '@/lib/races';
+import { apiLogger } from '@/server/api/runtime';
 import { read, readOrNotFound } from '@/server/capabilities';
 import { comparedNames } from '@/server/compare-names';
 import { sourceInfos } from '@/server/sources';
@@ -81,7 +82,14 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
     sourceInfos(),
     comparedNames(chosen),
     // The member's election-cycle races (registered there, or sitting there with the seat up).
-    read('races.list', { person: slug }).catch(() => null),
+    read('races.list', { person: slug }).catch((error: unknown) => {
+      // The race link is extra: fail soft, but never silently.
+      apiLogger().warn(
+        { err: error, capability: 'races.list' },
+        'races.list unavailable on a profile',
+      );
+      return null;
+    }),
   ]);
   // Comparison in progress (carried from Compare through Explore): add to it, don't restart.
   const others = compared.filter((m) => m.slug !== slug);
@@ -176,6 +184,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
                     </Link>
                   </span>
                 ))}
+                . <span className="text-ink-3">FEC registration is not a ballot listing.</span>
               </p>
             ) : null}
             {others.length > 0 ? (

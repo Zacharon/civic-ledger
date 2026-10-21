@@ -1,14 +1,14 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Races (DECISIONS A72): the index, a race page, the no-JavaScript state filter and
- * disclosure, the opt-in receipts order and the profile link. Business values are compared
- * with /api/v1 and MCP in shared-values.spec.ts; this file covers what a person does.
+ * Races (DECISIONS A72 to A79): the index, a race page, the no-JavaScript state filter, the
+ * opt-in receipts order and the profile link. Business values are compared with /api/v1 and
+ * MCP in shared-values.spec.ts; this file covers what a person does.
  */
 const NOTICE =
   'FEC registration lists everyone who filed paperwork. It does not show who won a primary or who is on the November ballot.';
 
-test('the nav links to Races and the index lists Senate and House seats by state', async ({
+test('the nav links to Races; the index shows the Senate and the House by state', async ({
   page,
 }) => {
   await page.goto('/');
@@ -18,8 +18,6 @@ test('the nav links to Races and the index lists Senate and House seats by state
   await expect(page.locator('[data-registration-notice]')).toHaveText(NOTICE);
   await expect(page.getByRole('heading', { level: 2, name: 'Senate' })).toBeVisible();
   await expect(page.getByRole('heading', { level: 2, name: 'House' })).toBeVisible();
-  // Grouped by state: each House state is a heading over its own table of districts.
-  await expect(page.getByRole('heading', { level: 3, name: /^ZV/ })).toBeVisible();
   const senate = page.locator('tr[data-seat="zv-senate"]');
   await expect(senate.getByRole('link', { name: 'ZV' })).toHaveAttribute(
     'href',
@@ -27,8 +25,21 @@ test('the nav links to Races and the index lists Senate and House seats by state
   );
   await expect(senate.getByRole('link', { name: 'Blair Brindlemoor' })).toBeVisible();
   await expect(senate).toHaveAttribute('data-value', '[5,4,3]');
+  // The House is one line per state; its districts open from that state.
+  await expect(page.locator('tr[data-seat="zv-2"]')).toHaveCount(0);
+  const line = page.locator('li[data-state-summary="ZV"]');
+  await expect(line).toHaveAttribute('data-value', '[6,4]');
+  await line.getByRole('link', { name: 'ZV' }).click();
+  await expect(page).toHaveURL(/\/races\?state=ZV$/);
   // A seat that is up with nobody registered yet is listed with explicit zeros.
   await expect(page.locator('tr[data-seat="zv-2"]')).toHaveAttribute('data-value', '[0,0,0]');
+  await expect(page.getByRole('heading', { level: 3, name: /^ZV/ })).toBeVisible();
+});
+
+test('the default page stays small', async ({ request }) => {
+  const response = await request.get('/races');
+  expect(response.status()).toBe(200);
+  expect((await response.body()).length).toBeLessThan(150_000);
 });
 
 test.describe('without JavaScript', () => {
@@ -49,15 +60,14 @@ test.describe('without JavaScript', () => {
     await expect(page).toHaveURL(/\/races$/);
   });
 
-  test('candidates without a money report sit behind a disclosure that opens', async ({ page }) => {
-    await page.goto('/races/2026/zv-senate');
-    const details = page.locator('details[data-no-report-count]');
-    await expect(details).toHaveAttribute('data-no-report-count', '2');
-    const hidden = page.locator('tr[data-candidate="S6ZV00003"]');
-    await expect(hidden).toBeHidden();
-    await details.getByText('2 registered candidates have no money report').click();
-    await expect(hidden).toBeVisible();
-    await expect(page.locator('tr[data-candidate="S6ZV00004"]')).toBeVisible();
+  test('the chamber filter shows the House by state without any seat table', async ({ page }) => {
+    await page.goto('/races');
+    await page.getByLabel('Chamber').selectOption('house');
+    await page.getByRole('button', { name: 'Show races' }).click();
+    await expect(page).toHaveURL(/chamber=house/);
+    await expect(page.locator('li[data-state-summary]').first()).toBeVisible();
+    await expect(page.locator('tr[data-seat]')).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 2, name: 'Senate' })).toHaveCount(0);
   });
 });
 
@@ -109,17 +119,30 @@ test('a race page states the seat, the incumbent, the notice and every candidate
   await expect(page.locator('main')).toContainText('FEC files downloaded Oct 1, 2026.');
 });
 
-test('money bars share one scale and the default order is by name', async ({ page }) => {
+test('everyone is in one table in name order; no report is a row, not a hidden group', async ({
+  page,
+}) => {
   await page.goto('/races/2026/zv-senate');
+  await expect(page.locator('details')).toHaveCount(0);
   const order = await page
-    .locator('table:has(th:text("Raised")) tr[data-candidate]')
+    .locator('tr[data-candidate]')
     .evaluateAll((rows) => rows.map((r) => r.getAttribute('data-candidate')));
-  // Alphabetical by name as filed: BRINDLEMOOR, QUILLON, TOWNSEND-FELL.
-  expect(order).toEqual(['S4ZV00002', 'S6ZV00002', 'S6ZV00001']);
+  // Alphabetical by name as filed: BRINDLEMOOR, MCCRAE, O'LEARY-VANCE, QUILLON, TOWNSEND-FELL.
+  expect(order).toEqual(['S4ZV00002', 'S6ZV00003', 'S6ZV00004', 'S6ZV00002', 'S6ZV00001']);
+  for (const id of ['S6ZV00003', 'S6ZV00004']) {
+    const row = page.locator(`tr[data-candidate="${id}"]`);
+    await expect(row).toBeVisible();
+    await expect(row.locator('[data-no-report]')).toHaveText('No report on file');
+  }
+  await expect(page.locator('main')).toContainText('does not mean a candidate raised nothing');
+});
+
+test('money bars share one scale and use neutral ink', async ({ page }) => {
+  await page.goto('/races/2026/zv-senate');
   const widths = await page
     .locator('tr[data-candidate] .share')
     .evaluateAll((bars) => bars.map((b) => (b as HTMLElement).style.getPropertyValue('--v')));
-  // The largest receipts fill the scale; the others are a proportion of it.
+  // Order: BRINDLEMOOR, QUILLON, TOWNSEND-FELL. The largest receipts fill the scale.
   expect(widths).toEqual(['100%', '3.2%', '42.9%']);
   const color = await page
     .locator('tr[data-candidate="S4ZV00002"] .share')
@@ -134,38 +157,37 @@ test('amount raised order is opt-in and says so', async ({ page }) => {
   await page.getByRole('link', { name: 'Amount raised' }).click();
   await expect(page).toHaveURL(/\?sort=receipts$/);
   const order = await page
-    .locator('table:has(th:text("Raised")) tr[data-candidate]')
+    .locator('tr[data-candidate]')
     .evaluateAll((rows) => rows.map((r) => r.getAttribute('data-candidate')));
-  expect(order).toEqual(['S4ZV00002', 'S6ZV00001', 'S6ZV00002']);
-  await expect(page.locator('main')).toContainText('Largest amount raised first, as you asked.');
+  expect(order).toEqual(['S4ZV00002', 'S6ZV00001', 'S6ZV00002', 'S6ZV00003', 'S6ZV00004']);
+  await expect(page.locator('main')).toContainText('Largest amount raised first, as you asked');
 });
 
-test('an at-large open seat has no incumbent and a seat key of its own', async ({ page }) => {
-  await page.goto('/races/2026/zv-al');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('ZV at-large district');
-  await expect(page.locator('[data-seat-up]')).toContainText('No sitting member’s term');
-  await expect(page.locator('[data-incumbents]')).toContainText('No incumbent on file');
-  await expect(page.locator('tr[data-candidate="H6ZV00001"]')).toContainText('Open seat');
-  await expect(page.locator('tr[data-candidate="H6ZV00001"] th')).toContainText('Juno Bramblewick');
+test('an open seat lists the sitting member and registrants who all say open seat', async ({
+  page,
+}) => {
+  await page.goto('/races/2026/zz-3');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('ZZ 3rd district');
+  await expect(page.locator('[data-seat-up]')).toContainText('Seat up in 2026');
+  await expect(page.locator('tr[data-candidate="H6ZZ03011"]')).toContainText('Open seat');
+  await expect(page.locator('tr[data-candidate="H6ZZ03011"] th')).toContainText('Juno Bramblewick');
+  await expect(page.locator('tr[data-candidate="H6ZZ03013"] [data-no-report]')).toBeVisible();
 });
 
-test('a seat where nobody has a money report says so and opens the list', async ({ page }) => {
+test('a seat where nobody has a money report says so in every row', async ({ page }) => {
   await page.goto('/races/2026/zw-3');
-  await expect(page.locator('[data-no-money-reports]')).toContainText(
-    'No candidate in this race has a money report on file yet.',
-  );
-  const details = page.locator('details[data-no-report-count]');
-  await expect(details).toHaveAttribute('open', '');
   await expect(page.locator('tr[data-candidate]')).toHaveCount(2);
+  await expect(page.locator('[data-no-report]')).toHaveCount(2);
   await expect(page.locator('tr[data-candidate="H6ZW03001"]')).toContainText(
     'Not yet a statutory candidate',
   );
 });
 
-test('a member profile links to the member’s race', async ({ page }) => {
+test('a member profile links to the member’s race and repeats the notice', async ({ page }) => {
   await page.goto('/people/blair-brindlemoor');
   const line = page.locator('[data-race-links]');
   await expect(line).toContainText('2026 race:');
+  await expect(line).toContainText('FEC registration is not a ballot listing');
   await line.getByRole('link', { name: 'ZV Senate' }).click();
   await expect(page).toHaveURL(/\/races\/2026\/zv-senate$/);
   await page.goto('/people/cornelius-oakhurst');
@@ -175,13 +197,17 @@ test('a member profile links to the member’s race', async ({ page }) => {
   await expect(page.locator('[data-race-links]')).toHaveCount(0);
 });
 
-test('unknown races and malformed addresses are 404s', async ({ page }) => {
+test('unknown races and malformed addresses are 404s, never errors', async ({ page }) => {
   for (const path of [
     '/races/2026/zy-al',
+    '/races/2026/zv-al',
+    '/races/2026/zv-71',
     '/races/2026/ZV-1',
     '/races/2026/zv-01',
     '/races/26/zv-1',
-    '/races/2024/zv-1',
+    '/races/1900/zv-senate',
+    '/races/2101/zv-senate',
+    '/races/2025/zv-senate',
   ]) {
     const response = await page.goto(path);
     expect(response?.status(), path).toBe(404);
