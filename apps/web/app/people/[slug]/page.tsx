@@ -5,6 +5,7 @@ import { CareerTimeline } from '@/components/charts/career-timeline';
 import { PositionStrip } from '@/components/charts/position-strip';
 import { PartyChip } from '@/components/party-chip';
 import { GlanceSection } from '@/components/profile/glance';
+import { MemberDistrictMap } from '@/components/profile/member-district-map';
 import { MoneySection } from '@/components/profile/money-section';
 import { PlatformSection } from '@/components/profile/platform-section';
 import { PromisesSection } from '@/components/profile/promises-section';
@@ -239,6 +240,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
             <p className="mt-1 text-sm text-ink-2">
               Official records for this member, and the sources behind the header.
             </p>
+            <MemberDistrictMap slug={slug} />
             {identifiers.length > 0 ? (
               <ol className="mt-4 border-t border-rule">
                 {identifiers.map((id, i) => {

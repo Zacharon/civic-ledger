@@ -142,7 +142,8 @@ interface SourceAdapter {
 3. FEC bulk → candidates, committees, totals, PAC contributions, outside spending.
 4. GovInfo BILLSTATUS → bills, policy areas, subjects; join rollcalls to bills.
 5. Curated YAML → industry map, frameworks, promises, platforms.
-6. Phase 3: OpenStates (state legislators, bills, votes), cleared scorecards.
+6. Census cartographic boundaries → `district_map` (projected, simplified SVG paths for the profile's district locator; independent of the sources above, DECISIONS A75).
+7. Phase 3: OpenStates (state legislators, bills, votes), cleared scorecards.
 
 OpenSecrets is a link target and later enrichment, not a dependency (bulk access
 is application-gated). ProPublica's Congress API is shut down and is not used.

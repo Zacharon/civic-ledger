@@ -4,6 +4,13 @@ import { refreshPersonCard } from '../read-model';
 import * as s from '../schema';
 import { conflictUpdateSet } from '../upsert';
 import { SEED_INDUSTRIES, SEED_POLICY_AREAS, SEED_PUBLISHERS } from './catalog';
+import {
+  buildSeedDistrictMaps,
+  SEED_MAP_AS_OF,
+  SEED_MAP_CONGRESS,
+  SEED_MAP_PUBLISHER,
+  SEED_MAP_VINTAGE,
+} from './district-maps';
 import { buildSeedData, SEED_CONGRESS, type SeedData } from './fixtures';
 
 export { SEED_MID_CONGRESS_START } from './fixtures';
@@ -100,6 +107,7 @@ async function loadAll(
   const votes = await loadLegislation(db, data, personIds, provenance);
   await loadScores(db, data, personIds, provenance);
   await loadCurated(db, data, personIds, votes, provenance);
+  const districtMaps = await loadDistrictMaps(db, provenance);
   return {
     people: data.people.length,
     terms: data.terms.length,
@@ -113,7 +121,30 @@ async function loadAll(
     promises: data.promises.length,
     platformPositions: data.platforms.length,
     frameworks: data.frameworks.length,
+    districtMaps,
   };
+}
+
+/** Synthetic geometry for the fictional states, clearly labelled as not a real map. */
+async function loadDistrictMaps(db: Db, provenance: Provenance): Promise<number> {
+  const maps = buildSeedDistrictMaps();
+  await db
+    .insert(s.districtMap)
+    .values(
+      maps.map((m) => ({
+        ...m,
+        vintage: SEED_MAP_VINTAGE,
+        publisher: SEED_MAP_PUBLISHER,
+        asOf: SEED_MAP_AS_OF,
+        congress: SEED_MAP_CONGRESS,
+        ...provenance(`districtmap:${m.state}:${m.district ?? 'state'}`),
+      })),
+    )
+    .onConflictDoUpdate({
+      target: [s.districtMap.state, s.districtMap.district],
+      set: conflictUpdateSet(s.districtMap),
+    });
+  return maps.length;
 }
 
 async function loadVocabularies(db: Db, provenance: Provenance): Promise<void> {

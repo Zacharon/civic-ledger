@@ -1,4 +1,5 @@
 export * from './curated';
+export * from './geography';
 export * from './identity';
 export * from './legislation';
 export * from './money';

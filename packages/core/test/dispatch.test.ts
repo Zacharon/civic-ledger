@@ -18,6 +18,7 @@ describe('registry', () => {
     const exposed = publicCapabilities();
     expect(exposed.map((c) => c.name).sort()).toEqual([
       'chamber.composition',
+      'districts.shape',
       'explainers.list',
       'explore.facets',
       'explore.table',

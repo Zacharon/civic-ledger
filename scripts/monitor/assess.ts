@@ -5,6 +5,8 @@ export const SOURCE_POLICY = {
   'govinfo-billstatus': { attemptHours: 30, freshHours: 48 },
   'fec-bulk': { attemptHours: 8 * 24, freshHours: 14 * 24 },
   voteview: { attemptHours: 8 * 24, freshHours: 14 * 24 },
+  // Re-issued about once a year with the Census vintage; a run is expected at least that often.
+  'census-boundaries': { attemptHours: 400 * 24, freshHours: 400 * 24 },
 } as const;
 export interface Run {
   status: string;

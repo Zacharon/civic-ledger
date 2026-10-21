@@ -1,4 +1,5 @@
 import type { AdapterRegistry } from '../runtime/run';
+import { censusBoundariesAdapter } from './census-boundaries';
 import { congressLegislatorsAdapter } from './congress-legislators';
 import { curatedAdapter } from './curated';
 import { fecBulkAdapter } from './fec-bulk';
@@ -12,6 +13,7 @@ export const ADAPTERS = {
   'fec-bulk': fecBulkAdapter,
   'govinfo-billstatus': govinfoBillstatusAdapter,
   curated: curatedAdapter,
+  'census-boundaries': censusBoundariesAdapter,
 } satisfies AdapterRegistry;
 
 export const PIPELINE_ORDER = Object.keys(ADAPTERS) as (keyof typeof ADAPTERS)[];

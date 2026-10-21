@@ -2,6 +2,7 @@ import type { Capability } from '../capability';
 import { votesAttendance } from './attendance';
 import { chamberComposition } from './chamber';
 import { curatedValidate } from './curated';
+import { districtsShape } from './districts';
 import { explainersList } from './explainers';
 import { exploreTable } from './explore';
 import { exploreFacets } from './facets';
@@ -25,6 +26,7 @@ export const registry = {
   'people.get': peopleGet,
   'people.compare': peopleCompare,
   'people.glance': peopleGlance,
+  'districts.shape': districtsShape,
   'explore.table': exploreTable,
   'explore.facets': exploreFacets,
   'money.summary': moneySummary,
