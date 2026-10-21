@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { PartyBreakdown } from '@/components/charts/party-breakdown';
 import { TallyBar } from '@/components/charts/tally-bar';
 import { FullTitle } from '@/components/full-title';
 import { Pagination } from '@/components/pagination';
@@ -179,44 +180,7 @@ export default async function PolicyAreaPage({
                     </div>
                     <div>
                       <TallyBar tally={v.tally} />
-                      {v.byParty.length > 0 ? (
-                        <table className="mt-4 w-full text-sm">
-                          <caption className="sr-only">Positions by party</caption>
-                          <thead>
-                            <tr className="border-b border-ink text-ink-2">
-                              <th scope="col" className="py-1 text-left font-semibold">
-                                Party
-                              </th>
-                              <th scope="col" className="py-1 text-right font-semibold">
-                                Yea
-                              </th>
-                              <th scope="col" className="py-1 text-right font-semibold">
-                                Nay
-                              </th>
-                              <th scope="col" className="py-1 text-right font-semibold">
-                                Present
-                              </th>
-                              <th scope="col" className="py-1 text-right font-semibold">
-                                Not voting
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {v.byParty.map((p) => (
-                              <tr key={p.party} className="border-t border-rule">
-                                <th scope="row" className="py-1 text-left font-normal">
-                                  <PartyChip party={p.party} />{' '}
-                                  <span className="text-ink-2">{p.party}</span>
-                                </th>
-                                <td className="num py-1 text-right">{p.yea}</td>
-                                <td className="num py-1 text-right">{p.nay}</td>
-                                <td className="num py-1 text-right text-ink-2">{p.present}</td>
-                                <td className="num py-1 text-right text-ink-2">{p.notVoting}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      ) : null}
+                      <PartyBreakdown byParty={v.byParty} tally={v.tally} placement="list" />
                     </div>
                   </li>
                 );

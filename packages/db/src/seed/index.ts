@@ -6,6 +6,8 @@ import { conflictUpdateSet } from '../upsert';
 import { SEED_INDUSTRIES, SEED_POLICY_AREAS, SEED_PUBLISHERS } from './catalog';
 import { buildSeedData, SEED_CONGRESS, type SeedData } from './fixtures';
 
+export { SEED_MID_CONGRESS_START } from './fixtures';
+
 export const DEV_SEED_SOURCE_ID = 'dev-seed';
 export const DEV_SEED_VERSION = 'dev-seed@1';
 const RETRIEVED_AT = new Date('2026-10-01T00:00:00Z');

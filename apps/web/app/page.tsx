@@ -1,13 +1,16 @@
 import { ArrowRight, Search } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { SeatChart } from '@/components/charts/seat-chart';
 import { MetricCell, metricValue } from '@/components/explore/cell';
 import { MemberFinder } from '@/components/home/member-finder';
 import { PartyChip } from '@/components/party-chip';
+import { SourceList, SourceNotes } from '@/components/sources';
 import { columnById } from '@/lib/explore-columns';
 import { serializeExplore } from '@/lib/explore-params';
 import { formatDate, formatNumber, formatShare, seatLabel } from '@/lib/format';
 import { read } from '@/server/capabilities';
+import { sourceInfos } from '@/server/sources';
 
 const EXAMPLES = [
   {
@@ -38,13 +41,17 @@ const EXAMPLES = [
 const PREVIEW_COLUMNS = ['total', 'pac', 'missed'] as const;
 
 export default async function HomePage() {
-  const [table, facets, status, areas, frameworks] = await Promise.all([
+  const [table, facets, status, areas, frameworks, composition, sources] = await Promise.all([
     read('explore.table', { limit: 4 }),
     read('explore.facets', {}),
     read('sources.status', {}),
     read('policy.areas', {}),
     read('frameworks.list', {}),
+    read('chamber.composition', {}),
+    sourceInfos(),
   ]);
+  const seatNotes = new SourceNotes('seats', sources);
+  const seatMark = seatNotes.cite(composition.provenance);
   const preview = PREVIEW_COLUMNS.flatMap((id) => {
     const column = columnById(id, table.scorecardColumns);
     return column ? [column] : [];
@@ -185,6 +192,27 @@ export default async function HomePage() {
             </Link>
           </p>
         </figure>
+      </section>
+
+      <section aria-labelledby="seats-title" className="page-frame pb-12">
+        <div className="rule-strong pt-6">
+          <h2 id="seats-title" className="section-title">
+            Who serves now
+          </h2>
+          <p className="mt-1.5 max-w-3xl text-ink-2">
+            Current members of each chamber by party as of {formatDate(composition.asOf)}, one
+            square per voting seat. Party color is used here and in party chips only.
+          </p>
+          <div className="mt-6">
+            <SeatChart composition={composition} notes={seatNotes} mark={seatMark} />
+          </div>
+          <p className="mt-6 max-w-3xl text-sm text-ink-3" data-seat-order>
+            Squares run in this order: {composition.partyOrder} The order is alphabetical, not a
+            ranking. Current means the member’s latest term covers the as-of date, by the party on
+            that term.
+          </p>
+          <SourceList notes={seatNotes} />
+        </div>
       </section>
 
       <MemberFinder />

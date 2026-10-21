@@ -30,7 +30,9 @@ for public reads; it does not need to.
 | `explore.table@1` | read | Explore table (sort/filter/paginate; scope current by default, or all incl. former members) | `GET /api/v1/explore.table`, MCP `explore_table` |
 | `explore.facets@1` | read | Explore filter options (states, parties, chambers, scope counts, per-field data coverage) | `GET /api/v1/explore.facets`, MCP `explore_facets` |
 | `money.summary@1` | read | Profile → Money | `GET /api/v1/money.summary`, MCP `money_summary` |
-| `votes.list@1` | read | Profile → Votes, Policy page | `GET /api/v1/votes.list`, MCP `votes_list` |
+| `votes.list@1` | read | Profile → Votes, Policy page (roll calls with "How each party voted") | `GET /api/v1/votes.list`, MCP `votes_list` |
+| `votes.attendance@1` | read | Profile → Votes → Attendance by month (strip and table) | `GET /api/v1/votes.attendance`, MCP `votes_attendance` |
+| `chamber.composition@1` | read | Home → Who serves now (House and Senate seat chart) | `GET /api/v1/chamber.composition`, MCP `chamber_composition` |
 | `scores.list@1` | read | Profile → Scores | `GET /api/v1/scores.list`, MCP `scores_list` |
 | `promises.list@1` | read | Profile → Promises | `GET /api/v1/promises.list`, MCP `promises_list` |
 | `policy.areas@1` | read | Policy nav | `GET /api/v1/policy.areas`, MCP `policy_areas` |
@@ -45,6 +47,44 @@ for public reads; it does not need to.
 | `ops.raw.archive@1` | write (operator) | `pnpm exec tsx scripts/backup/raw.ts backup` | Same CLI, explicit persistent root |
 | `ops.raw.restore@1` | write (operator; preview default) | Raw archive CLI `restore` into a new directory | Same CLI, never overwrite an existing target |
 | `ops.monitor@1` | local draft | `pnpm exec tsx scripts/monitor/cli.ts` | Same CLI; incident JSON/digest, no issue send |
+
+### Vote visuals (2026-10-20)
+
+All three visuals read existing data only (no schema change); their numbers come from
+these capabilities, so the page, `/api/v1` and MCP return the same values.
+
+- **`votes.list@1` `byParty`** (extended, not a new capability). One row per party actually
+  present in the roll call, each with yea / nay / present / not voting. Party = the member's
+  party on their term at the vote date: the term in force on that date (inclusive end date,
+  latest start wins on overlap); a position with no term in force takes the member's latest
+  earlier term (a recorded last day can precede the member's last recorded vote); only a
+  member with no earlier term is `Unknown`, listed last and labelled "Party not on file at the
+  vote date". Rows are alphabetical by party name (no ideological or size order) and always
+  sum to `tally` (tested, including overlapping terms). There is no `rollcalls.get` and no
+  roll-call page here; another stream owns those.
+- **`votes.attendance@1`** `{slug, congress?}` -> `months[]` of `{month, status, rollcallsHeld,
+  eligible, missed, present, voted}`, `totals`, `chambers`, `throughMonth`, `definition`,
+  `provenance`. `congress` defaults to the member's latest Congress with votes, the same one
+  behind `person_card`. **Eligible** = the member's recorded positions in the Congress (yea,
+  nay, present, not voting); **missed** = `not_voting`; **present** is separate and not missed.
+  Totals equal `votesEligible` and `missedVoteRate` on `people.get` / `explore.table` (tested
+  for every seeded member). Month status: `served` (any position on file), `no_votes_held`
+  (serving, none held in the member's chamber), `not_yet_serving`, `no_longer_serving`,
+  `not_serving` (gap), `no_record` (votes held while serving, none on file). Months run from
+  January of the Congress's first year to the last month with a roll call on file.
+- **`chamber.composition@1`** `{}` -> per chamber `seats` (435 / 100, fixed by law),
+  `members` (voting, currently serving), `voting[]` and `nonVoting` (`total`, `parties[]`,
+  `jurisdictions[]`), `vacancies` (seats minus voting members; `null` when fewer than 90% of
+  the seats have a member on file, because that is a partial load and not vacancies), `asOf`,
+  `provenance` (most recently loaded current term) and `definition`. Current means the
+  member's latest term covers `asOf` (the same rule as the Explore `current` scope); the
+  party is the party on that term. Delegates (AS, DC, GU, MP, VI) and Puerto Rico's Resident
+  Commissioner are counted in `nonVoting`, never in the 435. Party order everywhere:
+  Democrat, Independent, Republican (alphabetical among themselves), then every other party
+  alphabetically by name; not by size and not by ideology.
+
+All three are anonymous public reads with strict schemas, no writes, no approval step and no
+idempotency key (gates 1-4 apply; gates 5-7 do not, there is no user data or external effect).
 
 `frameworks.evaluate` is stateless: the framework spec travels in the request
 (or URL for the UI), so no stored user data exists.

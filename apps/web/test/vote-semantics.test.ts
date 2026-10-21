@@ -90,7 +90,11 @@ describe('vote and party colors are separate semantic families', () => {
   it('vote components never reference party or category-palette colors', () => {
     for (const file of [
       '../src/components/charts/tally-bar.tsx',
+      '../src/components/charts/party-breakdown.tsx',
+      '../src/components/charts/attendance-strip.tsx',
       '../src/components/profile/votes-section.tsx',
+      '../src/lib/party-breakdown.ts',
+      '../src/lib/attendance.ts',
     ]) {
       const source = read(file);
       expect(source, file).not.toMatch(/chip-(democratic|republican)|--party-|(fill|bg)-data-/);
@@ -143,4 +147,118 @@ describe('summarizeTally: one source for meter and legend', () => {
     expect(POSITION_LABEL.present).not.toBe(POSITION_LABEL.not_voting);
     for (const part of VOTE_PARTS) expect(POSITION_LABEL[part.position]).toBe(part.label);
   });
+});
+
+/** The CSS declarations of one class selector, or '' when it is missing. */
+function rule(selector: string) {
+  const escaped = selector.replace(/[.-]/g, (c) => `\\${c}`);
+  return new RegExp(`${escaped}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
+}
+
+function luminance(hex: string) {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = Number.parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  }) as [number, number, number];
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+const contrast = (a: string, b: string) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+describe('the party breakdown draws party names as text and segments in vote colors', () => {
+  const source = read('../src/components/charts/party-breakdown.tsx');
+
+  it('uses the shared vote meter and summarizeTally output only', () => {
+    expect(source).toContain('vote-meter');
+    expect(source).toContain('s.className');
+    expect(source).not.toMatch(/PartyChip|chip-|--party-|seat-|bg-/);
+  });
+
+  it('keeps Yea, Nay, Present and Not voting as four separate columns', () => {
+    for (const label of ['Yea', 'Nay', 'Present', 'Not voting']) expect(source).toContain(label);
+    expect(source).not.toMatch(/present\s*\+\s*notVoting|notVoting\s*\+\s*present/);
+  });
+});
+
+describe('the attendance strip is neutral greys, never red, blue, Yea or Nay', () => {
+  const source = read('../src/components/charts/attendance-strip.tsx');
+
+  it('references only the Not voting and Present vote keys', () => {
+    expect(source).not.toMatch(/vote-yea|vote-nay|chip-|--party-|seat-/);
+    expect(source).not.toMatch(/\b(?:bg|text|border|fill|stroke)-(?:red|blue|rose|sky|indigo)/);
+    expect(source).toContain('vote-not-voting');
+    expect(source).toContain('vote-present');
+  });
+
+  it('paints its fill, track and cells from grey tokens only', () => {
+    for (const selector of ['.attend-fill', '.attend-track', '.attend-cell', '.attend-cell-none']) {
+      const body = rule(selector);
+      expect(body, selector).not.toBe('');
+      expect(body, selector).not.toMatch(/--party-|--vote-yea|--vote-nay|--accent|--status-/);
+    }
+    expect(rule('.attend-fill')).toMatch(/var\(--vote-not-voting\)/);
+  });
+});
+
+describe('the seat chart is the only place party color fills a mark', () => {
+  it('colors only Democrat and Republican, with the muted chip inks', () => {
+    expect(rule('.seat-democratic')).toMatch(
+      /color-mix\(in srgb, var\(--party-dem-ink\) 70%, var\(--surface\)\)/,
+    );
+    expect(rule('.seat-republican')).toMatch(
+      /color-mix\(in srgb, var\(--party-rep-ink\) 70%, var\(--surface\)\)/,
+    );
+    for (const neutral of [
+      '.seat',
+      '.seat-independent',
+      '.seat-other-1',
+      '.seat-other-2',
+      '.seat-other-3',
+      '.seat-vacant',
+    ]) {
+      const body = rule(neutral);
+      expect(body, neutral).not.toBe('');
+      expect(body, neutral).not.toMatch(/--party-|--vote-|--accent|--status-/);
+    }
+  });
+
+  it('never borrows a vote color or key class', () => {
+    const chart = read('../src/components/charts/seat-chart.tsx');
+    const grid = read('../src/lib/seat-grid.ts');
+    expect(chart + grid).not.toMatch(/vote-(?:yea|nay|present|not-voting|key|meter)|--vote-/);
+    for (const [name, value] of Object.entries(VOTE_KEY_CLASS)) {
+      expect(chart, name).not.toContain(value);
+    }
+  });
+
+  for (const scheme of ['light', 'dark'] as const) {
+    it(`${scheme}: filled squares and hollow outlines are at least 3:1 against the surface`, () => {
+      const t = tokens(scheme);
+      const surface = t['--surface'] as string;
+      // The party squares are the chip ink at 70% over the surface (see .seat-democratic).
+      const mixed = (ink: string) => {
+        const channel = (i: number) =>
+          Math.round(
+            0.7 * Number.parseInt(ink.slice(i, i + 2), 16) +
+              0.3 * Number.parseInt(surface.slice(i, i + 2), 16),
+          )
+            .toString(16)
+            .padStart(2, '0');
+        return `#${channel(1)}${channel(3)}${channel(5)}`;
+      };
+      expect(
+        contrast(mixed(t['--party-dem-ink'] as string), surface),
+        'democratic',
+      ).toBeGreaterThanOrEqual(3);
+      expect(
+        contrast(mixed(t['--party-rep-ink'] as string), surface),
+        'republican',
+      ).toBeGreaterThanOrEqual(3);
+      for (const fill of ['--bar', '--line-control']) {
+        expect(contrast(t[fill] as string, surface), fill).toBeGreaterThanOrEqual(3);
+      }
+    });
+  }
 });

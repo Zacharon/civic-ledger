@@ -636,6 +636,34 @@ function buildFrameworks(bills: SeedBill[], rollcalls: SeedRollcall[]): SeedFram
   ];
 }
 
+/** The fictional special-election winner sworn in partway through the seed Congress. */
+export const SEED_MID_CONGRESS_START = '2025-06-10';
+
+/**
+ * Makes the last single-term House member start mid-Congress (a fictional special-election
+ * winner): their term opens on `SEED_MID_CONGRESS_START` and no vote before that date is on
+ * file for them. Applied after every random draw so no other seed value moves.
+ */
+function startMidCongress(
+  people: SeedPerson[],
+  terms: SeedTerm[],
+  rollcalls: SeedRollcall[],
+): { slug: string } {
+  const late = people.findLast(
+    (p) => p.chamber === 'house' && p.firstTermStart === p.currentTermStart,
+  );
+  if (!late) throw new Error('Seed has no single-term House member to start mid-Congress');
+  for (const t of terms) {
+    if (t.slug === late.slug && t.endDate === null) t.startDate = SEED_MID_CONGRESS_START;
+  }
+  for (const r of rollcalls) {
+    if (r.voteDate < SEED_MID_CONGRESS_START) {
+      r.positions = r.positions.filter((p) => p.slug !== late.slug);
+    }
+  }
+  return { slug: late.slug };
+}
+
 /** Builds the complete fictional dataset. Pure and deterministic. */
 export function buildSeedData(): SeedData {
   const random = createRandom(SEED);
@@ -646,10 +674,12 @@ export function buildSeedData(): SeedData {
   const bills = buildBills(people, random);
   const rollcalls = buildRollcalls(people, bills, random);
   const former = buildFormerMembers();
+  const terms = [...buildTerms(people), ...former.terms];
+  startMidCongress(people, terms, rollcalls);
   return {
     people,
     formerMembers: former.members,
-    terms: [...buildTerms(people), ...former.terms],
+    terms,
     candidacies: buildCandidacies(people),
     committees,
     totals: buildTotals(people, random),

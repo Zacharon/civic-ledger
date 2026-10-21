@@ -28,6 +28,9 @@ in `packages/core/src/capabilities`):
 | `money.summary` | `totals.pacShare`, `totals.smallDollarShare` | Shares guarded to [0, 1], else `null`; `totals.unitemizedIndividualCents` is always `null` (weball has no split) |
 | `money.summary` | `smallDollar` `{fecCandidateId, unitemizedIndividualCents, itemizedIndividualCents, totalReceiptsCents, share, coverageEndDate, provenance}` or `null` | FEC candidate summary for its own filing period; `share` is `null` outside [0, 1] or when receipts <= 0; its date can trail `totals.coverageEndDate` |
 | `money.summary` | `outsideSpending` `{supportCents, opposeCents, spenders, itemCount, items}` | `spenders` sums every expenditure per spender and side (largest first); `itemCount` counts all expenditures; `items` lists only the 50 largest |
+| `votes.list` | `items[].byParty[]` `{party, yea, nay, present, notVoting}` | One row per party present, party at the vote date, alphabetical, `Unknown` last; rows sum to `tally` |
+| `votes.attendance` | input `slug`, optional `congress`; output `months[]`, `totals`, `throughMonth` | Month-by-month eligible, missed (not voting) and present for one Congress; `status` keeps "no votes held" and "not yet serving" apart from zero misses; totals equal the Explore `votesEligible` / `missedVoteRate` |
+| `chamber.composition` | empty input; output `chambers[]` `{chamber, seats, members, voting[], nonVoting, vacancies}`, `asOf`, `provenance` | Current composition by party in the documented order; delegates counted apart from the 435; `vacancies` is `null` for a partial roster |
 | `sources.status` | runs: `scope`, `counts`, `error` | Ingest scope as stored (`all`, `cycle:2026`, `congress:119`) and the run's own counters |
 
 ## JSON API
@@ -38,7 +41,7 @@ machine-readable contract is generated from the zod schemas at
 
 | Capability | Method | Cache class |
 |---|---|---|
-| `people.search`, `people.get`, `people.glance`, `people.compare`, `explore.table`, `money.summary`, `votes.list`, `scores.list`, `promises.list` | GET | data: `s-maxage=300, stale-while-revalidate=3600` |
+| `people.search`, `people.get`, `people.glance`, `people.compare`, `explore.table`, `money.summary`, `votes.list`, `votes.attendance`, `chamber.composition`, `scores.list`, `promises.list` | GET | data: `s-maxage=300, stale-while-revalidate=3600` |
 | `policy.areas`, `frameworks.list`, `explainers.list` | GET | reference: `s-maxage=3600, stale-while-revalidate=86400` |
 | `sources.status` | GET | status: `s-maxage=60, stale-while-revalidate=300` |
 | `frameworks.evaluate` | POST (JSON body, max 256 KiB) | `no-store` |
@@ -120,9 +123,9 @@ repeated keys, and every GET also accepts `input`.
 
 `packages/mcp` is a stdio MCP server (`@modelcontextprotocol/sdk` 1.x) with one tool
 per public capability. Tool names replace the dot with an underscore: `people_search`,
-`people_get`, `people_compare`, `explore_table`, `money_summary`, `votes_list`,
+`people_get`, `people_compare`, `explore_table`, `money_summary`, `votes_list`, `votes_attendance`, `chamber_composition`,
 `scores_list`, `promises_list`, `policy_areas`, `frameworks_list`, `frameworks_evaluate`,
-`sources_status`, `explore_facets` (13 tools, one per public capability).
+`sources_status`, `explore_facets`, `explainers_list`, `people_glance` (plus the tools above; one per public capability).
 
 * `inputSchema` and `outputSchema` are JSON Schema generated from the capability's own
   zod schemas. Results are `structuredContent` plus the same JSON as a text block.

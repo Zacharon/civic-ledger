@@ -61,6 +61,26 @@ export async function checkSupplementalProfile(
   const scores = await agreed<CapabilityOutput<'scores.list'>>('scores.list', { slug });
   const promises = await agreed<CapabilityOutput<'promises.list'>>('promises.list', { slug });
   const money = await agreed<CapabilityOutput<'money.summary'>>('money.summary', { slug });
+  // Attendance by month: the strip and its table twin show exactly what votes.attendance
+  // returns over HTTP and MCP, and its totals are the profile's own missed-vote figures.
+  await expect(page.locator('#votes[aria-busy="true"]')).toHaveCount(0);
+  const attendance = await agreed<CapabilityOutput<'votes.attendance'>>('votes.attendance', {
+    slug,
+  });
+  expect(attendance.totals.eligible).toBe(profile.card.votesEligible ?? 0);
+  if (attendance.months.length === 0) {
+    await expect(page.locator('#votes [data-attendance]')).toHaveCount(0);
+  } else {
+    const strip = page.locator('#votes [data-attendance]');
+    expect(await raw(strip)).toEqual([
+      attendance.totals.eligible,
+      attendance.totals.missed,
+      attendance.totals.present,
+    ]);
+    expect(await keyed(strip.locator('li[data-month-cell]'), 'data-month-cell')).toEqual(
+      attendance.months.map((m) => [m.month, [m.status, m.eligible, m.missed, m.present]]),
+    );
+  }
 
   const latest = scores.ideology[0];
   const ideology = page.locator('#scores [data-ideology]');
@@ -425,6 +445,16 @@ export async function checkHome(page: Page, baseUrl: string, agreed: Agreed) {
     expect(await raw(page.locator('[data-frameworks]'))).toBe(frameworks.items.length);
     await expect(page.locator('[data-frameworks]')).toHaveText(String(frameworks.items.length));
   }
+  const composition = await agreed<CapabilityOutput<'chamber.composition'>>(
+    'chamber.composition',
+    {},
+  );
+  expect(await keyed(page.locator('figure[data-chamber]'), 'data-chamber')).toEqual(
+    composition.chambers.map((b) => [
+      b.chamber,
+      [b.seats, b.members, b.voting.map((p) => [p.party, p.count]), b.nonVoting.total, b.vacancies],
+    ]),
+  );
   expect(await raw(page.locator('[data-facet="current"]'))).toBe(facets.scopes.current);
   await expect(page.locator('[data-facet="current"]')).toHaveText(
     formatNumber(facets.scopes.current) ?? '',

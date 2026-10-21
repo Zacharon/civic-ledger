@@ -127,7 +127,8 @@ All PASS (payload equality across direct dispatch, HTTP and MCP; test
 `read capabilities return equal payloads ... > <name>`): `people.search`, `people.get`,
 `people.compare`, `explore.table`, `explore.facets`, `money.summary`, `votes.list`,
 `scores.list`, `promises.list`, `policy.areas`, `frameworks.list`, `frameworks.evaluate`,
-`sources.status`. The same inputs are compared between PGlite and real Postgres 17 in
+`sources.status`, `votes.attendance`, `chamber.composition` (added 2026-10-20, see
+[vote visuals evidence](evidence/vote-visuals-20261020/README.md)). The same inputs are compared between PGlite and real Postgres 17 in
 `test-pg/capabilities.pgtest.ts`. UI-path value equality: `explore.table`, `people.get`,
 `money.summary`, `votes.list`, `people.compare`, `frameworks.list` / `frameworks.evaluate`
 (shared-values spec); the others are not value-compared on a page.

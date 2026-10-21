@@ -9,7 +9,7 @@ import {
   term,
   votePosition,
 } from '@civic-ledger/db';
-import { and, asc, desc, eq, exists, gte, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, exists, gt, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { defineCapability } from '../capability';
 import { notFound } from '../errors';
@@ -57,7 +57,9 @@ export const VotesListOutput = z.object({
       tally: TallySchema,
       byParty: z
         .array(TallySchema.extend({ party: z.string() }))
-        .describe("Party = the member's party on their term at the vote date"),
+        .describe(
+          "Party = the member's party on their term at the vote date. Rows are alphabetical by party name (no ideological or size order), 'Unknown' (no term started by the vote date) last, and always sum to `tally`.",
+        ),
     }),
   ),
   ...PageSchema,
@@ -203,32 +205,78 @@ async function billsFor(db: Db, rollcallIds: number[]) {
 }
 
 const emptyTally = (): Tally => ({ yea: 0, nay: 0, present: 0, notVoting: 0 });
+type Position = z.infer<typeof VotePositionSchema>;
 const TALLY_KEY = { yea: 'yea', nay: 'nay', present: 'present', not_voting: 'notVoting' } as const;
 
+/**
+ * The party label for members with no term started by the vote date. Shown as its own row,
+ * never folded into a real party.
+ */
+export const UNKNOWN_PARTY = 'Unknown';
+
+/**
+ * Party order shared by every per-party list: alphabetical by party name, with the
+ * "no party on file" row last. No ideological or size-based order.
+ */
+export function compareParties(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a === UNKNOWN_PARTY) return 1;
+  if (b === UNKNOWN_PARTY) return -1;
+  return a.localeCompare(b, 'en');
+}
+
+type PartyRow = { rollcallId: number; party: string; position: Position; count: number };
+
+/**
+ * Exactly one party per position, so the party rows always sum to the roll-call total.
+ * Fast path: one grouped query joining the term in force on the vote date. It is exact when
+ * every position matches exactly one term. A roll call where that does not hold (a member
+ * with no term in force, or two overlapping terms) is recomputed on the exact path.
+ */
 async function talliesFor(db: Db, rollcallIds: number[]) {
   const result = new Map<number, { total: Tally; byParty: (Tally & { party: string })[] }>();
   if (rollcallIds.length === 0) return result;
-  const party = sql<string>`coalesce(${term.party}, 'Unknown')`;
-  const rows = await db
-    .select({
-      rollcallId: votePosition.rollcallId,
-      party,
-      position: votePosition.position,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(votePosition)
-    .innerJoin(rollcall, eq(rollcall.id, votePosition.rollcallId))
-    .leftJoin(
-      term,
-      and(
-        eq(term.personId, votePosition.personId),
-        gte(rollcall.voteDate, term.startDate),
-        or(isNull(term.endDate), lt(rollcall.voteDate, term.endDate)),
+  const [fast, counts] = await Promise.all([
+    db
+      .select({
+        rollcallId: votePosition.rollcallId,
+        party: sql<string>`coalesce(${term.party}, ${sql.raw(`'${UNKNOWN_PARTY}'`)})`,
+        position: votePosition.position,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(votePosition)
+      .innerJoin(rollcall, eq(rollcall.id, votePosition.rollcallId))
+      .leftJoin(
+        term,
+        and(
+          eq(term.personId, votePosition.personId),
+          lte(term.startDate, rollcall.voteDate),
+          or(isNull(term.endDate), gt(term.endDate, rollcall.voteDate)),
+        ),
+      )
+      .where(inArray(votePosition.rollcallId, rollcallIds))
+      .groupBy(
+        votePosition.rollcallId,
+        sql`coalesce(${term.party}, ${sql.raw(`'${UNKNOWN_PARTY}'`)})`,
+        votePosition.position,
       ),
-    )
-    .where(inArray(votePosition.rollcallId, rollcallIds))
-    .groupBy(votePosition.rollcallId, party, votePosition.position)
-    .orderBy(asc(party));
+    db
+      .select({ rollcallId: votePosition.rollcallId, n: sql<number>`count(*)::int` })
+      .from(votePosition)
+      .where(inArray(votePosition.rollcallId, rollcallIds))
+      .groupBy(votePosition.rollcallId),
+  ]);
+  const expected = new Map(counts.map((c) => [c.rollcallId, c.n]));
+  const got = new Map<number, number>();
+  const suspect = new Set<number>();
+  for (const row of fast) {
+    got.set(row.rollcallId, (got.get(row.rollcallId) ?? 0) + row.count);
+    if (row.party === UNKNOWN_PARTY) suspect.add(row.rollcallId);
+  }
+  for (const [id, n] of expected) if (got.get(id) !== n) suspect.add(id);
+  const rows: PartyRow[] = fast.filter((r) => !suspect.has(r.rollcallId));
+  if (suspect.size > 0) rows.push(...(await exactParties(db, [...suspect])));
+
   for (const row of rows) {
     const entry = result.get(row.rollcallId) ?? { total: emptyTally(), byParty: [] };
     let partyTally = entry.byParty.find((p) => p.party === row.party);
@@ -241,7 +289,58 @@ async function talliesFor(db: Db, rollcallIds: number[]) {
     partyTally[key] += row.count;
     result.set(row.rollcallId, entry);
   }
+  for (const entry of result.values())
+    entry.byParty.sort((a, b) => compareParties(a.party, b.party));
   return result;
+}
+
+/**
+ * Exact path, one row per position: the term in force on the vote date (inclusive end date;
+ * the latest start if a source overlaps two). A position with no term in force, for example a
+ * member whose recorded last day is a day or two before their last recorded vote, takes the
+ * party of their latest earlier term; only a member with no earlier term is "Unknown".
+ */
+async function exactParties(db: Db, rollcallIds: number[]): Promise<PartyRow[]> {
+  const placed = db
+    .selectDistinctOn([votePosition.id], {
+      rollcallId: votePosition.rollcallId,
+      personId: votePosition.personId,
+      voteDate: rollcall.voteDate,
+      position: votePosition.position,
+      party: term.party,
+    })
+    .from(votePosition)
+    .innerJoin(rollcall, eq(rollcall.id, votePosition.rollcallId))
+    .leftJoin(
+      term,
+      and(
+        eq(term.personId, votePosition.personId),
+        lte(term.startDate, rollcall.voteDate),
+        or(isNull(term.endDate), gte(term.endDate, rollcall.voteDate)),
+      ),
+    )
+    .where(inArray(votePosition.rollcallId, rollcallIds))
+    .orderBy(votePosition.id, desc(term.startDate))
+    .as('placed');
+  const placedRows = await db.select().from(placed);
+  const unmatched = placedRows.filter((r) => r.party === null);
+  const earlier =
+    unmatched.length === 0
+      ? []
+      : await db
+          .select({ personId: term.personId, party: term.party, startDate: term.startDate })
+          .from(term)
+          .where(inArray(term.personId, [...new Set(unmatched.map((u) => u.personId))]))
+          .orderBy(desc(term.startDate));
+  return placedRows.map((r) => ({
+    rollcallId: r.rollcallId,
+    party:
+      r.party ??
+      earlier.find((t) => t.personId === r.personId && t.startDate <= r.voteDate)?.party ??
+      UNKNOWN_PARTY,
+    position: r.position,
+    count: 1,
+  }));
 }
 
 async function positionsFor(db: Db, rollcallIds: number[], personId: number) {

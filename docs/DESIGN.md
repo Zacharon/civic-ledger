@@ -87,7 +87,8 @@ Restrained: neutrals plus one accent. Warm greys only (no cool greys anywhere).
   (roll-call positions), `--party-*` (party chips) and `--status-*` (record status).
   Generic success/error is not mapped to Yea/Nay. `test/vote-semantics.test.ts` enforces
   the separation and the no-red/no-blue vote rule in both modes.
-- **Party chips** are the only place party color appears: small, muted tint with the
+- **Party chips** are the only place party color appears, with one owner-approved
+  exception (below, the chamber seat chart): small, muted tint with the
   party name or abbreviation always in text. Known U.S. parties map to a muted tone
   (`democratic` blue-grey, `republican` brick-grey); every other party, including
   Independent, uses the neutral chip. All chip pairs are ≥ 7.8:1.
@@ -129,6 +130,25 @@ never encode a vote; `src/lib/vote.ts` is the only mapping):
 | `--vote-present` | `#A3A89C` with a `--vote-not-voting` hatch | `#5E645B` with hatch | Present | hatched |
 | `--vote-not-voting` | `#777D74` (3.9:1) | `#8A9086` (5.7:1) | Not voting | solid |
 
+- **How each party voted** (`PartyBreakdown`, per roll call on the policy page and in the
+  member votes table): one row per party actually present, the party as plain text, its four
+  counts (Yea, Nay, Present, Not voting; never merged), a small `vote-meter-xs` in the vote
+  colors, and a total row proving the party rows add up to the roll call. Party color never
+  fills a vote segment and no party chip is drawn there. Party = the member's party on the
+  vote date (their term then); the UI says so, and a position with no party on file is its
+  own labelled row. Open on wide screens, folded behind a 44px "How each party voted"
+  disclosure on phones after hydration (native `<details>`, so it works without script); in
+  the member votes table it is a compact counts-only version (one text line per party and an
+  "All parties" line, no meter, no client component) folded per row at every width, to keep
+  the profile light (20 rows per page); every number of the full table is in those lines.
+- **Attendance by month** (`AttendanceStrip`, member profile): one cell per month of the
+  Congress. A served month states its denominator ("Of N eligible votes"), draws the missed
+  share as the `--vote-not-voting` grey on a sunk track, and prints Not voting and Present
+  (hatched key) counts. "No votes held" is a dashed outline, "Not yet serving" / "No longer
+  serving" a sunk fill, "No record on file" a dotted outline; none of them is drawn as a zero.
+  Greys only: no red, no party color, no Yea or Nay color. Cell state is visible text (no
+  colour-only cue), and the same numbers, plus roll calls held, sit in a table behind a
+  keyboard-reachable disclosure.
 - Known overlap: the money palette's slot 1 green and slot 2 amber sit near Yea and Nay.
   They are separate, labeled charts in different sections (Money vs Votes) and neither is
   red or blue; retuning the validated money palette is a separate decision.
@@ -141,6 +161,23 @@ never encode a vote; `src/lib/vote.ts` is the only mapping):
   printed, the denominator is stated ("Of N recorded positions"), zero totals render a
   sentence instead of a meter, and tiny categories are never inflated.
 Dark: worst adjacent CVD ΔE 8.9, normal-vision 16.5, all ≥ 3:1 on dark `--surface`.
+
+**Chamber seat chart** (home, "Who serves now"; `SeatChart`): the one chart where party color
+fills a mark, approved by the owner on 2026-10-20 for this chart only. A waffle, not a
+hemicycle: a Swiss grid of squares (House 29 x 15 = 435, Senate 10 x 10 = 100), one square per
+voting member, filled left to right and row by row. Democrat and Republican squares use the
+chip inks (`--party-dem-ink`, `--party-rep-ink`) at 70% over the surface so large areas stay
+muted (3:1 or better on the surface in both modes, tested). Independent is neutral `--bar`
+grey; every other party is a neutral pattern (hatch, counter-hatch, dots), so parties are
+told apart by pattern and by the printed legend, never by hue. Vacancies are hollow squares
+and are drawn only when the roster on file is near complete (the capability returns `null`
+otherwise, and the UI says vacancies are not shown). Non-voting delegates and Puerto Rico's
+Resident Commissioner are drawn and counted apart from the 435. **Order rule:** Democrat,
+Independent, Republican (alphabetical among themselves), then every other party
+alphabetically by name; the order is never by size or ideology and the page says it is not a
+ranking. Labels and counts are always printed in a legend and in the grid's accessible name;
+the grid itself is `role="img"`. Vote tokens are never used here, and the seat colors are
+never used for votes.
 
 **Neutrality rules for charts** (acceptance criteria, ARCHITECTURE §1, §6):
 
@@ -214,6 +251,9 @@ under 2 s with 600 members.
 | Filters, column picker, sort select | `components/explore/*` (client) | nuqs URL state, server re-render on change. |
 | Framework builder | `components/frameworks/*` (client) | Spec lives in the URL. |
 | Tally bar | `components/charts/tally-bar.tsx` | Yea / Nay / Present / Not voting meter from `summarizeTally`, every count and the denominator printed. |
+| Party breakdown | `components/charts/party-breakdown.tsx`, `party-disclosure.tsx` (client, only the phone fold), `lib/party-breakdown.ts` | "How each party voted": per-party counts and vote meters from `votes.list` `byParty`, total row, basis note. |
+| Attendance strip | `components/charts/attendance-strip.tsx`, `lib/attendance.ts` | Month cells plus table twin from `votes.attendance`; greys only. |
+| Seat chart | `components/charts/seat-chart.tsx`, `lib/seat-grid.ts` | House and Senate waffle from `chamber.composition`; the only party-colored fill. |
 | Scroll region | `components/scroll-region.tsx` | Named, focusable wrapper for wide tables. |
 | Pagination | `components/pagination.tsx` | Links, work without JavaScript. |
 
@@ -254,3 +294,10 @@ retry) and populated.
 | 2026-10-20 | Vote colors: Yea teal, Nay amber, Not voting grey, Present hatched grey; never red or blue; `--vote-*` separate from `--party-*` and `--status-*` | Owner rule. The previous tally borrowed the money palette (amber Yea, purple Nay). |
 | 2026-10-20 | Concept weaknesses not copied: 11-12px table text, search hidden below 900px, one color name for both absent and not voting | Readability (data stays 14px+), usable mobile search, and Present is not Not voting. |
 | 2026-10-20 | Explore and Compare share the 1280px frame (was 1440px) | Masthead and content align; their tables already scroll in labeled regions. |
+| 2026-10-20 | Owner approved party colour in the chamber seat chart | The seat chart is the one place party color fills a mark: Democrat and Republican squares use the muted chip inks, Independent and other parties are neutral. Everywhere else party stays a chip, and party color never encodes a vote. The test suite pins this. |
+| 2026-10-20 | Seat chart order: Democrat, Independent, Republican, then other parties alphabetically | A neutral, documented rule (alphabetical, not size or ideology); one function (`compareSeatParties` in core) so the UI, API and MCP agree. Printed on the page. |
+| 2026-10-20 | Seat chart is a waffle (29 x 15 and 10 x 10), not a hemicycle | A hemicycle implies a left-to-right political spectrum; a grid with a stated order does not. |
+| 2026-10-20 | Vacancies are drawn only when at least 90% of voting seats have a member on file | A near-complete roster makes "seats minus members" a vacancy count; a partial load would invent hundreds of empty seats. Otherwise the page says vacancies are not shown. |
+| 2026-10-20 | Party breakdown rows use party text, vote-colored meters and a reconciling total; party color never fills a vote segment | Owner rule: red and blue never encode a vote. The total row makes the sum-equals-roll-call check visible. |
+| 2026-10-20 | Party in a roll call = the member's party on the vote date | The term data carries the party per term, so a member who switched party is counted with the party they held then. A position with no term in force takes the latest earlier term (end dates can precede a member's last recorded vote). |
+| 2026-10-20 | Attendance uses the Explore definitions: eligible = recorded positions in the Congress, missed = Not voting, Present separate | One number everywhere; the month strip totals equal the profile's missed-vote rate (tested for every seeded member). |

@@ -381,6 +381,201 @@
     }
   }
 
+  /* Per-party meter inside "How each party voted": the same vote colors, smaller. */
+  .vote-meter-xs {
+    height: 0.5rem;
+    gap: 1px;
+  }
+
+  /*
+   * Disclosure used for the party breakdown: a 44px summary target, no marker clutter.
+   */
+  .disclosure > summary {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--accent);
+    list-style: none;
+  }
+  .disclosure > summary::-webkit-details-marker {
+    display: none;
+  }
+  .disclosure > summary::before {
+    content: "+";
+    display: inline-flex;
+    width: 1rem;
+    justify-content: center;
+    font-weight: 600;
+  }
+  .disclosure[open] > summary::before {
+    content: "\2212";
+  }
+
+  /* Compact per-row party breakdown: plain text lines, counts only. */
+  .party-lines {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--ink-2);
+  }
+  .party-lines ul {
+    padding-bottom: 0.25rem;
+  }
+  .party-lines li {
+    padding: 0.125rem 0;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .party-lines [data-party-total] {
+    margin-top: 0.125rem;
+    border-top: 1px solid var(--rule);
+    padding-top: 0.25rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  /*
+   * Attendance by month (member profile). A cell's fill is the one encoded value: the
+   * share of eligible votes recorded as Not voting, in the Not voting grey on a sunk
+   * track. Every number is also printed. "No votes held" is a dashed outline,
+   * "not serving" states a sunk fill; neither is ever drawn as a zero.
+   */
+  .attend-cell {
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    padding: 0.75rem;
+    min-width: 0;
+  }
+  .attend-cell-none {
+    border: 1px dashed var(--line-control);
+    background: transparent;
+  }
+  .attend-cell-away {
+    border-color: var(--surface-sunk);
+    background: var(--surface-sunk);
+  }
+  .attend-cell-norecord {
+    border: 1px dotted var(--line-control);
+    background: transparent;
+  }
+  .attend-cell > b,
+  .attend-cell > span {
+    display: block;
+  }
+  .attend-cell > span {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+  }
+  .attend-cell > span > s {
+    display: inline-block;
+    margin-right: 0.375rem;
+    text-decoration: none;
+  }
+  .attend-table {
+    width: 100%;
+    min-width: 40rem;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .attend-table th,
+  .attend-table td {
+    padding: 0.5rem 1rem 0.5rem 0;
+    border-bottom: 1px solid var(--rule);
+    text-align: right;
+  }
+  .attend-table th:first-child,
+  .attend-table td:last-child,
+  .attend-table th:last-child {
+    text-align: left;
+  }
+  .attend-table thead th {
+    border-bottom-color: var(--line-control);
+    color: var(--ink-2);
+    font-weight: 600;
+  }
+  .attend-table tbody th {
+    font-weight: 400;
+    white-space: nowrap;
+  }
+  .attend-table tbody td:last-child {
+    color: var(--ink-2);
+  }
+  .attend-table tfoot tr {
+    border-top: 1px solid var(--ink);
+    font-weight: 600;
+  }
+  .attend-table tfoot td:last-child {
+    font-weight: 400;
+    color: var(--ink-2);
+  }
+  .attend-track {
+    display: block;
+    margin-top: 0.5rem;
+    height: 0.5rem;
+    width: 100%;
+    background: var(--surface-sunk);
+    border: 1px solid var(--rule);
+  }
+  .attend-fill {
+    display: block;
+    height: 100%;
+    width: var(--v, 0%);
+    background: var(--vote-not-voting);
+  }
+
+  /*
+   * Chamber seat chart: the one place party color fills a mark (owner-approved
+   * 2026-10-20). Democrat and Republican use the muted chip inks, Independent a neutral
+   * grey, other parties neutral patterns; vacancies are hollow. Names and counts are
+   * always printed beside the grid.
+   */
+  .seat-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    gap: 2px;
+  }
+  .seat {
+    aspect-ratio: 1;
+    background: var(--bar);
+  }
+  /* Muted: the chip ink at 70% over the surface, so large areas stay calm (>= 3:1). */
+  .seat-democratic {
+    background: color-mix(in srgb, var(--party-dem-ink) 70%, var(--surface));
+  }
+  .seat-republican {
+    background: color-mix(in srgb, var(--party-rep-ink) 70%, var(--surface));
+  }
+  .seat-independent {
+    background: var(--bar);
+  }
+  .seat-other-1 {
+    background: repeating-linear-gradient(135deg, var(--bar) 0 2px, transparent 2px 4px);
+    outline: 1px solid var(--bar);
+    outline-offset: -1px;
+  }
+  .seat-other-2 {
+    background: repeating-linear-gradient(45deg, var(--bar) 0 2px, transparent 2px 4px);
+    outline: 1px solid var(--bar);
+    outline-offset: -1px;
+  }
+  .seat-other-3 {
+    background: radial-gradient(circle, var(--bar) 0 1.5px, transparent 1.5px 100%);
+    outline: 1px solid var(--bar);
+    outline-offset: -1px;
+  }
+  .seat-vacant {
+    background: transparent;
+    outline: 1px solid var(--line-control);
+    outline-offset: -1px;
+  }
+  .seat-key {
+    display: inline-block;
+    flex: none;
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
   .link {
     color: var(--accent);
     text-decoration-line: underline;

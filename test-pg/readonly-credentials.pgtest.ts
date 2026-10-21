@@ -80,6 +80,7 @@ describe('production read-only credentials on Postgres 17', () => {
         'people.glance': { slug },
         'money.summary': { slug },
         'scores.list': { slug },
+        'votes.attendance': { slug },
         'promises.list': { slug },
         'people.compare': { slugs: [slug, 'dana-dunmere'] },
         'frameworks.evaluate': { framework: frameworks.items[0]?.spec },
