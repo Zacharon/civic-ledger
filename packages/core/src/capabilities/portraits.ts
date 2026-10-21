@@ -156,7 +156,8 @@ export const peoplePortrait = defineCapability({
       height: row.height,
       sha256: row.sha256,
       byteLength: row.byteLength,
-      bytes: row.bytes,
+      // node-postgres returns a pooled Buffer, PGlite a Uint8Array: hand every adapter the same type.
+      bytes: new Uint8Array(row.bytes.buffer, row.bytes.byteOffset, row.bytes.byteLength),
     };
   },
 });

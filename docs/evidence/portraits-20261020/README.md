@@ -31,7 +31,7 @@ Command: `DATABASE_URL= pnpm ingest all --db .pglite/live --migrate`, then `pnpm
 | People in scope (Bioguide id, term ending after 2025-01-03) | 555 |
 | People with a portrait | **539** (1,078 files, 225x275 + 450x550) |
 | Bytes stored | **117,303,947** (111.9 MiB) |
-| Current members with a portrait | 523 of 539 on the first final run (before accepting the CMYK file); 524 expected after, see below |
+| Current members with a portrait | **524 of 539** (checked through `/people/<slug>/portrait` for every current member; the 15 without are exactly the 15 newest members; 523 before the CMYK file was accepted) |
 | Files rejected on the final run | 0 |
 | In scope without a portrait | 16 (the 15 newest current members B001323 G000606 G000607 W000832 B001328 F000485 B001321 B001324 M001246 H001104 A000383 G000608 V000139 M001245 W000831, plus one former member) |
 | Duration | first load ~12 min (10 min download, 2 min store); rerun with all 304s 4 min 12 s. Measured while three other agents were building and ingesting on the same PC, so upper bounds |
@@ -85,8 +85,13 @@ Screenshots (1440 and 390 px, light and dark, the three members above):
 
 ## Verification runs
 
-See the final report for exact commands and results (`pnpm check`, `pnpm test:pg`,
-`pnpm --filter @civic-ledger/web test:e2e` with `E2E_PORT=3320 E2E_SCALE_PORT=3321`).
+| Command | Result |
+|---|---|
+| `pnpm check` (lint, typecheck, test, build) | pass: 61 test files, 525 tests, build ok (run at `f5ba88d`, before the small Postgres-test and byte-view fix below) |
+| `pnpm test:pg` (embedded Postgres 17) | pass: 9 files, 71 tests, after adding `people.portrait` to `capabilities.pgtest.ts` (bytes equal on Postgres, PGlite and over HTTP) and `readonly-credentials.pgtest.ts`; the first run failed on exactly those two tests |
+| `E2E_PORT=3320 E2E_SCALE_PORT=3321 pnpm --filter @civic-ledger/web test:e2e` | pass: 87 tests including `portraits.spec.ts`, `a11y.spec.ts`, `design-system.spec.ts`, `shared-values.spec.ts` and the performance project. An earlier run had one timeout in `shared-values.spec.ts:357` under machine load (other agents building); that test alone passed on rerun and the later full run passed clean |
+| `pnpm lint`, `pnpm typecheck` after the last edit | pass |
+| `packages/core/test/portraits.test.ts`, `apps/web/test/{parity,portrait-http}.test.ts`, `packages/mcp` after the last edit | pass (82 tests) |
 
 ## Limits and open points
 
