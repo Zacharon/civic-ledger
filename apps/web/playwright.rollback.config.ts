@@ -6,5 +6,5 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   timeout: 300_000,
-  use: { ...devices['Desktop Chrome'] },
+  use: { ...devices['Desktop Chrome'], trace: 'retain-on-failure' },
 });
