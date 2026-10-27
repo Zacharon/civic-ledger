@@ -24,7 +24,7 @@
     "curate:validate": "tsx packages/core/src/cli/curate-validate.ts"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.15",
+    "@biomejs/biome": "^2.6.2",
     "@civic-ledger/core": "workspace:*",
     "@civic-ledger/db": "workspace:*",
     "@civic-ledger/ingest": "workspace:*",
@@ -35,6 +35,6 @@
     "pg": "8.23.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   }
 }
