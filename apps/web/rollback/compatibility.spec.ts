@@ -37,9 +37,11 @@ test('previous app reads the current schema and previous schemas accept current 
   });
   expect(status.status).toBe(0);
   expect(status.stdout.trim()).toBe('');
+  console.info('[rollback] create current database, migrate and seed');
   const stack = await startPgStack(); // Latest migrator + latest fictional seed, never a restored old schema.
   let previous: ChildProcess | undefined;
   try {
+    console.info('[rollback] start current web app');
     await stack.startWeb();
     const baselinePort = await port();
     const oldUrl = `http://localhost:${baselinePort}`;
@@ -51,6 +53,7 @@ test('previous app reads the current schema and previous schemas accept current 
       'DB_ALLOW_OWNER_CREDENTIALS',
     ])
       delete env[key];
+    console.info('[rollback] start previous web app');
     previous = spawn(
       process.execPath,
       [
@@ -99,6 +102,7 @@ test('previous app reads the current schema and previous schemas accept current 
       expect(response.status).toBe(200);
       return response.json();
     };
+    console.info('[rollback] fetch people and framework inputs');
     const people = await current('people.search', { limit: 3 });
     const [a, b] = people.items.map((person: { slug: string }) => person.slug);
     const frameworks = await current('frameworks.list');
@@ -119,6 +123,7 @@ test('previous app reads the current schema and previous schemas accept current 
     ];
     const records: Array<{ name: string; payload: unknown }> = [];
     for (const [name, input] of cases) {
+      console.info('[rollback] compare legacy capability', name);
       const payload = await current(name, input);
       const prior =
         name === 'frameworks.evaluate'
@@ -136,6 +141,7 @@ test('previous app reads the current schema and previous schemas accept current 
       );
       records.push({ name, payload });
     }
+    console.info('[rollback] validate current payloads with previous output schemas');
     const oldClient = spawnSync(
       process.execPath,
       [
@@ -152,6 +158,7 @@ test('previous app reads the current schema and previous schemas accept current 
     );
     expect(oldClient.status, 'baseline output schemas accept every current legacy payload').toBe(0);
     expect(JSON.parse(oldClient.stdout)).toEqual({ validated: cases.length });
+    console.info('[rollback] previous app browser navigation');
     await page.goto(`${oldUrl}/people/${a}`);
     await expect(page.getByRole('heading', { level: 1 })).toContainText(people.items[0].fullName);
     await page.goto(`${oldUrl}/explore`);
@@ -159,11 +166,14 @@ test('previous app reads the current schema and previous schemas accept current 
     await page.goto(`${oldUrl}/sources`);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Sources');
   } finally {
+    console.info('[rollback] stop previous web app');
     if (previous && previous.exitCode === null) {
       const done = once(previous, 'exit');
       previous.kill();
       await done;
     }
+    console.info('[rollback] close current stack');
     await stack.close();
+    console.info('[rollback] cleanup complete');
   }
 });
