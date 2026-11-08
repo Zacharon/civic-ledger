@@ -15,7 +15,7 @@
     "commander": "^15.0.0",
     "csv-parse": "^7.0.3",
     "drizzle-orm": "^0.45.4",
-    "fast-xml-parser": "^5.11.2",
+    "fast-xml-parser": "^5.12.0",
     "p-limit": "^7.3.3",
     "pino": "^10.4.0",
     "yaml": "^2.9.1",
