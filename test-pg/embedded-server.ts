@@ -34,7 +34,7 @@ const server = new EmbeddedPostgres({
 let stopping: Promise<void> | undefined;
 function stop(): Promise<void> {
   stopping ??= server.stop().finally(() => {
-    if (process.connected) process.disconnect();
+    if (process.connected) process.disconnect?.();
   });
   return stopping;
 }
