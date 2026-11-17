@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { expect, type Page, test } from '@playwright/test';
 
 /**
@@ -160,7 +161,14 @@ test.describe('portrait file route', () => {
     expect(headers['cache-control']).toBe('public, max-age=31536000, immutable');
     const body = await keyed.body();
     expect([...body.subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
-    expect(Number(headers['content-length'])).toBe(body.length);
+    // The served bytes are exactly the stored file: their sha256 is the ETag.
+    expect(`"${createHash('sha256').update(body).digest('hex')}"`).toBe(headers.etag);
+    // The capability sets Content-Length (test/portrait-http.test.ts), but Next 16.4.5+ drops
+    // it from every route handler response (sendResponse FORBIDDEN_HEADERS, GHSA-pc58-hwjq-p385)
+    // and sends the body chunked. Where a server does pass it through, it must be exact.
+    if (headers['content-length'] !== undefined) {
+      expect(Number(headers['content-length'])).toBe(body.length);
+    }
 
     const bare = await request.get(`/people/${WITH}/portrait?size=225`);
     expect(bare.status()).toBe(200);

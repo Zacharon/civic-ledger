@@ -12,3 +12,9 @@ allowBuilds:
   '@embedded-postgres/linux-x64': true
   '@embedded-postgres/windows-x64': true
   esbuild: true
+auditConfig:
+  # Dev-tree advisories that have no patched release, each accepted in docs/DECISIONS.md.
+  # Remove an entry as soon as a fixed version is published.
+  ignoreGhsas:
+    # picomatch <=4.0.7 extglob ReDoS (vitest > @vitest/mocker > vite > picomatch); A97.
+    - GHSA-fc5q-39xc-vjpf

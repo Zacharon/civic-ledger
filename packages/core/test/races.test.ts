@@ -107,11 +107,14 @@ describe('races.list@1', () => {
   it('counts an appointed senator whose term ends at the November special election', async () => {
     const { db: raw } = db.handle();
     const who = sql`(select id from person where slug = 'jordan-juniperfield')`;
+    // Both fixture end dates must still be ahead of "today", so the clock is pinned before
+    // them: the senator is sitting in both cases and only the end date decides seatUp.
+    const ctx = { ...db.ctx(), today: '2026-10-20' };
     await raw.execute(
       sql`update term set end_date = '2026-11-03' where person_id = ${who} and end_date is null`,
     );
     try {
-      const race = await dispatch('races.get', { seat: 'zw-senate' }, db.ctx());
+      const race = await dispatch('races.get', { seat: 'zw-senate' }, ctx);
       expect(race.seatUp).toBe(true);
       expect(race.incumbents).toMatchObject([
         { slug: 'jordan-juniperfield', termEnd: '2026-11-03' },
@@ -120,7 +123,7 @@ describe('races.list@1', () => {
       await raw.execute(
         sql`update term set end_date = '2026-10-25' where person_id = ${who} and end_date = '2026-11-03'`,
       );
-      const early = await dispatch('races.get', { seat: 'zw-senate' }, db.ctx());
+      const early = await dispatch('races.get', { seat: 'zw-senate' }, ctx);
       expect(early.seatUp).toBe(false);
     } finally {
       await raw.execute(
