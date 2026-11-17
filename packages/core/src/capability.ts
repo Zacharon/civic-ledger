@@ -3,6 +3,12 @@ import type { z } from 'zod';
 
 export interface CapabilityContext {
   db: Db;
+  /**
+   * Pins "today" (an ISO date, `YYYY-MM-DD`) for capabilities that decide who is sitting
+   * by the calendar (races incumbents). Adapters leave it unset, so the database's
+   * `current_date` applies; tests set it so a fixture date never expires.
+   */
+  today?: string;
 }
 
 /**

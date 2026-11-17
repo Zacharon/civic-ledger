@@ -144,14 +144,17 @@ async function loadExistingSeats(db: Db, cycle: number): Promise<Set<string>> {
  * until a special election (congress-legislators lists Ohio and Florida's that way in 2026).
  * A term with no scheduled end uses the constitutional length from its start (House 2
  * years, Senate 6), which only the development seed relies on: congress-legislators
- * always gives an end date. "Current" is evaluated at query time, so an appointed senator
- * leaves the list after the November date even if the winner is not yet sworn in.
+ * always gives an end date. "Current" is evaluated at query time (the database's
+ * `current_date`, or `ctx.today` when a caller pins it), so an appointed senator leaves
+ * the list after the November date even if the winner is not yet sworn in.
  */
 async function loadIncumbents(
   db: Db,
   cycle: number,
   filter: { chamber?: Chamber; state?: string; district?: number | null },
+  today: string | undefined,
 ): Promise<Incumbent[]> {
+  const asOf = today === undefined ? sql`current_date` : sql`${today}::date`;
   const scheduledEnd = sql<string>`to_char(coalesce(${term.endDate}, (${term.startDate} + case when ${office.chamber} = 'house' then interval '2 years' else interval '6 years' end)::date), 'YYYY-MM-DD')`;
   const rows = await db
     .select({
@@ -169,8 +172,8 @@ async function loadIncumbents(
     .where(
       and(
         eq(office.level, 'federal'),
-        sql`${term.startDate} <= current_date`,
-        sql`(${term.endDate} is null or ${term.endDate} > current_date)`,
+        sql`${term.startDate} <= ${asOf}`,
+        sql`(${term.endDate} is null or ${term.endDate} > ${asOf})`,
         filter.chamber ? eq(office.chamber, filter.chamber) : undefined,
         filter.state ? eq(office.state, filter.state) : undefined,
         filter.district === undefined
@@ -194,7 +197,13 @@ const filed = (r: { office: string; state: string; district: number | null }): F
  * Seats a member is in for `cycle`: registered there (a candidate row matched to the
  * person) or sitting there with the seat up. Used by profiles to link to their race.
  */
-async function seatsOfPerson(db: Db, slug: string, cycle: number, existing: Set<string>) {
+async function seatsOfPerson(
+  db: Db,
+  slug: string,
+  cycle: number,
+  existing: Set<string>,
+  today: string | undefined,
+) {
   const [who] = await db.select({ id: person.id }).from(person).where(eq(person.slug, slug));
   if (!who) throw notFound(`No person with slug "${slug}"`);
   const [registered, sitting] = await Promise.all([
@@ -212,7 +221,7 @@ async function seatsOfPerson(db: Db, slug: string, cycle: number, existing: Set<
           eq(candidate.personId, who.id),
         ),
       ),
-    loadIncumbents(db, cycle, {}),
+    loadIncumbents(db, cycle, {}, today),
   ]);
   const keys = new Set<string>();
   const states = new Set<string>();
@@ -352,11 +361,13 @@ export const racesList = defineCapability({
   summary: `Seats in an election cycle with FEC registration counts and the sitting member, by state and chamber. Ordered by seat, never by money. ${REGISTRATION_NOTICE}`,
   input: RacesListInput,
   output: RacesListOutput,
-  async handler({ db }, input) {
+  async handler({ db, today }, input) {
     const cycle = await resolveCycle(db, input.cycle);
     const officeFilter = input.chamber ? officeCode(input.chamber) : undefined;
     const existing = await loadExistingSeats(db, cycle);
-    const mine = input.person ? await seatsOfPerson(db, input.person, cycle, existing) : null;
+    const mine = input.person
+      ? await seatsOfPerson(db, input.person, cycle, existing, today)
+      : null;
     const [counts, incumbents, sources] = await Promise.all([
       db
         .select({
@@ -391,7 +402,7 @@ export const racesList = defineCapability({
           ),
         )
         .groupBy(candidate.office, candidate.state, candidate.district),
-      loadIncumbents(db, cycle, { chamber: input.chamber, state: input.state }),
+      loadIncumbents(db, cycle, { chamber: input.chamber, state: input.state }, today),
       sourcesFor(db, cycle),
     ]);
 
@@ -653,7 +664,7 @@ export const racesGet = defineCapability({
   summary: `One seat in an election cycle: every FEC-registered candidate with money as filed and outside support / oppose. Alphabetical unless the caller asks for receipts. ${REGISTRATION_NOTICE}`,
   input: RacesGetInput,
   output: RacesGetOutput,
-  async handler({ db }, input) {
+  async handler({ db, today }, input) {
     const seat = parseSeatKey(input.seat);
     if (!seat) throw notFound(`No seat "${input.seat}"`);
     const cycle = await resolveCycle(db, input.cycle);
@@ -712,7 +723,7 @@ export const racesGet = defineCapability({
             districtMatch,
           ),
         ),
-      loadIncumbents(db, cycle, { chamber: seat.chamber, state: seat.state }),
+      loadIncumbents(db, cycle, { chamber: seat.chamber, state: seat.state }, today),
       sourcesFor(db, cycle),
     ]);
     const seatIncumbents = incumbents.filter(
