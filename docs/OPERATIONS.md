@@ -358,7 +358,7 @@ What exists regardless of host:
 * Curated data (`data/curated/**`) and code are in git: that is their backup.
 * All database content is derived: sources are public and re-fetchable, raw snapshots
   are checksummed in `ingest_run`, and loads are idempotent upserts. Since migration
-  0006 each run also records `snapshot_locator`, the raw-root-relative directory that
+  0009 each run also records `snapshot_locator`, the raw-root-relative directory that
   holds exactly its snapshot (`<source>/<YYYY-MM-DD>/<runId>-<checksum 12>`); the raw
   archive (`scripts/backup/raw.ts`) carries those directories and the conditional-request
   cache, skips in-flight `<source>/.staging/`, and a restore keeps every locator readable

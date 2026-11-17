@@ -1,7 +1,7 @@
 -- Evidence trust (docs/evidence/evidence-trust-20261019-contract.md). Additive only:
 -- * ingest_check: successful upstream checks that found the current publication unchanged;
 --   the publication receipt (ingest_run) is never rewritten by a recheck.
--- * ingest_run.snapshot_locator: the immutable raw-evidence location of a run (null = pre-0006).
+-- * ingest_run.snapshot_locator: the immutable raw-evidence location of a run (null = pre-0009).
 -- * ideology_score.provisional: source-stated provisional flag (null = unknown until reprocessed).
 CREATE TABLE "ingest_check" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "ingest_check_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),

@@ -1,6 +1,6 @@
 # Civic Ledger agent instructions
 
-`AGENTS.md` and `CLAUDE.md` are identical copies. Edit both together.
+`CLAUDE.md` imports this file (`@AGENTS.md`); edit only `AGENTS.md`.
 
 - Read `docs/ARCHITECTURE.md` and `docs/CAPABILITIES.md` before changing code. They are the contract.
 - Read `docs/DESIGN.md` before any visual or UI change in `apps/web`; it is the design system of record.

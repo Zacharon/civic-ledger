@@ -12,6 +12,14 @@ import {
   SEED_STATES,
   type SeedPolicyAreaId,
 } from './catalog';
+import {
+  SEED_CANDIDATES,
+  SEED_RACE_MONEY,
+  SEED_RACE_OUTSIDE,
+  type SeedCandidate,
+  type SeedRaceMoney,
+  type SeedRaceOutside,
+} from './races';
 import { createRandom, type Random } from './random';
 
 /** Natural-key shaped records; the loader resolves them to database ids. */
@@ -51,6 +59,8 @@ export interface SeedFormerMember {
   firstName: string;
   lastName: string;
   bioguide: string;
+  /** FEC candidate id, when the former member is registered for the 2026 races. */
+  fecCandidateId: string | null;
 }
 
 export interface SeedCandidacy {
@@ -183,6 +193,10 @@ export interface SeedData {
   promises: SeedPromise[];
   platforms: SeedPlatform[];
   frameworks: SeedFramework[];
+  /** 2026 races (races.ts): FEC-style candidates, their money reports and outside money. */
+  raceCandidates: readonly SeedCandidate[];
+  raceMoney: readonly SeedRaceMoney[];
+  raceOutside: readonly SeedRaceOutside[];
 }
 
 export const SEED_CONGRESS = 119;
@@ -318,7 +332,13 @@ function buildFormerMembers(): { members: SeedFormerMember[]; terms: SeedTerm[] 
   const terms: SeedTerm[] = [];
   careers.forEach((c, i) => {
     const slug = `${c.first}-${c.last}`.toLowerCase();
-    members.push({ slug, firstName: c.first, lastName: c.last, bioguide: `ZZ9${pad(i + 1, 4)}` });
+    members.push({
+      slug,
+      firstName: c.first,
+      lastName: c.last,
+      bioguide: `ZZ9${pad(i + 1, 4)}`,
+      fecCandidateId: slug === 'cornelius-oakhurst' ? 'H6ZV01003' : null,
+    });
     for (let year = c.from; year < c.to; year += c.length) {
       const last = year + c.length >= c.to;
       terms.push({
@@ -636,6 +656,34 @@ function buildFrameworks(bills: SeedBill[], rollcalls: SeedRollcall[]): SeedFram
   ];
 }
 
+/** The fictional special-election winner sworn in partway through the seed Congress. */
+export const SEED_MID_CONGRESS_START = '2025-06-10';
+
+/**
+ * Makes the last single-term House member start mid-Congress (a fictional special-election
+ * winner): their term opens on `SEED_MID_CONGRESS_START` and no vote before that date is on
+ * file for them. Applied after every random draw so no other seed value moves.
+ */
+function startMidCongress(
+  people: SeedPerson[],
+  terms: SeedTerm[],
+  rollcalls: SeedRollcall[],
+): { slug: string } {
+  const late = people.findLast(
+    (p) => p.chamber === 'house' && p.firstTermStart === p.currentTermStart,
+  );
+  if (!late) throw new Error('Seed has no single-term House member to start mid-Congress');
+  for (const t of terms) {
+    if (t.slug === late.slug && t.endDate === null) t.startDate = SEED_MID_CONGRESS_START;
+  }
+  for (const r of rollcalls) {
+    if (r.voteDate < SEED_MID_CONGRESS_START) {
+      r.positions = r.positions.filter((p) => p.slug !== late.slug);
+    }
+  }
+  return { slug: late.slug };
+}
+
 /** Builds the complete fictional dataset. Pure and deterministic. */
 export function buildSeedData(): SeedData {
   const random = createRandom(SEED);
@@ -646,10 +694,12 @@ export function buildSeedData(): SeedData {
   const bills = buildBills(people, random);
   const rollcalls = buildRollcalls(people, bills, random);
   const former = buildFormerMembers();
+  const terms = [...buildTerms(people), ...former.terms];
+  startMidCongress(people, terms, rollcalls);
   return {
     people,
     formerMembers: former.members,
-    terms: [...buildTerms(people), ...former.terms],
+    terms,
     candidacies: buildCandidacies(people),
     committees,
     totals: buildTotals(people, random),
@@ -660,5 +710,8 @@ export function buildSeedData(): SeedData {
     scores: buildScores(people, random),
     ...buildPromisesAndPlatforms(people),
     frameworks: buildFrameworks(bills, rollcalls),
+    raceCandidates: SEED_CANDIDATES,
+    raceMoney: SEED_RACE_MONEY,
+    raceOutside: SEED_RACE_OUTSIDE,
   };
 }

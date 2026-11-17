@@ -60,6 +60,21 @@ const OPERATION_HEADERS = {
   'Cache-Control': { schema: { type: 'string' } },
 };
 
+/** The media type a binary capability declares in its output schema (`contentType` is a literal). */
+function mediaTypeOf(output: Schema, capability: string): string {
+  const property = output.properties?.contentType;
+  const declared =
+    isSchema(property) && typeof property.const === 'string'
+      ? property.const
+      : isSchema(property) && Array.isArray(property.enum) && property.enum.length === 1
+        ? property.enum[0]
+        : undefined;
+  if (typeof declared !== 'string') {
+    throw new Error(`${capability} is binary but its output schema has no single contentType`);
+  }
+  return declared;
+}
+
 /** OpenAPI 3.1 document generated from the registry's public capabilities. */
 export function buildOpenApiDocument(): Json {
   const paths: Record<string, Json> = {};
@@ -67,16 +82,23 @@ export function buildOpenApiDocument(): Json {
     const input = schemaOf(capability.input, 'input');
     const output = schemaOf(capability.output, 'output');
     const method = allowedMethodFor(capability.name);
+    const binary = capability.transport === 'binary';
+    const mediaType = binary ? mediaTypeOf(output, capability.name) : 'application/json';
     const base = {
       operationId: capability.name.replaceAll('.', '_'),
       summary: capability.summary,
       tags: [capability.name.split('.')[0]],
       'x-capability': `${capability.name}@${capability.version}`,
+      ...(binary ? { 'x-transport': 'binary' } : {}),
       responses: {
         '200': {
-          description: 'Capability output',
+          description: binary
+            ? `The file itself (${mediaType}). ETag is its sha256; the response is immutable-cacheable only when v matches.`
+            : 'Capability output',
           headers: OPERATION_HEADERS,
-          content: { 'application/json': { schema: output } },
+          content: binary
+            ? { [mediaType]: { schema: { type: 'string', format: 'binary' } } }
+            : { 'application/json': { schema: output } },
         },
         ...(method === 'GET'
           ? { '304': { description: 'Not modified (If-None-Match matched)' } }

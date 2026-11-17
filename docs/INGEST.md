@@ -16,10 +16,60 @@ Each source joins rows loaded by the ones before it, so a full refresh runs in t
 | 3 | `fec-bulk` | `--cycle 2026` | cn, cm, ccl, weball, pas2 zips + IE CSV + candidate summary CSV | 20 MB | 80 s |
 | 4 | `govinfo-billstatus` | `--congress 119` | 8 BILLSTATUS type zips | 54 MB | 89 s |
 | 5 | `curated` | none (all) | `data/curated/**` YAML | <1 MB | 33 s |
+| 6 | `census-boundaries` | none (all) | Census `cb_2025_us_cd119_500k.zip` + `cb_2025_us_state_500k.zip` (shapefiles) | 10 MB | 13 s with the files on disk; 66 s with the 10 MB of downloads, both 2026-10-20 (the 66 s on a loaded machine) |
+| 7 | `member-photos` | none (all) | GitHub tree listing + `225x275` and `450x550` JPEG per member in scope (1,078 files) | 106 MB stored (117 MB downloaded) | first load ~12 min, rerun ~4 min (2026-10-20, PGlite, machine shared with other builds; see below) |
 
-Full first load: 6 min 10 s. An unchanged rerun (`pnpm ingest all`): 10 s, all files 304,
-every source deduplicated. Defaults: `--congress` = current congress, `--cycle` = current
+Full first load of sources 1-5: 6 min 10 s (2026-10-16, quiet machine); the sixth adds 13-66 s, so
+about 6 min 25 s to 7 min 20 s. The first load of all six on 2026-10-20 took 19 minutes, but two other
+agents' ingests and test suites were running on the same machine, so that is a loaded-machine
+figure, not a baseline. An unchanged rerun (`pnpm ingest all`): about 10 s for the first five
+(all files 304, every source deduplicated) plus about 20 s for `census-boundaries` measured on the
+loaded machine (two conditional GETs, then hashing 10 MB; it does not reparse). `member-photos` adds about 12 minutes on a
+first load and about 4 minutes on a rerun (see below). Defaults: `--congress` = current congress, `--cycle` = current
 two-year cycle.
+
+### member-photos (official portraits)
+
+Self-hosted portraits for member records (DECISIONS A81-A85; source notes in
+[DATA_SOURCES.md](DATA_SOURCES.md) 6b). It runs last, depends on `congress-legislators` (its run id is in
+the snapshot checksum), and needs the network only for one GitHub API call (the repository tree, 60
+unauthenticated calls per hour per address) plus the image files.
+
+* **Selection:** people with a Bioguide id and a term ending after 2025-01-03 (555 on 2026-10-20). Only
+  people with at least the 225x275 file in the listing are fetched (the 450x550 file is optional); a
+  missing portrait is normal (16 of 555: the 15 newest members and one former member).
+* **Downloads:** 6 in parallel, each file capped at 2 MiB, the whole selection capped at
+  `INGEST_MAX_PORTRAIT_TOTAL_BYTES` (default 400 MiB, checked against the listing before anything is
+  fetched), conditional GET with `ETag` from `data/raw/member-photos/http-cache.json`, raw files and
+  `manifest.json` (sha256 per file, source URL, tree id) under `data/raw/member-photos/<date>/`. Every
+  file, and every cached copy offered for a 304, is checked against the git blob SHA-1 in the listing; the
+  upstream tree id is in the receipt's `note`. `GITHUB_TOKEN`, when set, lifts the API rate limit (listing
+  request only, never logged).
+* **Validation (per person):** complete JPEG (grayscale, colour or CMYK), inside the variant's pixel
+  box and at least 20% of its area. A bad file rejects the person: counted (`rejected_*`,
+  `files_rejected`), and a good pair from an earlier run is kept (`rejected_kept_previous`).
+* **Metadata stripping (no re-encoding):** EXIF/XMP, Photoshop/IPTC, comments, JFXX and other APPn
+  segments are dropped, the JFIF thumbnail zeroed; JFIF, ICC and Adobe segments and all image data are
+  copied byte for byte, and the result is validated again. The stored sha256 (ETag, cache key) is of the
+  stripped bytes; the downloaded file's sha256 and size are kept in `origin_sha256` / `origin_byte_length`.
+  Counters: `origin_bytes`, `portrait_bytes`, `metadata_bytes_removed`, `files_with_exif`,
+  `files_with_gps`, `files_with_thumbnail`.
+* **Load:** upsert on `(person_id, variant)` with provenance, in batches of 10 people; portraits no longer
+  asserted are deleted (`stale_portraits_deleted`) under the shrink guard (dataset `person_portrait`).
+* **Offline reload:** `pnpm ingest member-photos --snapshot data/raw/member-photos/<date>` reads that
+  directory's files instead of the network.
+* **Timings** (2026-10-20, PGlite, while three other agents were building and ingesting on the same PC, so
+  read them as upper bounds): first load 11 min 59 s (about 10 min of downloads, 2 min to validate and store
+  117 MB); rerun after an adapter version bump, every file answered 304: 4 min 6 s. An unchanged rerun with the
+  same adapter version stops after the 304s with `"deduplicated": true`.
+* **Receipt counters:** `portraits` (rows, two per person), `people_with_portrait`, `people_in_scope`,
+  `people_without_portrait`, `people_without_450`, `portrait_bytes`, `files_rejected` and
+  `rejected_{bad_name,missing_1x,too_large,not_jpeg,wrong_size,unreadable}`,
+  `bioguide_not_in_legislators`, `rejected_kept_previous`, `stale_portraits_deleted` and the metadata counters
+  above. Run 2026-10-20 (`member-photos@4`): 1,078 portraits, 539 people, 555 in scope, 16 without, 0 rejected,
+  stored 105,855,819 bytes from 117,303,947 downloaded (11,448,128 removed; 508 files with EXIF/XMP, 386 with
+  a thumbnail, 0 with GPS), 1,078 files verified against their git blob SHA-1, 5 min 43 s with every file a 304
+  (machine shared with other builds).
 
 ## Commands
 
@@ -61,7 +111,7 @@ with `runId`, `source` and `scope` on every line (`LOG_LEVEL=debug` for more). E
    repeat also records an `ingest_check` (`outcome: unchanged`, the publication run, the
    attempt's start and check time), returned as the receipt's `check`, and discards the
    duplicate staged files (the publication's own evidence is already retained). If the
-   publication has no retained evidence (it predates migration 0006), the copy is kept as
+   publication has no retained evidence (it predates migration 0009), the copy is kept as
    `data/raw/<source>/<YYYY-MM-DD>/check-<checkId>-<checksum 12>/` instead. A `--snapshot`
    repeat records no check (it is not an upstream check). If the key succeeded earlier but
    a later run superseded it, the run is refused with `snapshot_superseded` (see "How to
@@ -90,6 +140,8 @@ with `runId`, `source` and `scope` on every line (`LOG_LEVEL=debug` for more). E
 | `pnpm ingest govinfo-billstatus` | every 6 h while Congress is in session | BILLSTATUS updates every 4 h for the current congress. |
 | `pnpm ingest curated` | on every merge to `main` touching `data/curated/**` | Owner merge is the approval (D3). |
 
+`census-boundaries` depends on no other source (it writes `district_map`, keyed by state code and district number), so it can run alone and is last only so that a Census outage never blocks the money, vote and identity data. It downloads two shapefile zips, projects each state with its own projection, simplifies and stores SVG path data (about 4-5 s of CPU for the whole country). Each zip must hold exactly one `.shp` and one `.dbf` (and at most one `.shp.iso.xml`) at its root, named for the file, with the same record count, and no entry may inflate past 64 MiB (the generic 2 GiB cap also applies); anything else fails the run. The loader refuses any generated path that is not plain drawing commands. Its vintage (`GENZ2025`, 119th Congress) is pinned in `adapters/census-boundaries/parse.ts`; to move to a new vintage change `CENSUS_VINTAGE_YEAR` / `CENSUS_CONGRESS`, check the new metadata abstract still states when the states provided boundaries (the run fails otherwise, so the shown as-of date is never guessed), and bump the adapter `version`. Counters: `shapes` (rows written), `states`, `districts` (numbered), `whole_state_districts` (`00`/`98` records with no shape of their own), `vertices_in` / `vertices_out`, `rings_dropped`, `stale_shapes_deleted`. The shrink guard compares `shapes` with the last run (about 440).
+
 Run `curated` after any upstream reload: its snapshot includes upstream run ids, so it
 re-codes new committees and re-resolves framework targets even when the YAML is unchanged.
 
@@ -101,12 +153,19 @@ re-codes new committees and re-resolves framework targets even when the YAML is 
 | receipt `status: cancelled` | Ctrl-C or the run deadline (`--deadline-minutes`, `INGEST_RUN_DEADLINE_MS`) stopped the run before its commit, at the next record or phase boundary; inside the FEC loader, before its next statement (stage, dedupe, page and each sweep statement; DECISIONS A52). A statement already running finishes first; other loaders finish the batch in hand. Nothing was committed. | Rerun when ready (a longer deadline if it timed out). |
 | `failed`, `error: snapshot_superseded: …` | You replayed a snapshot an older run loaded, after a later run loaded other data. Replay is not a restore. | Rerun with `--force-replay` if you really want that snapshot back; the receipt records `replayOf`. |
 | `failed`, `error: … download cap` / `… decompression cap` | A downloaded file, a cached copy that would be reused, or a zip entry is larger than `INGEST_MAX_DOWNLOAD_BYTES` / `INGEST_MAX_DECOMPRESSED_BYTES`. | Check the upstream file; raise the cap only if the size is genuine. |
+| `failed`, `error: … GitHub API … HTTP 403` (member-photos) | The unauthenticated API rate limit (60 per hour per address) or a block. | Wait an hour and rerun; nothing was loaded. |
+| `failed`, `error: … repository listing is truncated` (member-photos) | The tree answer exceeded GitHub's limit, so the list would be partial. | Do not load; switch the plan to per-folder trees. |
+| `failed`, `error: … INGEST_MAX_PORTRAIT_TOTAL_BYTES cap` | The selected photos total more than the cap (the listing grew or the scope widened). | Check the selection; raise the cap only if the size is genuine. |
+| counter `files_rejected` > 0 (member-photos) | A pair failed validation; the log line `portrait rejected` names the file and why. | Inspect the file upstream; the previous good pair, if any, was kept. |
 | `failed`, `error: … manifest schema_version N is not supported` | `--snapshot` points at a snapshot written by a newer build. | Use a build that reads that version. |
 | receipt `status: failed`, `error: GET … HTTP 404` | File moved or not published yet (new cycle/congress). | Check the URL in DATA_SOURCES.md; nothing was loaded. |
 | `failed` after retries on 5xx / timeout | Source down or slow. | Rerun later; nothing was loaded. |
 | `failed`, `error: shrink guard: …` | The upstream file looks truncated or empty (see below). Nothing was changed. | Check the upstream file (size, row count). If the source really shrank, rerun with `--allow-shrink`. |
 | `failed`, `error: voteview snapshot incomplete: …` or `… line N: congress X is outside the run scope` | The Voteview files are inconsistent or partial (see "Voteview completeness and reconciliation"). Nothing was changed. | Rerun later (a fresh download); if it persists, inspect the named file and line. Rerun congress-legislators first when the error says members match no person. |
 | `failed` with a parse error (`line N`, `Unexpected BILLSTATUS shape`, `Unknown Voteview cast_code`) | Source format changed. | Fix the parser with a fixture cut from the new file, bump the adapter `version`, rerun. |
+| `failed`, `error: … the metadata no longer states when the states provided district boundaries` | Census reworded the metadata abstract, so the as-of date cannot be read (it is shown to readers and must not be guessed). | Read the new `.shp.iso.xml` abstract, update `asOfFromMetadata` and its test, bump the adapter version. |
+| `failed`, `error: Census boundary files look truncated` / `… is for Congress N, expected 119` | A cut-off download, or the URL now serves another Congress. | Check the two zips (441 district and 56 state records expected); nothing was loaded. |
+| `failed`, `error: … unexpected entry` / `duplicate entry` / `has no <name>.shp and <name>.dbf` / `the .shp has N records but the .dbf has M` / `feature N (GEOID) has no geometry` / `has STATEFP xx, which is not in …` / `duplicate district …` | The archive layout or contents differ from the Census files the adapter was written for. | Open the zip; nothing was loaded. Fix the adapter only after reading the new layout. |
 | `Curated data is invalid: file:line …` | A merged YAML file fails the schema. | Fix the file; nothing from the curated run was loaded. |
 | Voteview TLS error | Their certificate chain; never disable verification. | Retry later; report upstream if it persists. |
 
@@ -186,7 +245,7 @@ default; `--allow-shrink` for a genuine large correction).
 
 The source's provisional flag (`conditional = 1`) is stored on every loaded score
 (`ideology_score.provisional`: true provisional, false final, null = loaded before
-migration 0006 and not reprocessed since) and returned by `scores.list@1`; a later final
+migration 0009 and not reprocessed since) and returned by `scores.list@1`; a later final
 estimate overwrites it. **History:** facts are current state. A withdrawn assertion is
 traced through the earlier run: its receipt (`ingest_run` counts, `snapshot_locator`) and
 its raw snapshot files still hold the old vote, score or mapping; the reconciling run's
@@ -218,7 +277,7 @@ receipt counts what was withdrawn.
   a directory named by a `succeeded` run is that receipt's evidence. Leftovers under
   `<source>/.staging/` belong to a process that died mid-download and may be deleted while
   no ingest is running (they are never archived). Directories written before migration
-  0006 (`<source>/<YYYY-MM-DD>/` with files directly inside) still load with `--snapshot`;
+  0009 (`<source>/<YYYY-MM-DD>/` with files directly inside) still load with `--snapshot`;
   their runs have `snapshot_locator` null, and a later same-day run may have overwritten
   them.
 
@@ -238,6 +297,7 @@ sharply between runs.
 | `fec-bulk.ie_implausible_amount_dropped` | 15 | New bogus filings; check none is a real buy. |
 | `fec-bulk.ie_unattributed_dropped` | ~2,500 | IEs filed without a candidate id (not attributable). |
 | `fec-bulk.contributions_unresolved_recipient` | ~24 | Recipient committee linked to several candidates. |
+| `fec-bulk.candidate_rows`, `candidate_rows_matched_to_person` | 4,379, 525 | Candidate master moved or changed shape (A86). `candidates_other_election_year_skipped` (~2,987) and `candidates_other_office_skipped` (~1,446, presidential) are expected; `candidates_without_state_skipped` should be 0. The adapter version is part of the idempotency key: after a version bump the same snapshot loads again. A sweep (`stale_candidates_deleted`) above ~10% trips the shrink guard (`candidate` is a declared dataset). |
 | `fec-bulk.summaries`, `summaries_matched_to_person` | 4,482, 448 | The candidate summary file moved or changed shape (DECISIONS A31). |
 | `fec-bulk.summary_unitemized_out_of_range` | 2 | Filer errors (e.g. negative unitemized); those members' small-donor share reads "No data". |
 | `fec-bulk.summary_period_differs_from_totals` | ~300 | Normal: the summary file trails weball by up to a quarter; each share states its own date. |

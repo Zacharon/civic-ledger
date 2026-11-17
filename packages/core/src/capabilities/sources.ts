@@ -46,7 +46,7 @@ const RunSchema = z.object({
 });
 
 /**
- * Outcome of the latest attempt (evidence trust, migration 0006): `published` = a run that
+ * Outcome of the latest attempt (evidence trust, migration 0009): `published` = a run that
  * committed a publication, `unchanged` = a successful check that found the current
  * publication unchanged (an `ingest_check`), `failed` = a failed or cancelled run,
  * `running` = a run in progress, null = never attempted.

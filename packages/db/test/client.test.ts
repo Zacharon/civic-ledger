@@ -1,6 +1,14 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { BATCH_POOL_DEFAULTS, dbConfigFromEnv, INTERACTIVE_POOL_DEFAULTS } from '../src/client';
+import {
+  BATCH_POOL_DEFAULTS,
+  createDb,
+  dbConfigFromEnv,
+  INTERACTIVE_POOL_DEFAULTS,
+} from '../src/client';
 
 const URL = 'postgres://owner:pw@db.example/civic';
 const READ_URL = 'postgres://civic_web:pw@db.example/civic';
@@ -84,5 +92,44 @@ describe('dbConfigFromEnv', () => {
     expect(dbConfigFromEnv({ DATABASE_URL_READONLY: READ_URL }, { readOnly: true }).kind).toBe(
       'pg',
     );
+  });
+});
+
+describe('createDb (PGlite)', () => {
+  it('evaluates dates in UTC, like hosted Postgres, whatever the host zone', async () => {
+    const handle = createDb({ kind: 'pglite' });
+    const before = new Date().toISOString().slice(0, 10);
+    try {
+      const result = await handle.db.execute(
+        sql`select current_setting('TimeZone') as tz, current_date::text as today`,
+      );
+      const after = new Date().toISOString().slice(0, 10);
+      const [row] = (result as unknown as { rows: { tz: string; today: string }[] }).rows;
+      expect(row?.tz).toBe('UTC');
+      // Either side of a UTC midnight that falls during the query.
+      expect([before, after]).toContain(row?.today);
+    } finally {
+      await handle.close();
+    }
+  });
+});
+
+describe('createDb (PGlite) on a broken data directory', () => {
+  it('reports the failure on the first query and leaves no unhandled rejection', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'civic-broken-pglite-'));
+    writeFileSync(join(dir, 'PG_VERSION'), 'not a version\n');
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      const handle = createDb({ kind: 'pglite', dataDir: dir });
+      await expect(handle.db.execute(sql`select 1`)).rejects.toBeDefined();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(unhandled).toEqual([]);
+      await handle.close().catch(() => {});
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

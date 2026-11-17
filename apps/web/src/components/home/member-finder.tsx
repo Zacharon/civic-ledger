@@ -1,63 +1,5 @@
+import { STATE_NAMES } from '@/lib/states';
 import { read } from '@/server/capabilities';
-
-const STATE_NAMES: Record<string, string> = {
-  AL: 'Alabama',
-  AK: 'Alaska',
-  AZ: 'Arizona',
-  AR: 'Arkansas',
-  CA: 'California',
-  CO: 'Colorado',
-  CT: 'Connecticut',
-  DE: 'Delaware',
-  DC: 'District of Columbia',
-  FL: 'Florida',
-  GA: 'Georgia',
-  HI: 'Hawaii',
-  ID: 'Idaho',
-  IL: 'Illinois',
-  IN: 'Indiana',
-  IA: 'Iowa',
-  KS: 'Kansas',
-  KY: 'Kentucky',
-  LA: 'Louisiana',
-  ME: 'Maine',
-  MD: 'Maryland',
-  MA: 'Massachusetts',
-  MI: 'Michigan',
-  MN: 'Minnesota',
-  MS: 'Mississippi',
-  MO: 'Missouri',
-  MT: 'Montana',
-  NE: 'Nebraska',
-  NV: 'Nevada',
-  NH: 'New Hampshire',
-  NJ: 'New Jersey',
-  NM: 'New Mexico',
-  NY: 'New York',
-  NC: 'North Carolina',
-  ND: 'North Dakota',
-  OH: 'Ohio',
-  OK: 'Oklahoma',
-  OR: 'Oregon',
-  PA: 'Pennsylvania',
-  RI: 'Rhode Island',
-  SC: 'South Carolina',
-  SD: 'South Dakota',
-  TN: 'Tennessee',
-  TX: 'Texas',
-  UT: 'Utah',
-  VT: 'Vermont',
-  VA: 'Virginia',
-  WA: 'Washington',
-  WV: 'West Virginia',
-  WI: 'Wisconsin',
-  WY: 'Wyoming',
-  AS: 'American Samoa',
-  GU: 'Guam',
-  MP: 'Northern Mariana Islands',
-  PR: 'Puerto Rico',
-  VI: 'U.S. Virgin Islands',
-};
 
 /** An ordinary GET form: the same state/district filter available to API and MCP readers. */
 export async function MemberFinder() {
@@ -66,13 +8,10 @@ export async function MemberFinder() {
     (STATE_NAMES[a.value] ?? a.value).localeCompare(STATE_NAMES[b.value] ?? b.value),
   );
   return (
-    <section
-      aria-labelledby="member-finder-title"
-      className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6"
-    >
-      <div className="grid gap-6 border-t border-ink pt-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-12">
+    <section aria-labelledby="member-finder-title" className="page-frame py-12">
+      <div className="grid gap-6 rule-strong pt-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-12">
         <div>
-          <h2 id="member-finder-title" className="font-serif text-2xl font-medium">
+          <h2 id="member-finder-title" className="section-title">
             Find your members
           </h2>
           <p id="member-finder-help" className="mt-2 max-w-xl text-ink-2">

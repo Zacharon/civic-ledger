@@ -90,6 +90,10 @@ async function formerSample(r: SmokeRecorder, size: number): Promise<string[]> {
 
 async function profileReads(r: SmokeRecorder, slug: string) {
   const people = await r.call('people.get', { slug }, slug);
+  // Every file the profile states must be served by people.portrait (both sizes).
+  for (const variant of people?.portrait?.variants ?? []) {
+    await r.call('people.portrait', { slug, size: variant.size }, `${slug} ${variant.size}px`);
+  }
   const money = await r.call('money.summary', { slug }, slug);
   for (const cycle of money?.availableCycles.slice(1) ?? []) {
     await r.call('money.summary', { slug, cycle }, `${slug} cycle ${cycle}`);

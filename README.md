@@ -1,5 +1,13 @@
 # Civic Ledger
 
+<!-- public-floorplan:start -->
+## Explore the architecture
+
+[**Open the interactive Floorplan**](https://zacharon.github.io/Zacharon/floorplans/civic-ledger.html) · [Standalone HTML file](docs/floorplan.html)
+
+A map of this repository’s public source at `820d3bb4`. Public-source map; retained file set from the reviewed local map, refreshed against the public revision.
+<!-- public-floorplan:end -->
+
 Working codename for a non-partisan site that combines public campaign money, votes,
 independent scores, promises and platforms for U.S. officeholders and candidates in
 one sortable table. Every number links to its primary source.

@@ -20,6 +20,8 @@ const SUPPORTED_MANIFEST_VERSIONS: readonly number[] = [MANIFEST_SCHEMA_VERSION]
 export interface SnapshotManifest {
   schema_version: number;
   source: string;
+  /** The plan's note (e.g. the upstream tree id), when the snapshot was written with one. */
+  note?: string;
 }
 
 /** Reads `manifest.json` from a snapshot directory, or null when there is none. */
@@ -31,14 +33,22 @@ export async function readManifest(directory: string): Promise<SnapshotManifest 
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
     throw error;
   }
-  const raw = JSON.parse(text) as { schema_version?: unknown; source?: unknown };
+  const raw = JSON.parse(text) as {
+    schema_version?: unknown;
+    source?: unknown;
+    note?: unknown;
+  };
   const version = raw.schema_version ?? MANIFEST_SCHEMA_VERSION;
   if (typeof version !== 'number' || !SUPPORTED_MANIFEST_VERSIONS.includes(version)) {
     throw new Error(
       `${join(directory, MANIFEST_FILE)}: manifest schema_version ${String(version)} is not supported (this build reads ${SUPPORTED_MANIFEST_VERSIONS.join(', ')})`,
     );
   }
-  return { schema_version: version, source: String(raw.source ?? '') };
+  return {
+    schema_version: version,
+    source: String(raw.source ?? ''),
+    ...(typeof raw.note === 'string' ? { note: raw.note } : {}),
+  };
 }
 
 /**
@@ -92,7 +102,7 @@ export async function stageSnapshot(
   const cacheBodyDir = join(sourceRoot, HTTP_CACHE_DIR);
   await mkdir(directory, { recursive: true });
   try {
-    const limit = pLimit(DOWNLOAD_CONCURRENCY);
+    const limit = pLimit(plan.concurrency ?? DOWNLOAD_CONCURRENCY);
     const files = await Promise.all(
       plan.requests.map((request) =>
         limit(async (): Promise<SnapshotFile> => {
@@ -114,7 +124,11 @@ export async function stageSnapshot(
               headers: request.headers,
               signal: ctx.signal,
               logger: ctx.logger,
-              maxBytes: ctx.maxDownloadBytes,
+              gitBlob: request.gitBlob,
+              maxBytes:
+                request.maxBytes === undefined
+                  ? ctx.maxDownloadBytes
+                  : Math.min(request.maxBytes, ctx.maxDownloadBytes ?? request.maxBytes),
             },
             http,
           );
@@ -129,6 +143,7 @@ export async function stageSnapshot(
       upstream,
       checksum: snapshotChecksum(files, upstream),
       retrievedAt,
+      ...(plan.note ? { note: plan.note } : {}),
     };
     await writeManifest(snapshot, plan, runId);
     return snapshot;
@@ -244,6 +259,7 @@ export async function snapshotFromDirectory(
     upstream,
     checksum: snapshotChecksum(files, upstream),
     retrievedAt: newest > 0 ? new Date(newest) : new Date(),
+    ...(plan.note || manifest?.note ? { note: plan.note ?? manifest?.note } : {}),
   };
 }
 
@@ -260,6 +276,7 @@ async function writeManifest(snapshot: RawSnapshot, plan: FetchPlan, runId: numb
     scope: formatIngestScope(plan.scope),
     checksum: snapshot.checksum,
     retrievedAt: snapshot.retrievedAt.toISOString(),
+    ...(snapshot.note ? { note: snapshot.note } : {}),
     upstream: snapshot.upstream,
     files: snapshot.files.map((f) => ({ ...f, from: urls.get(f.fileName) ?? null })),
   };

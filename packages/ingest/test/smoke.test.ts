@@ -28,6 +28,7 @@ describe('smoke:real runner', () => {
       'money.summary',
       'people.compare',
       'people.get',
+      'people.portrait',
       'people.search',
       'policy.areas',
       'promises.list',
@@ -36,6 +37,8 @@ describe('smoke:real runner', () => {
       'votes.list',
     ]);
     expect(report.byCapability['people.get']?.calls).toBe(43);
+    // Both sizes of every portrait the profiles state: 30 of the 40 seed members have one.
+    expect(report.byCapability['people.portrait']?.calls).toBe(60);
   }, 120_000);
 
   it('records a capability error instead of stopping', async () => {

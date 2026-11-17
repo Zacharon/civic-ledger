@@ -5,3 +5,5 @@ dab15bfa21154231bc2c48018859f01835853b45:apps/web/src/lib/explore-columns.ts:gen
 # a5f2462: this file's first comment and an evidence note quoted those identifiers.
 a5f24624b7bf117220b0d41b7edb3f69b1ac97bf:.gitleaksignore:generic-api-key:2
 a5f24624b7bf117220b0d41b7edb3f69b1ac97bf:docs/evidence/h3-repair-round2-harness.md:generic-api-key:144
+# 0670018: SYNTHETIC_SINK_SECRET_O2 is a made-up string the log-sink test asserts never reaches a client or log.
+0670018bc91a4c4a8508e87c2b982f8a883393f1:apps/web/test/log-sink-failure.test.ts:generic-api-key:13

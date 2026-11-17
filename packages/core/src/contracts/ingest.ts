@@ -13,6 +13,8 @@ export const SOURCE_IDS = [
   'govinfo-billstatus',
   'congress-gov',
   'curated',
+  'census-boundaries',
+  'member-photos',
   'openstates',
 ] as const;
 export const SourceIdSchema = z.enum(SOURCE_IDS);
@@ -84,7 +86,7 @@ export const IngestRunReceiptSchema = z.object({
   /** `forceReplay`: the earlier successful run whose snapshot this run reloaded. */
   replayOf: z.int().nullable(),
   /**
-   * Where the run's raw evidence is retained (migration 0006): relative to the raw root
+   * Where the run's raw evidence is retained (migration 0009): relative to the raw root
    * for a fetched snapshot (`<source>/<YYYY-MM-DD>/<runId>-<checksum first 12>`), or the
    * absolute `--snapshot` directory. Null for runs that predate 0006 or failed before
    * their snapshot was complete.

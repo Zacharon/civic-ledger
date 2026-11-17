@@ -10,6 +10,7 @@ import { BodyDeadlineError, bodyReadTimeoutMs, readJsonBody } from './body';
 import { cacheControlFor, etagOf, matchesEtag } from './cache';
 import { baseHeaders, CORS_PREFLIGHT_HEADERS, errorResponse, toCapabilityError } from './http';
 import { type Logger, logSafely } from './logger';
+import { isMediaResult, mediaResponse } from './media';
 import { coerceQuery } from './query';
 import { requestIdFrom } from './request-id';
 
@@ -88,6 +89,12 @@ export function createCapabilityHandler({
     const input = await readInput(request, capability, timeoutMs);
     const result = await dispatchByName(capability.name, input, await context());
 
+    if (capability.transport === 'binary') {
+      // Binary capabilities (people.portrait) are sent as their own media type, never as JSON.
+      if (!isMediaResult(result)) throw new Error(`${capability.name} returned no media bytes`);
+      const key = (input as { v?: unknown } | null)?.v;
+      return mediaResponse(request, result, requestId, typeof key === 'string' ? key : undefined);
+    }
     const body = JSON.stringify(result);
     const headers = baseHeaders(requestId, { 'cache-control': cacheControlFor(capability.name) });
     if (allowed === 'GET') {

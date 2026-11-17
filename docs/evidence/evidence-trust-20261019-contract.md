@@ -26,7 +26,7 @@ Orchestrator: Claude Opus 5.5 (T3 thread). Integration branch
 
 ## Shared contract (orchestrator-owned; committed before workers start)
 
-Migration `0006_evidence_checks_provisional` (additive, expand-only per A63):
+Migration `0006_evidence_checks_provisional` (additive, expand-only per A63; renumbered `0009_evidence_checks_provisional` when merged after main's 0006 to 0008, 2026-11-17):
 
 - `ingest_run.snapshot_locator text null`: raw evidence location. Fetched snapshots: path
   relative to the raw root, `<source>/<YYYY-MM-DD>/<runId>-<checksum first 12>` (Worker A

@@ -58,6 +58,10 @@ member finder leads to the existing state/district/chamber Explore filters.
 Research crawlers, if trialed later, can collect review evidence; they cannot
 approve curated claims or bypass source-adapter validation.
 
+Binary output (a portrait image) follows the same rule: the capability returns bytes, content
+type and sha256 and declares `transport: 'binary'`; each adapter carries them in its own way (HTTP
+file with ETag, MCP image block) and none queries the database. See DECISIONS A83.
+
 ### Repository layout
 
 ```text
@@ -85,6 +89,7 @@ upsert. All fact tables carry the provenance columns
 | Identity spine | `person`, `person_identifier(scheme, value)` | Schemes: `bioguide`, `fec_candidate`, `icpsr`, `opensecrets`, `govtrack`, `openstates`, `wikidata`. Seeded from congress-legislators. |
 | Offices | `office`, `term(person, office, party, start, end)` | Office = level (federal/state) + chamber + state + district. |
 | Campaigns | `candidacy(person, cycle, office, fec_candidate_id, party, outcome)` | Cross-campaign history for the same person. |
+| Races | `candidate(fec_candidate_id, cycle, name_as_filed, party_code, office, state, district, incumbency, status, person_id?)` | Every House/Senate candidate on a cycle's ballot from the FEC candidate master, as filed; `person_id` only for Bioguide matches (A21 amendment, A86). |
 | Money | `committee`, `committee_link(candidate↔committee)`, `candidate_cycle_totals`, `committee_contribution(pas2)`, `independent_expenditure` | FEC bulk: `cn`, `cm`, `ccl`, `weball`, `pas2`, IE CSV. Amounts in integer cents. |
 | Industry coding | `industry`, `committee_industry(committee, industry, method, confidence)` | In-house map from `data/curated/industry_map`; coverage % reported. |
 | Legislation | `bill(congress, type, number)`, `bill_policy_area`, `bill_subject` | GovInfo BILLSTATUS (policy area = Congress.gov's ~32-area taxonomy, the neutral base). |
@@ -142,7 +147,9 @@ interface SourceAdapter {
 3. FEC bulk → candidates, committees, totals, PAC contributions, outside spending.
 4. GovInfo BILLSTATUS → bills, policy areas, subjects; join rollcalls to bills.
 5. Curated YAML → industry map, frameworks, promises, platforms.
-6. Phase 3: OpenStates (state legislators, bills, votes), cleared scorecards.
+6. Census cartographic boundaries → `district_map` (projected, simplified SVG paths for the profile's district locator; independent of the sources above, DECISIONS A75).
+7. `member-photos` (last; reads the people from step 1): self-hosted official portraits, DECISIONS A81.
+7. Phase 3: OpenStates (state legislators, bills, votes), cleared scorecards.
 
 OpenSecrets is a link target and later enrichment, not a dependency (bulk access
 is application-gated). ProPublica's Congress API is shut down and is not used.
@@ -166,8 +173,10 @@ The capability list and the seven-gate evidence plan are in
 |---|---|
 | `/` | Search-first home: one search box, three example questions, data freshness strip. |
 | `/explore` | The multi-axis table: filter by chamber, state, party, policy area; sort by any money, ideology, scorecard, promise column. All state in the URL (shareable). |
+| `/people/[slug]/portrait` | The member's official portrait file (`?size=225|450&v=<cache key>`), forwarded to `people.portrait`. |
 | `/people/[slug]` | Profile: header (office, party, tenure), Money, Votes by policy area, Scores side by side, Promises, Platform vs record, Career across campaigns. |
 | `/compare?ids=` | 2–4 people in aligned columns. |
+| `/races`, `/races/<cycle>/<seat>` | Seats by state with registration and money-report counts; one seat with every FEC-registered candidate, money as filed and outside support / oppose (`races.list`, `races.get`; A86-A92). |
 | `/policy/[area]` | Key votes in an area, how every member voted, money from related industries. |
 | `/frameworks` | Pick or build a framework; see "X of Y" with the exact votes per member. |
 | `/sources`, `/methodology` | Every source, terms, last successful run, coverage %. |

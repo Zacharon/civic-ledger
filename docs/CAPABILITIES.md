@@ -24,13 +24,19 @@ for public reads; it does not need to.
 |---|---|---|---|
 | `people.search@1` | read | Search box, Explore filters | `GET /api/v1/people.search`, MCP `people_search` |
 | `people.get@1` | read | Profile page | `GET /api/v1/people.get`, MCP `people_get` |
+| `people.portrait@1` | read (binary) | Member profile header image (`/people/<slug>/portrait`) | `GET /api/v1/people.portrait`, MCP `people_portrait` (image block) |
 | `people.glance@1` | read | Profile overview and its evidence links | `GET /api/v1/people.glance`, MCP `people_glance` |
+| `districts.shape@1` | read | District locator map in the profile's Source records panel (`DistrictLocator`; reusable by other pages) | `GET /api/v1/districts.shape?slug=mike-collins-c001129` (member) or `?state=GA&district=10` (place), MCP `districts_shape` |
 | `explainers.list@1` | read | Methodology definitions and profile explanations | `GET /api/v1/explainers.list`, MCP `explainers_list` |
 | `people.compare@1` | read | Compare page | `GET /api/v1/people.compare`, MCP `people_compare` |
 | `explore.table@1` | read | Explore table (sort/filter/paginate; scope current by default, or all incl. former members) | `GET /api/v1/explore.table`, MCP `explore_table` |
 | `explore.facets@1` | read | Explore filter options (states, parties, chambers, scope counts, per-field data coverage) | `GET /api/v1/explore.facets`, MCP `explore_facets` |
+| `races.list@1` | read | Races index (`/races`), the race line on profiles | `GET /api/v1/races.list`, MCP `races_list` |
+| `races.get@1` | read | Race page (`/races/<cycle>/<seat>`) | `GET /api/v1/races.get`, MCP `races_get` |
 | `money.summary@1` | read | Profile → Money | `GET /api/v1/money.summary`, MCP `money_summary` |
-| `votes.list@1` | read | Profile → Votes, Policy page | `GET /api/v1/votes.list`, MCP `votes_list` |
+| `votes.list@1` | read | Profile → Votes, Policy page (roll calls with "How each party voted") | `GET /api/v1/votes.list`, MCP `votes_list` |
+| `votes.attendance@1` | read | Profile → Votes → Attendance by month (strip and table) | `GET /api/v1/votes.attendance`, MCP `votes_attendance` |
+| `chamber.composition@1` | read | Home → Who serves now (House and Senate seat chart) | `GET /api/v1/chamber.composition`, MCP `chamber_composition` |
 | `scores.list@1` | read | Profile → Scores | `GET /api/v1/scores.list`, MCP `scores_list` |
 | `promises.list@1` | read | Profile → Promises | `GET /api/v1/promises.list`, MCP `promises_list` |
 | `policy.areas@1` | read | Policy nav | `GET /api/v1/policy.areas`, MCP `policy_areas` |
@@ -45,6 +51,62 @@ for public reads; it does not need to.
 | `ops.raw.archive@1` | write (operator) | `pnpm exec tsx scripts/backup/raw.ts backup` | Same CLI, explicit persistent root |
 | `ops.raw.restore@1` | write (operator; preview default) | Raw archive CLI `restore` into a new directory | Same CLI, never overwrite an existing target |
 | `ops.monitor@1` | local draft | `pnpm exec tsx scripts/monitor/cli.ts` | Same CLI; incident JSON/digest, no issue send |
+
+### Vote visuals (2026-10-20)
+
+All three visuals read existing data only (no schema change); their numbers come from
+these capabilities, so the page, `/api/v1` and MCP return the same values.
+
+- **`votes.list@1` `byParty`** (extended, not a new capability). One row per party actually
+  present in the roll call, each with yea / nay / present / not voting. Party = the member's
+  party on their term at the vote date: the term in force on that date (inclusive end date,
+  latest start wins on overlap); a position with no term in force takes the member's latest
+  earlier term (a recorded last day can precede the member's last recorded vote); only a
+  member with no earlier term is `Unknown`, listed last and labelled "Party not on file at the
+  vote date". Rows are alphabetical by party name (no ideological or size order) and always
+  sum to `tally` (tested, including overlapping terms). There is no `rollcalls.get` and no
+  roll-call page here; another stream owns those.
+- **`votes.attendance@1`** `{slug, congress?}` -> `months[]` of `{month, status, rollcallsHeld,
+  eligible, missed, present, voted}`, `totals`, `chambers`, `throughMonth`, `definition`,
+  `provenance`. `congress` defaults to the member's latest Congress with votes, the same one
+  behind `person_card`. **Eligible** = the member's recorded positions in the Congress (yea,
+  nay, present, not voting); **missed** = `not_voting`; **present** is separate and not missed.
+  Totals equal `votesEligible` and `missedVoteRate` on `people.get` / `explore.table` (tested
+  for every seeded member). Month status: `served` (any position on file), `no_votes_held`
+  (serving, none held in the member's chamber), `not_yet_serving`, `no_longer_serving`,
+  `not_serving` (gap), `no_record` (votes held while serving, none on file). Months run from
+  January of the Congress's first year to the last month with a roll call on file.
+- **`chamber.composition@1`** `{}` -> per chamber `seats` (435 / 100, fixed by law),
+  `members` (voting, currently serving), `voting[]` and `nonVoting` (`total`, `parties[]`,
+  `jurisdictions[]`), `vacancies` (seats minus voting members; `null` when fewer than 90% of
+  the seats have a member on file, because that is a partial load and not vacancies), `asOf`,
+  `provenance` (most recently loaded current term) and `definition`. Current means the
+  member's latest term covers `asOf` (the same rule as the Explore `current` scope); the
+  party is the party on that term. Delegates (AS, DC, GU, MP, VI) and Puerto Rico's Resident
+  Commissioner are counted in `nonVoting`, never in the 435. Party order everywhere:
+  Democrat, Independent, Republican (alphabetical among themselves), then every other party
+  alphabetically by name; not by size and not by ideology.
+
+All three are anonymous public reads with strict schemas, no writes, no approval step and no
+idempotency key (gates 1-4 apply; gates 5-7 do not, there is no user data or external effect).
+
+### Races (2026-10-20)
+
+`races.list` and `races.get` (DECISIONS A21 amendment, A86-A95) read the FEC candidate
+master. `races.list` input: `cycle` (default: latest cycle with registrations), `chamber`,
+`state`, `person` (seats that member is registered in or sitting in with the seat up);
+output: `notice` (registration is not a ballot), per seat `seat {key, chamber, state, district}`, `seatUp`, `incumbents` (slug, name,
+party, `termEnd`), `registrations`, `activeCandidates` (FEC status C),
+`candidatesWithMoneyReports`, `unplaced` (registrations that belong to no seat, as filed: a district that does not exist, none filed where there are several, a Senate row where nobody sits), plus `totals` (including those without a report and `unplacedRegistrations`) and
+`sources` provenance (candidates, money reports, outside spending, terms). Seats are placed by DECISIONS A93; single-seat states put every House row at large. `races.get`
+input: `seat` (`ga-senate`, `ga-10`, `ak-al`), `cycle`, `sort` (`name` default, or
+`receipts`, opt-in); output: counts, and for every registered candidate `displayName`,
+`nameAsFiled`, `person` (slug when matched), party code and name, FEC incumbency and
+status codes with labels, `registration` (cn provenance), `money` (receipts, cash on hand as filed, coverage end, provenance;
+`null` = no report), `outsideSpending` (support, oppose, count), the fec.gov URL and the duplicate links `alsoRegisteredFor`, `sharedCommitteeWith`, `sameNameAsFiledAs`; `displayName` and `nameAsFiled` are null when the FEC row has no name. `cycle` must be an even year.
+Seats are never ranked by money; candidates are alphabetical unless the caller asks. Both
+are anonymous public reads with strict schemas and no writes. The web race pages use the
+same two capabilities with the same inputs.
 
 `frameworks.evaluate` is stateless: the framework spec travels in the request
 (or URL for the UI), so no stored user data exists.
@@ -62,6 +124,37 @@ from donations or votes. Missing coverage remains explicit. `explainers.list`
 returns the same definitions rendered on Methodology; these are editorial
 definitions, not stored claims about a person. Both are anonymous public reads,
 with strict schemas, no writes, no approval step and no idempotency key required.
+
+`districts.shape` has two modes. **Member mode**, `{slug}`, is what the profile uses and
+what an agent should use for "where is this member's seat": core checks the rules, so UI and
+agents cannot disagree. A map is returned only for a **current** member; a Senator gets the
+whole state; a House member gets their numbered district only when their current term began in
+the Congress the boundaries are for (the 119th for the Census 2025 files: a term beginning
+2027-01-03 or later is the 120th, so its district number is not drawn on 119th-Congress lines);
+a House seat with no district number on record gets no map; at-large seats and delegates
+(`district` 0) get the whole state. Everything else is `not_found`, with the reason in the
+message. **Place mode**, `{state, district?}`, returns the map as of the boundary vintage with
+no member checks. Both return the state outline and, for a numbered district, that district as
+SVG path data in one shared `viewBox` (`width`, `height`), `scope` (`district` or `state`), the
+accessible `description` the UI uses as the map's name, `congress`, the boundary `vintage`,
+`publisher`, `asOf` date, a `caveat` saying what the vintage does not show, `provenance` (the
+drawn shape) and `stateProvenance` (the outline). Path data is validated (`M`, `L`, `l`, `Z`, digits,
+dots, minus, spaces; at most 60,000 characters) when written and again in the output schema.
+Omit `district` (a Senate seat) or pass `0` (an at-large seat or a delegate) for the whole
+state; `districtPath` is then `null`; `0` is `not_found` for a state that has numbered districts. A state or district without a
+shape, such as American Samoa or the Northern Mariana Islands, or any state before the
+`census-boundaries` source has run, is `not_found` and the profile draws no map. The shapes are
+the 119th Congress lines as the states provided them by 2024-05-31; they are not later
+redistricting (DECISIONS A75, DATA_SOURCES section 8). Anonymous public read: strict input, no
+write, no approval step, no idempotency key. Human and agent callers get the same payload; the
+UI draws it with `DistrictLocator`, an agent reads the same paths, description and dates.
+
+`people.get` also states the member's official portrait facts (`portrait`, or `null`), and
+`people.portrait` returns the image itself. Both are anonymous public reads over files our own
+ingest stored (`member-photos`, DECISIONS A81): no write, no approval, no idempotency key. The
+image is a binary capability: HTTP sends it as `image/jpeg` with an ETag equal to its sha256,
+MCP as an image block; the web route `/people/<slug>/portrait` forwards to the same
+handler. Portraits appear on member records only, never on race pages (DESIGN.md "Portraits").
 
 Operator backup, restore, retention and monitor commands are documented in
 [DEPLOY_RENDER.md](DEPLOY_RENDER.md). They are trusted-machine CLI capabilities;

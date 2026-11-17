@@ -233,9 +233,9 @@ export function FrameworkBuilder({ candidates }: { candidates: CandidateRollcall
                     {(['skip', 'yea', 'nay'] as const).map((choice) => (
                       <label
                         key={choice}
-                        className={`inline-flex cursor-pointer items-center rounded-[3px] px-3 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
+                        className={`inline-flex cursor-pointer items-center rounded-[1px] px-3 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
                           current === choice
-                            ? 'bg-accent font-semibold text-accent-ink'
+                            ? 'bg-ink font-semibold text-paper'
                             : 'text-ink-2 hover:text-ink'
                         }`}
                       >

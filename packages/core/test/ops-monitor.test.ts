@@ -53,6 +53,26 @@ describe('operator incident drafts', () => {
     expect(issueDrafts([], [], 'owner')).toEqual([]);
     expect(digest(good(), [])).toContain('Actionable conditions: 0');
   });
+  it('gives the yearly Census boundaries source about 400 days, not the weekly sources 14', () => {
+    expect(SOURCE_POLICY['census-boundaries']).toEqual({
+      attemptHours: 400 * 24,
+      freshHours: 400 * 24,
+    });
+    const at = (loaded: string) => {
+      const o = good();
+      const source = o.sources?.find((x) => x.id === 'census-boundaries');
+      assert(source);
+      const run = { status: 'succeeded', startedAt: loaded, finishedAt: loaded };
+      source.lastRun = run;
+      source.lastSuccess = run;
+      return assess(o).map((f) => f.key);
+    };
+    // 2026-10-18 minus 399 days is fine; minus 401 days is stale and its attempt missed.
+    expect(at('2025-09-14T12:00:00Z')).toEqual([]);
+    expect(at('2025-09-12T12:00:00Z')).toEqual(
+      expect.arrayContaining(['ingest:census-boundaries:stale', 'ingest:census-boundaries:missed']),
+    );
+  });
   it('distinguishes downtime, stale publication, missed attempts, failures and stale backups', () => {
     const o = good();
     o.liveStatus = null;
