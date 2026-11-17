@@ -27,9 +27,9 @@ const SECTIONS = [
 export default async function MethodologyPage() {
   const explainers = await read('explainers.list', {});
   return (
-    <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10 [&>*]:max-w-5xl">
+    <div className="page-frame pt-8 sm:pt-10 [&>*]:max-w-5xl">
       <header className="max-w-3xl">
-        <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">Methodology</h1>
+        <h1 className="page-title">Methodology</h1>
         <p className="mt-3 text-ink-2">
           How each number is computed, where it comes from, and what it does not claim. The same
           rules apply on this site, in the JSON API and in the MCP tools.
@@ -38,7 +38,7 @@ export default async function MethodologyPage() {
 
       <div className="mt-10 grid gap-12 lg:grid-cols-[12rem_minmax(0,1fr)]">
         <nav aria-label="On this page" className="hidden lg:block">
-          <ul className="sticky top-24 space-y-1 border-l border-rule text-sm">
+          <ul className="sticky top-6 space-y-1 border-l border-rule text-sm">
             {SECTIONS.map((s) => (
               <li key={s.id}>
                 <a
@@ -89,7 +89,7 @@ export default async function MethodologyPage() {
                   key={explainer.id}
                   id={`explainer-${explainer.id}`}
                   aria-labelledby={`explainer-${explainer.id}-title`}
-                  className="scroll-mt-24 border-t border-rule pt-4"
+                  className="scroll-mt-6 border-t border-rule pt-4"
                 >
                   <h3 id={`explainer-${explainer.id}-title`} className="font-semibold text-ink">
                     {explainer.question}
@@ -229,9 +229,9 @@ function Part({ id, title, children }: { id: string; title: string; children: Re
     <section
       id={id}
       aria-labelledby={`${id}-title`}
-      className="scroll-mt-24 border-t border-rule pt-5"
+      className="scroll-mt-6 border-t border-rule pt-5"
     >
-      <h2 id={`${id}-title`} className="font-serif text-2xl font-medium">
+      <h2 id={`${id}-title`} className="section-title">
         {title}
       </h2>
       <div className="prose-ledger mt-3 text-ink-2">{children}</div>

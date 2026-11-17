@@ -24,10 +24,18 @@ in `packages/core/src/capabilities`):
 | `people.search` | `scope` (default `all`) | Search finds former members too; every item says `isCurrent` |
 | `people.glance` | `slug`; output sections with sentences, facts, provenance and drilldowns | Deterministic profile overview; money, voting and statement coverage retain their separate periods and sources |
 | `explainers.list` | empty input | Shared plain-language definitions used by Methodology and agents |
+| `districts.shape` | either `slug` (a member) or `state` (two letters) with optional `district` (omit or `0` = whole state); output `scope`, `description`, `viewBox`, `width`, `height`, `statePath`, `districtPath` or `null`, `congress`, `vintage`, `publisher`, `asOf`, `caveat`, `provenance`, `stateProvenance` | Locator-map geometry as SVG path data in one `viewBox`. Member mode maps current members only, and a House district only when the member's term began in `congress` (the Congress the lines are for); a Senator gets the whole state. `asOf` is the date the district lines are current to (2024-05-31 for the Census 119th-Congress files): later redistricting is not shown. `not_found` (with the reason) for no shape, a former member, a House seat with no district number, a later-Congress term, or `district` 0 in a state that has numbered districts |
+| `people.get` | `portrait`: `{url, width, height, credit, sourceUrl, asOf, variants[], provenance}` or `null` | Official portrait facts. `url` is the 1x (225 px) file, site-relative (resolve against the site origin); `variants` lists the 1x and 2x files with their `sha256`; `credit` is the fixed line shown under the image ("Official portrait · public domain · via unitedstates/images", true of every file); the served image has its embedded metadata removed (EXIF, XMP, comments, thumbnails); `null` = no portrait on file for this member (never a placeholder URL) |
+| `people.portrait` | input `slug`, `size` (`225` default or `450`), optional `v` (cache key); output is the JPEG file | Binary capability, see "Binary capabilities" below |
 | `explore.table` rows, `people.get` `card`, `people.compare` people | `isCurrent`, `termEnd`, `serviceStart`, `tenureYears`, `smallDollarShare`, `smallDollarAsOf`, `topIndustries`, `industryCodingCoverage`, `scorecards` | `tenureYears` = years actually served; `smallDollarAsOf` = coverage date of the FEC candidate summary behind `smallDollarShare`; `topIndustries` are net-positive industries; `scorecards` only for publishers with cleared terms |
 | `money.summary` | `totals.pacShare`, `totals.smallDollarShare` | Shares guarded to [0, 1], else `null`; `totals.unitemizedIndividualCents` is always `null` (weball has no split) |
 | `money.summary` | `smallDollar` `{fecCandidateId, unitemizedIndividualCents, itemizedIndividualCents, totalReceiptsCents, share, coverageEndDate, provenance}` or `null` | FEC candidate summary for its own filing period; `share` is `null` outside [0, 1] or when receipts <= 0; its date can trail `totals.coverageEndDate` |
 | `money.summary` | `outsideSpending` `{supportCents, opposeCents, spenders, itemCount, items}` | `spenders` sums every expenditure per spender and side (largest first); `itemCount` counts all expenditures; `items` lists only the 50 largest |
+| `votes.list` | `items[].byParty[]` `{party, yea, nay, present, notVoting}` | One row per party present, party at the vote date, alphabetical, `Unknown` last; rows sum to `tally` |
+| `votes.attendance` | input `slug`, optional `congress`; output `months[]`, `totals`, `throughMonth` | Month-by-month eligible, missed (not voting) and present for one Congress; `status` keeps "no votes held" and "not yet serving" apart from zero misses; totals equal the Explore `votesEligible` / `missedVoteRate` |
+| `chamber.composition` | empty input; output `chambers[]` `{chamber, seats, members, voting[], nonVoting, vacancies}`, `asOf`, `provenance` | Current composition by party in the documented order; delegates counted apart from the 435; `vacancies` is `null` for a partial roster |
+| `races.list` | input `cycle` (even year), `chamber`, `state`, `person`; output `notice`, `items[]` `{seat, seatUp, incumbents, registrations, activeCandidates, candidatesWithMoneyReports}`, `unplaced[]` (registrations with no seat, as filed), `totals`, `sources` | Seats ordered by state, Senate first, then district; never by money. Counts are FEC registrations (`cn`) for the cycle; a money report is a row in the FEC all-candidates summary. Example: `/api/v1/races.list?input={"state":"GA","chamber":"senate"}` |
+| `races.get` | input `seat` (`ga-senate`, `ga-10`, `ak-al`), `cycle`, `sort` (`name` default, `receipts` opt-in); output `candidates[]` with `displayName`, `nameAsFiled`, `person`, `party {code, name}`, `incumbency(Label)`, `status(Label)`, `money` (`null` = no report; cash on hand as filed, may be negative), `outsideSpending {supportCents, opposeCents, expenditures}`, `fecUrl`, `registration` (provenance), `alsoRegisteredFor[]`, `sharedCommitteeWith[]`, `sameNameAsFiledAs[]`; top-level `notice` | `not_found` for a seat that does not exist in the cycle (a seat that exists with nobody registered answers 200 with no candidates); `invalid_input` for a key that is not canonical (`zv-01`, `ZV-1`). Outside totals are per FEC candidate id |
 | `sources.status` | runs: `scope`, `counts`, `error` | Ingest scope as stored (`all`, `cycle:2026`, `congress:119`) and the run's own counters |
 
 ## JSON API
@@ -38,14 +46,42 @@ machine-readable contract is generated from the zod schemas at
 
 | Capability | Method | Cache class |
 |---|---|---|
-| `people.search`, `people.get`, `people.glance`, `people.compare`, `explore.table`, `money.summary`, `votes.list`, `scores.list`, `promises.list` | GET | data: `s-maxage=300, stale-while-revalidate=3600` |
-| `policy.areas`, `frameworks.list`, `explainers.list` | GET | reference: `s-maxage=3600, stale-while-revalidate=86400` |
+| `people.search`, `people.get`, `people.glance`, `people.compare`, `explore.table`, `money.summary`, `votes.list`, `votes.attendance`, `chamber.composition`, `scores.list`, `promises.list`, `races.list`, `races.get` | GET | data: `s-maxage=300, stale-while-revalidate=3600` |
+| `policy.areas`, `frameworks.list`, `explainers.list`, `districts.shape` | GET | reference: `s-maxage=3600, stale-while-revalidate=86400` |
 | `sources.status` | GET | status: `s-maxage=60, stale-while-revalidate=300` |
+| `people.portrait` | GET | binary: see below (`ETag` = sha256; `immutable` only with a matching `v`) |
 | `frameworks.evaluate` | POST (JSON body, max 256 KiB) | `no-store` |
 
 Other methods answer `405` with an `Allow` header. Unknown or operator-only names
 answer `404 not_found`. `OPTIONS` is answered for CORS (any origin may read; there
 are no credentials).
+
+### Binary capabilities
+
+A capability may declare `transport: 'binary'` (core `Capability`). Its output carries `bytes`,
+`contentType` and `sha256` and is never JSON-serialized. Today the only one is
+`people.portrait` (the official portrait of a member, a public-domain JPEG from the GPO
+Member Guide, stored in our database; the credit and facts come from `people.get`).
+
+* **HTTP:** `GET /api/v1/people.portrait?slug=<slug>&size=225|450[&v=<key>]` answers the file
+  as `image/jpeg` with `ETag: "<sha256>"` (`If-None-Match` answers `304` with no body),
+  `X-Content-Type-Options: nosniff`, `Content-Length` and `Content-Disposition: inline`. The
+  cache key `v` is the first characters (8 to 64) of the file's sha256, as given in
+  `people.get` `portrait.url`. Only a `v` that is a prefix of the sha256 of the bytes sent earns
+  `Cache-Control: public, max-age=31536000, immutable`; without one (or with a stale or invented
+  one) the response is `public, max-age=0, s-maxage=3600, stale-while-revalidate=86400`, so a
+  re-ingested file is never pinned in a cache. Errors are the normal JSON error body: `404`
+  for an unknown member or a member without a portrait, `400` for a size other than 225 or
+  450, a malformed key or an unknown parameter.
+* **Web address:** the profile page uses `/people/<slug>/portrait?size=225|450&v=<key>`, a thin
+  route that forwards to the same handler, so page, API and MCP return identical bytes and
+  headers. Readers' browsers only ever request our own origin (CSP `img-src 'self'`).
+* **MCP:** tool `people_portrait` returns an `image` content block (base64 JPEG, MIME
+  `image/jpeg`) and a text block / `structuredContent` with the metadata
+  (`slug, size, contentType, width, height, sha256, byteLength`); its `outputSchema` describes
+  only that metadata.
+* **OpenAPI:** the operation is marked `x-transport: binary` and its 200 response is
+  `image/jpeg` (`format: binary`).
 
 ### Query encoding (GET)
 
@@ -120,9 +156,9 @@ repeated keys, and every GET also accepts `input`.
 
 `packages/mcp` is a stdio MCP server (`@modelcontextprotocol/sdk` 1.x) with one tool
 per public capability. Tool names replace the dot with an underscore: `people_search`,
-`people_get`, `people_compare`, `explore_table`, `money_summary`, `votes_list`,
+`people_get`, `people_compare`, `explore_table`, `money_summary`, `votes_list`, `votes_attendance`, `chamber_composition`,
 `scores_list`, `promises_list`, `policy_areas`, `frameworks_list`, `frameworks_evaluate`,
-`sources_status`, `explore_facets` (13 tools, one per public capability).
+`sources_status`, `explore_facets`, `explainers_list`, `people_glance`, `races_list`, `races_get` and `people_portrait` (plus the tools above; one tool per public capability; `people_portrait` returns an image block).
 
 * `inputSchema` and `outputSchema` are JSON Schema generated from the capability's own
   zod schemas. Results are `structuredContent` plus the same JSON as a text block.

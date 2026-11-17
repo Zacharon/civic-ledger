@@ -21,9 +21,9 @@ export default async function SourcesPage() {
   const coding = status.coverage.industryCoding;
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10 [&>*]:max-w-5xl">
+    <div className="page-frame pt-8 sm:pt-10 [&>*]:max-w-5xl">
       <header className="max-w-3xl">
-        <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">Sources</h1>
+        <h1 className="page-title">Sources</h1>
         <p className="mt-3 text-ink-2">
           Every number in the ledger comes from one of these sources. Each load is recorded as an
           ingest run; footnotes across the site cite the run and the source’s own record key.
@@ -91,9 +91,9 @@ export default async function SourcesPage() {
                   source.lastSuccess?.id ?? null,
                   source.lastSuccess?.finishedAt ?? source.lastSuccess?.startedAt ?? null,
                 ])}
-                className="scroll-mt-24"
+                className="scroll-mt-6"
               >
-                <h2 className="font-serif text-2xl font-medium">
+                <h2 className="section-title">
                   {url ? (
                     <a className="link-quiet" href={url} rel="noreferrer">
                       {source.name}
@@ -160,8 +160,8 @@ export default async function SourcesPage() {
         </ol>
       )}
 
-      <section aria-labelledby="citing" className="mt-16 border-t border-ink pt-6">
-        <h2 id="citing" className="font-serif text-2xl font-medium">
+      <section aria-labelledby="citing" className="rule-strong mt-16 pt-6">
+        <h2 id="citing" className="section-title">
           How to cite the underlying sources
         </h2>
         <div className="prose-ledger mt-3 text-ink-2">

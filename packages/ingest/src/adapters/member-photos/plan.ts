@@ -1,0 +1,256 @@
+import { readdir } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import type { IngestScope } from '@civic-ledger/core';
+import type { Db } from '@civic-ledger/db';
+import { personIdentifier, term } from '@civic-ledger/db';
+import { and, eq, gt, isNull, or, sql } from 'drizzle-orm';
+import type { FetchPlan, FetchRequest, PlanContext } from '../../adapter';
+import { defaultHttpDeps, httpGet } from '../../runtime/http';
+
+/** Files of the upstream repository (unitedstates/images, branch gh-pages). */
+export const IMAGES_SITE = 'https://unitedstates.github.io/images/congress/';
+export const TREE_URL =
+  'https://api.github.com/repos/unitedstates/images/git/trees/gh-pages?recursive=1';
+
+/**
+ * Variant folders, in the order they are stored. `width` x `height` is the folder's pixel
+ * box: upstream scales each photo to fit it keeping its proportions, so a file is often
+ * narrower (183x275, 220x275) and a few small originals are not enlarged, but none exceeds it.
+ */
+export const VARIANTS = [
+  { folder: '225x275', width: 225, height: 275 },
+  { folder: '450x550', width: 450, height: 550 },
+] as const;
+/** A file must fill at least this share of its box (rejects thumbnails and stray icons). */
+export const MIN_BOX_FILL = 0.2;
+
+/** Whether an image of this size is a plausible file for the variant's box. */
+export function fitsVariantBox(
+  width: number,
+  height: number,
+  box: { width: number; height: number },
+): boolean {
+  return (
+    width <= box.width &&
+    height <= box.height &&
+    width * height >= MIN_BOX_FILL * box.width * box.height
+  );
+}
+
+export type VariantFolder = (typeof VARIANTS)[number]['folder'];
+
+/**
+ * Who gets a portrait: every person with a Bioguide id who held a term that ended after the
+ * 119th Congress began (2025-01-03), i.e. current members and those who left during it.
+ * Widening this to all former members would store ~250 MB (DECISIONS A81).
+ */
+export const PORTRAITS_SINCE = '2025-01-03';
+
+/** One file must stay far below the run-wide cap; real files are 20-200 KB. */
+export const MAX_PORTRAIT_FILE_BYTES = 2 * 1024 * 1024;
+/** All selected files together (by the repository listing), before anything is downloaded. */
+export const DEFAULT_MAX_TOTAL_BYTES = 400 * 1024 * 1024;
+/** ~1,100 files of 20-200 KB from a CDN: six at a time instead of three. */
+const PHOTO_DOWNLOAD_CONCURRENCY = 6;
+const MAX_LISTING_BYTES = 20 * 1024 * 1024;
+
+const BIOGUIDE = /^[A-Z]\d{6}$/;
+export const isBioguideId = (value: string): boolean => BIOGUIDE.test(value);
+
+export const originUrl = (folder: VariantFolder, bioguide: string): string =>
+  `${IMAGES_SITE}${folder}/${bioguide}.jpg`;
+
+/** Bioguide ids in the portrait scope (see `PORTRAITS_SINCE`). */
+export async function bioguideIdsInScope(db: Db): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ value: personIdentifier.value })
+    .from(personIdentifier)
+    .where(
+      and(
+        eq(personIdentifier.scheme, 'bioguide'),
+        sql`exists (select 1 from ${term} where ${term.personId} = ${personIdentifier.personId}
+            and (${or(isNull(term.endDate), gt(term.endDate, PORTRAITS_SINCE))}))`,
+      ),
+    );
+  return rows.map((r) => r.value).filter(isBioguideId);
+}
+
+interface TreeEntry {
+  path?: unknown;
+  type?: unknown;
+  size?: unknown;
+  sha?: unknown;
+}
+
+export interface ListedFile {
+  /** Bytes, as the listing states them. */
+  size: number;
+  /** Git blob SHA-1 of the file: what each download is verified against. */
+  sha: string;
+}
+
+export interface Listing {
+  /** Git tree SHA of the listed commit tree, recorded in the run receipt. */
+  treeSha: string | null;
+  /** `variant/BIOGUIDE` -> size and blob sha. */
+  files: Map<string, ListedFile>;
+}
+
+/** The two variant folders of the repository listing. */
+export function filesInListing(listing: unknown): Listing {
+  const tree = (listing as { tree?: unknown; truncated?: unknown; sha?: unknown } | null) ?? {};
+  if (tree.truncated === true) {
+    throw new Error(
+      'The GitHub repository listing is truncated; the portrait list would be partial',
+    );
+  }
+  if (!Array.isArray(tree.tree)) throw new Error('Unexpected repository listing: no "tree" array');
+  const files = new Map<string, ListedFile>();
+  for (const entry of tree.tree as TreeEntry[]) {
+    if (entry.type !== 'blob' || typeof entry.path !== 'string') continue;
+    const match = /^congress\/(225x275|450x550)\/([A-Z]\d{6})\.jpg$/.exec(entry.path);
+    if (
+      match &&
+      typeof entry.size === 'number' &&
+      typeof entry.sha === 'string' &&
+      /^[0-9a-f]{40}$/.test(entry.sha)
+    ) {
+      files.set(`${match[1]}/${match[2]}`, { size: entry.size, sha: entry.sha });
+    }
+  }
+  return { treeSha: typeof tree.sha === 'string' ? tree.sha : null, files };
+}
+
+async function fetchListing(ctx: PlanContext): Promise<unknown> {
+  const response = await httpGet(
+    TREE_URL,
+    {
+      // An optional token lifts the 60-per-hour anonymous limit. It is only ever put in this
+      // header: never logged, never in an error message or the receipt.
+      headers: {
+        accept: 'application/vnd.github+json',
+        ...(githubToken() ? { authorization: `Bearer ${githubToken()}` } : {}),
+      },
+      timeoutMs: 60_000,
+      signal: ctx.signal,
+      logger: ctx.logger,
+    },
+    ctx.http ?? defaultHttpDeps,
+  ).catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `${message}. The portrait list comes from the unauthenticated GitHub API (60 requests per hour per address); wait and rerun if it is a rate limit.`,
+      { cause: error },
+    );
+  });
+  const declared = Number(response.headers.get('content-length') ?? Number.NaN);
+  if (declared > MAX_LISTING_BYTES) {
+    await response.body?.cancel();
+    throw new Error(`Repository listing is ${declared} bytes, over the ${MAX_LISTING_BYTES} cap`);
+  }
+  const text = await response.text();
+  if (text.length > MAX_LISTING_BYTES) throw new Error('Repository listing exceeds the size cap');
+  return JSON.parse(text);
+}
+
+function githubToken(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  return env.GITHUB_TOKEN?.trim() || undefined;
+}
+
+export function maxTotalBytesFromEnv(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.INGEST_MAX_PORTRAIT_TOTAL_BYTES?.trim();
+  if (!raw) return DEFAULT_MAX_TOTAL_BYTES;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`INGEST_MAX_PORTRAIT_TOTAL_BYTES must be a positive integer, got "${raw}"`);
+  }
+  return value;
+}
+
+/** `--snapshot <dir>`: the files that directory holds, nothing else. */
+async function planFromDirectory(scope: IngestScope, directory: string): Promise<FetchPlan> {
+  const requests: FetchRequest[] = [];
+  for (const { folder } of VARIANTS) {
+    const names = await readdir(join(resolve(directory), folder)).catch(() => [] as string[]);
+    for (const name of names.sort()) {
+      if (name.endsWith('.jpg')) requests.push({ fileName: `${folder}/${name}` });
+    }
+  }
+  if (requests.length === 0) {
+    throw new Error(
+      `Snapshot ${directory} has no ${VARIANTS.map((v) => v.folder).join(' or ')} .jpg files`,
+    );
+  }
+  return { source: 'member-photos', scope, requests };
+}
+
+export async function planMemberPhotos(scope: IngestScope, ctx: PlanContext): Promise<FetchPlan> {
+  if (ctx.snapshotPath) return planFromDirectory(scope, ctx.snapshotPath);
+  if (!ctx.db)
+    throw new Error('member-photos needs the database to choose whose portraits to fetch');
+
+  const wanted = await bioguideIdsInScope(ctx.db);
+  if (wanted.length === 0) {
+    throw new Error(
+      'No people with a Bioguide id and a term since 2025-01-03: run congress-legislators first',
+    );
+  }
+  const { treeSha, files: listing } = filesInListing(await fetchListing(ctx));
+  const requests: FetchRequest[] = [];
+  let totalBytes = 0;
+  let only450 = 0;
+  let without450 = 0;
+  let noFile = 0;
+  for (const bioguide of wanted.sort()) {
+    const present = VARIANTS.filter((v) => listing.has(`${v.folder}/${bioguide}`));
+    if (present.length === 0) {
+      noFile++;
+      continue;
+    }
+    // The 1x file is required (it is the image everywhere); the 2x file is optional.
+    if (!present.some((v) => v.folder === '225x275')) {
+      only450++;
+      continue;
+    }
+    if (present.length < VARIANTS.length) without450++;
+    for (const { folder } of present) {
+      const listed = listing.get(`${folder}/${bioguide}`);
+      totalBytes += listed?.size ?? 0;
+      requests.push({
+        fileName: `${folder}/${bioguide}.jpg`,
+        url: originUrl(folder, bioguide),
+        timeoutMs: 60_000,
+        maxBytes: MAX_PORTRAIT_FILE_BYTES,
+        ...(listed ? { gitBlob: { sha1: listed.sha, size: listed.size } } : {}),
+      });
+    }
+  }
+  const cap = maxTotalBytesFromEnv();
+  if (totalBytes > cap) {
+    throw new Error(
+      `The selected portraits total ${totalBytes} bytes, over the ${cap}-byte INGEST_MAX_PORTRAIT_TOTAL_BYTES cap; nothing was downloaded`,
+    );
+  }
+  ctx.logger?.info(
+    {
+      inScope: wanted.length,
+      files: requests.length,
+      noFile,
+      only450,
+      without450,
+      totalBytes,
+      treeSha,
+    },
+    'portrait selection',
+  );
+  if (requests.length === 0) {
+    throw new Error('None of the people in scope has a portrait in the repository listing');
+  }
+  return {
+    source: 'member-photos',
+    scope,
+    requests,
+    concurrency: PHOTO_DOWNLOAD_CONCURRENCY,
+    note: `unitedstates/images gh-pages tree ${treeSha ?? 'unknown'}; ${requests.length} files verified against their git blob SHA-1`,
+  };
+}

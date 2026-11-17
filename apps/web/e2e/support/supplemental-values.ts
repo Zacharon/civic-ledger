@@ -41,6 +41,37 @@ const STATUS = {
   not_yet_rated: 'Not yet rated',
 } as const;
 
+/**
+ * The header's portrait is exactly what people.get states (and API and MCP agreed on): the
+ * same file address and credit, or the neutral tile when the capability says `null`.
+ */
+export async function checkPortrait(
+  page: Page,
+  name: string,
+  portrait: CapabilityOutput<'people.get'>['portrait'],
+) {
+  const figure = page.locator('.member-portrait');
+  await expect(figure).toHaveCount(1);
+  if (!portrait) {
+    await expect(figure).toHaveAttribute('data-portrait', 'missing');
+    await expect(figure).toContainText('No official portrait on file');
+    await expect(figure.locator('img')).toHaveCount(0);
+    return;
+  }
+  await expect(figure).toHaveAttribute('data-portrait', 'present');
+  const image = figure.locator('img');
+  await expect(image).toHaveAttribute('src', portrait.url);
+  await expect(image).toHaveAttribute('alt', `Official portrait of ${name}`);
+  await expect(image).toHaveAttribute('width', String(portrait.width));
+  await expect(image).toHaveAttribute('height', String(portrait.height));
+  const two = portrait.variants.find((v) => v.size === 450);
+  if (two) await expect(image).toHaveAttribute('srcset', `${portrait.url} 1x, ${two.url} 2x`);
+  await expect(figure.locator('figcaption')).toContainText(portrait.credit);
+  await expect(figure.locator('figcaption')).toContainText(
+    'Official portrait · public domain · via unitedstates/images',
+  );
+}
+
 export async function checkSupplementalProfile(
   page: Page,
   baseUrl: string,
@@ -61,6 +92,28 @@ export async function checkSupplementalProfile(
   const scores = await agreed<CapabilityOutput<'scores.list'>>('scores.list', { slug });
   const promises = await agreed<CapabilityOutput<'promises.list'>>('promises.list', { slug });
   const money = await agreed<CapabilityOutput<'money.summary'>>('money.summary', { slug });
+  // Attendance by month: the strip and its table twin show exactly what votes.attendance
+  // returns over HTTP and MCP, and its totals are the profile's own missed-vote figures.
+  await expect(page.locator('#votes[aria-busy="true"]')).toHaveCount(0);
+  const attendance = await agreed<CapabilityOutput<'votes.attendance'>>('votes.attendance', {
+    slug,
+  });
+  expect(attendance.totals.eligible).toBe(profile.card.votesEligible ?? 0);
+  if (attendance.months.length === 0) {
+    await expect(page.locator('#votes [data-attendance]')).toHaveCount(0);
+  } else {
+    const strip = page.locator('#votes [data-attendance]');
+    expect(await raw(strip)).toEqual([
+      attendance.totals.eligible,
+      attendance.totals.missed,
+      attendance.totals.present,
+    ]);
+    expect(await keyed(strip.locator('li[data-month-cell]'), 'data-month-cell')).toEqual(
+      attendance.months.map((m) => [m.month, [m.status, m.eligible, m.missed, m.present]]),
+    );
+  }
+
+  await checkPortrait(page, profile.person.fullName, profile.portrait);
 
   const latest = scores.ideology[0];
   const ideology = page.locator('#scores [data-ideology]');
@@ -425,6 +478,16 @@ export async function checkHome(page: Page, baseUrl: string, agreed: Agreed) {
     expect(await raw(page.locator('[data-frameworks]'))).toBe(frameworks.items.length);
     await expect(page.locator('[data-frameworks]')).toHaveText(String(frameworks.items.length));
   }
+  const composition = await agreed<CapabilityOutput<'chamber.composition'>>(
+    'chamber.composition',
+    {},
+  );
+  expect(await keyed(page.locator('figure[data-chamber]'), 'data-chamber')).toEqual(
+    composition.chambers.map((b) => [
+      b.chamber,
+      [b.seats, b.members, b.voting.map((p) => [p.party, p.count]), b.nonVoting.total, b.vacancies],
+    ]),
+  );
   expect(await raw(page.locator('[data-facet="current"]'))).toBe(facets.scopes.current);
   await expect(page.locator('[data-facet="current"]')).toHaveText(
     formatNumber(facets.scopes.current) ?? '',
@@ -533,10 +596,12 @@ export async function checkPolicy(page: Page, baseUrl: string, agreed: Agreed) {
       for (const [partyIndex, party] of vote.byParty.entries()) {
         const partyRow = parties.nth(partyIndex);
         await text(partyRow.locator('th'), party.party);
+        // Present and Not voting are distinct official positions: two columns, never summed.
         await expect(partyRow.locator('td')).toHaveText([
           String(party.yea),
           String(party.nay),
-          String(party.present + party.notVoting),
+          String(party.present),
+          String(party.notVoting),
         ]);
       }
     }
@@ -585,4 +650,150 @@ export async function checkPolicy(page: Page, baseUrl: string, agreed: Agreed) {
     }
   }
   return areas;
+}
+
+/**
+ * Races: the index and race pages show what `races.list` / `races.get` return through HTTP
+ * and MCP (`agreed` asserts those two are equal), including the state filter, the opt-in
+ * receipts order, coverage counts, negative cash as filed and candidates with no report.
+ */
+export async function checkRaces(page: Page, baseUrl: string, agreed: Agreed) {
+  const all = await agreed<CapabilityOutput<'races.list'>>('races.list', {});
+  expect(all.items.length).toBeGreaterThan(5);
+  const seatRows = (items: typeof all.items) =>
+    items
+      .map((i) => [i.seat.key, [i.registrations, i.activeCandidates, i.candidatesWithMoneyReports]])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  const shownRows = async () =>
+    (await keyed(page.locator('tr[data-seat]'), 'data-seat')).sort((a, b) =>
+      String(a[0]).localeCompare(String(b[0])),
+    );
+  const houseSummaries = (items: typeof all.items) => {
+    const byState = new Map<string, [number, number]>();
+    for (const i of items.filter((x) => x.seat.chamber === 'house')) {
+      const [seats, registrations] = byState.get(i.seat.state) ?? [0, 0];
+      byState.set(i.seat.state, [seats + 1, registrations + i.registrations]);
+    }
+    return [...byState.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  };
+  const shownSummaries = async () =>
+    (await keyed(page.locator('li[data-state-summary]'), 'data-state-summary')).sort((a, b) =>
+      String(a[0]).localeCompare(String(b[0])),
+    );
+  const totalsOf = (t: typeof all.totals) =>
+    JSON.stringify([
+      t.seats,
+      t.registrations,
+      t.activeCandidates,
+      t.candidatesWithMoneyReports,
+      t.candidatesWithoutMoneyReports,
+    ]);
+
+  // Default view: the Senate table in full, the House as one line per state.
+  await page.goto(`${baseUrl}/races`);
+  expect(await shownRows()).toEqual(seatRows(all.items.filter((i) => i.seat.chamber === 'senate')));
+  expect(await shownSummaries()).toEqual(houseSummaries(all.items));
+  expect(await page.locator('[data-races-totals]').getAttribute('data-races-totals')).toBe(
+    totalsOf(all.totals),
+  );
+  await expect(page.locator('[data-registration-notice]')).toHaveText(all.notice);
+  for (const i of all.items.filter((x) => x.incumbents.length > 0 && x.seat.chamber === 'senate')) {
+    const row = page.locator(`tr[data-seat="${i.seat.key}"]`);
+    for (const m of i.incumbents) {
+      await expect(row.getByRole('link', { name: m.fullName })).toHaveAttribute(
+        'href',
+        `/people/${m.slug}`,
+      );
+    }
+  }
+
+  // One state: both chambers in full, plus the registrations that match no seat.
+  const zv = await agreed<CapabilityOutput<'races.list'>>('races.list', { state: 'ZV' });
+  await page.goto(`${baseUrl}/races?state=ZV`);
+  expect(await shownRows()).toEqual(seatRows(zv.items));
+  expect(await page.locator('[data-races-totals]').getAttribute('data-races-totals')).toBe(
+    totalsOf(zv.totals),
+  );
+  expect(await page.locator('tr[data-unplaced-group]').count()).toBe(zv.unplaced.length);
+
+  const senateOnly = await agreed<CapabilityOutput<'races.list'>>('races.list', {
+    chamber: 'senate',
+  });
+  await page.goto(`${baseUrl}/races?chamber=senate`);
+  expect(await shownRows()).toEqual(seatRows(senateOnly.items));
+  const houseOnly = await agreed<CapabilityOutput<'races.list'>>('races.list', {
+    chamber: 'house',
+  });
+  await page.goto(`${baseUrl}/races?chamber=house`);
+  expect(await shownSummaries()).toEqual(houseSummaries(houseOnly.items));
+  expect(await page.locator('tr[data-seat]').count()).toBe(0);
+
+  const seats = all.items.filter((i) => i.registrations > 0).slice(0, 4);
+  for (const { seat } of seats) {
+    for (const sort of ['name', 'receipts'] as const) {
+      const race = await agreed<CapabilityOutput<'races.get'>>('races.get', {
+        seat: seat.key,
+        sort,
+      });
+      await page.goto(
+        `${baseUrl}/races/${race.cycle}/${seat.key}${sort === 'receipts' ? '?sort=receipts' : ''}`,
+      );
+      expect(
+        await keyed(page.locator('tr[data-candidate]'), 'data-candidate'),
+        `${seat.key} (${sort})`,
+      ).toEqual(
+        race.candidates.map((c) => [
+          c.fecCandidateId,
+          [
+            c.money?.totalReceiptsCents ?? null,
+            c.money?.cashOnHandCents ?? null,
+            c.outsideSpending.supportCents,
+            c.outsideSpending.opposeCents,
+          ],
+        ]),
+      );
+      expect(await page.locator('[data-race-counts]').getAttribute('data-race-counts')).toBe(
+        JSON.stringify([
+          race.counts.registrations,
+          race.counts.activeCandidates,
+          race.counts.withMoneyReports,
+          race.counts.withoutMoneyReports,
+        ]),
+      );
+      await expect(page.locator('[data-registration-notice]')).toHaveText(race.notice);
+      await expect(page.locator('[data-seat-up]')).toHaveAttribute(
+        'data-seat-up',
+        race.seatUp ? 'true' : 'false',
+      );
+      for (const c of race.candidates) {
+        const row = page.locator(`tr[data-candidate="${c.fecCandidateId}"]`);
+        await text(row.locator('th'), c.displayName ?? 'Name not filed');
+        if (c.nameAsFiled !== null) await text(row.locator('th'), c.nameAsFiled);
+        await expect(
+          row.locator('th a[href^="https://www.fec.gov/data/candidate/"]'),
+        ).toHaveAttribute('href', c.fecUrl);
+        if (c.person && c.displayName !== null) {
+          await expect(row.getByRole('link', { name: c.displayName })).toHaveAttribute(
+            'href',
+            `/people/${c.person.slug}`,
+          );
+        }
+        if (c.money) {
+          await text(row, formatCents(c.money.totalReceiptsCents));
+          await text(row, formatCents(c.money.cashOnHandCents));
+          if (c.money.cashOnHandCents < 0) await text(row, 'as filed');
+          await text(row, formatDate(c.money.coverageEndDate));
+        } else {
+          await text(row, 'No report on file');
+        }
+        if (c.outsideSpending.supportCents > 0)
+          await text(row, formatCents(c.outsideSpending.supportCents));
+        if (c.outsideSpending.opposeCents > 0)
+          await text(row, formatCents(c.outsideSpending.opposeCents));
+        if (c.alsoRegisteredFor.length > 0) await text(row, 'Also registered for');
+        if (c.sameNameAsFiledAs.length > 0) await text(row, 'The same name as filed appears');
+      }
+    }
+  }
+  return all;
 }

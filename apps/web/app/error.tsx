@@ -15,10 +15,8 @@ export default function ErrorPage({
   }, [error]);
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 [&>*]:max-w-3xl">
-      <h1 className="font-serif text-4xl font-medium tracking-tight">
-        The ledger could not be read
-      </h1>
+    <div className="page-frame py-20 [&>*]:max-w-3xl">
+      <h1 className="page-title">The ledger could not be read</h1>
       <p className="mt-5 max-w-prose text-lg text-ink-2">
         The data behind this page did not load. Nothing you did caused this. Try again; if it keeps
         happening, the database may be offline or still loading.

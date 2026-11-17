@@ -2,15 +2,17 @@ import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDb, type DbHandle } from '../src';
 import { runMigrations } from '../src/migrate';
-import { DEV_SEED_SOURCE_ID, seedDevData } from '../src/seed';
+import { DEV_SEED_SOURCE_ID, hasSeedPortrait, seedDevData } from '../src/seed';
 import { buildSeedData } from '../src/seed/fixtures';
 
 const TABLES = [
   'person',
   'person_identifier',
+  'person_portrait',
   'office',
   'term',
   'candidacy',
+  'candidate',
   'committee',
   'committee_link',
   'committee_industry',
@@ -91,6 +93,33 @@ describe('dev seed', () => {
     );
     for (const { url } of urls.rows)
       expect(url.startsWith('https://example.org/dev-seed')).toBe(true);
+  });
+
+  it('gives most seed members a flat grey synthetic portrait and leaves some without', async () => {
+    const data = buildSeedData();
+    const expected = data.people.filter((_, index) => hasSeedPortrait(index));
+    expect(expected.length).toBeGreaterThan(0);
+    expect(expected.length).toBeLessThan(data.people.length);
+    const stored = await handle.db.execute<{
+      people: number;
+      variants: number;
+      distinct_sha: number;
+      bad_magic: number;
+    }>(sql`
+      select count(distinct person_id)::int as people, count(*)::int as variants,
+             count(distinct sha256)::int as distinct_sha,
+             count(*) filter (where encode(substring(data from 1 for 3), 'hex') <> 'ffd8ff')::int as bad_magic
+      from person_portrait`);
+    expect(stored.rows[0]).toMatchObject({
+      people: expected.length,
+      variants: expected.length * 2,
+      bad_magic: 0,
+    });
+    const nonSeed = await handle.db.execute<{ n: number }>(
+      sql`select count(*)::int as n from person_portrait where source_id <> ${DEV_SEED_SOURCE_ID}
+          or origin_url not like 'https://example.org/dev-seed/%'`,
+    );
+    expect(nonSeed.rows[0]?.n).toBe(0);
   });
 
   it('spans both chambers, three parties and leaves some PAC money uncoded', async () => {

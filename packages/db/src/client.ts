@@ -93,6 +93,11 @@ export function createDb(config: DbConfig): DbHandle {
   if (config.kind === 'pglite') {
     if (config.dataDir) mkdirSync(config.dataDir, { recursive: true });
     const client = config.dataDir ? new PGlite(config.dataDir) : new PGlite();
+    // UTC on both engines (the pool below pins it too): `current_date` decides who is currently
+    // serving, and PGlite otherwise follows the host's zone. One in-order connection, so this
+    // runs before any query. A failure here (a broken data dir) comes back on the first real
+    // query, so it is not reported twice or left as an unhandled rejection.
+    client.exec("SET TIME ZONE 'UTC'").catch(() => {});
     return { kind: 'pglite', db: drizzlePglite({ client }), client, close: () => client.close() };
   }
   const limits = { ...INTERACTIVE_POOL_DEFAULTS, ...definedOnly(config) };
@@ -102,6 +107,8 @@ export function createDb(config: DbConfig): DbHandle {
     statement_timeout: limits.statementTimeoutMs,
     lock_timeout: limits.lockTimeoutMs,
     idle_in_transaction_session_timeout: limits.idleInTransactionTimeoutMs,
+    // Same "today" as PGlite whatever the server's configured zone.
+    options: '-c TimeZone=UTC',
     connectionTimeoutMillis: limits.connectTimeoutMs,
     idleTimeoutMillis: limits.idleTimeoutMs,
   });

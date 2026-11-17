@@ -173,11 +173,19 @@ export interface CommitteeRecord {
 export interface CandidateRecord {
   kind: 'candidate';
   id: string;
+  /** CAND_NAME as filed (trimmed only). */
+  name: string;
   party: string | null;
   electionYear: number | null;
   office: 'H' | 'S' | 'P' | null;
   state: string | null;
   district: number | null;
+  /** CAND_ICI: I, C or O; null when blank. */
+  incumbency: string | null;
+  /** CAND_STATUS: C, F, N or P; null when blank. */
+  status: string | null;
+  /** CAND_PCC: principal campaign committee id; null when blank. */
+  principalCommitteeId: string | null;
 }
 
 export interface LinkRecord {
@@ -338,12 +346,18 @@ export async function* parseFec(
       yield {
         kind: 'candidate',
         id: r.CAND_ID,
+        // Name, ICI, status and principal committee are FEC facts kept as filed (candidate table).
+        // The mailing address columns (CAND_ST1 ... CAND_ZIP) are never read.
+        name: r.CAND_NAME.trim(),
         party: trimOrNull(r.CAND_PTY_AFFILIATION),
         electionYear: parseIntOrNull(r.CAND_ELECTION_YR),
         office: office(r.CAND_OFFICE),
         state: trimOrNull(r.CAND_OFFICE_ST),
         // FEC: "00" = at-large House seat (and every Senate/presidential row).
         district: parseIntOrNull(r.CAND_OFFICE_DISTRICT),
+        incumbency: trimOrNull(r.CAND_ICI),
+        status: trimOrNull(r.CAND_STATUS),
+        principalCommitteeId: trimOrNull(r.CAND_PCC),
       };
     }
   }

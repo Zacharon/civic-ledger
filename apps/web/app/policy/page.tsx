@@ -11,9 +11,9 @@ export const metadata: Metadata = {
 export default async function PolicyIndexPage() {
   const areas = await read('policy.areas', {});
   return (
-    <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10 [&>*]:max-w-5xl">
+    <div className="page-frame pt-8 sm:pt-10 [&>*]:max-w-5xl">
       <header className="max-w-3xl">
-        <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">Policy areas</h1>
+        <h1 className="page-title">Policy areas</h1>
         <p className="mt-3 text-ink-2">
           Bills grouped by the policy area Congress.gov assigns them, a neutral topic list kept by
           the Library of Congress. Open an area to see its roll calls and how every member voted.

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { CapabilityError, RUN_IN_PROGRESS } from '@civic-ledger/core';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createCensusBoundariesAdapter } from '../packages/ingest/src/adapters/census-boundaries';
 import { ADAPTERS, PIPELINE_ORDER } from '../packages/ingest/src/adapters/registry';
 import {
   curatedFixture,
@@ -26,6 +27,8 @@ beforeAll(async () => {
 });
 afterAll(() => db.cleanup());
 
+const FIXTURE_MINIMUMS = { districts: 1, states: 1 };
+
 const advisoryLocks = () =>
   rows<{ pid: number }>(
     db.handle,
@@ -34,7 +37,13 @@ const advisoryLocks = () =>
 
 describe('full pipeline', () => {
   it('loads every source from fixtures and refreshes the read model concurrently', async () => {
-    const rt = await testRuntime(db.handle);
+    // The census fixture is a few shapes, below the full-file truncation guard.
+    const rt = await testRuntime(db.handle, {
+      adapters: {
+        ...ADAPTERS,
+        'census-boundaries': createCensusBoundariesAdapter(FIXTURE_MINIMUMS),
+      },
+    });
     for (const source of PIPELINE_ORDER) {
       if (source === 'curated') await insertFictionalPerson(db.handle.db);
       const receipt = await ingestFixture(

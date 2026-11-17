@@ -107,4 +107,17 @@ describe('assessSources', () => {
     ]);
     expect(result[0]?.ageSeconds).toBe(4 * 24 * 3600);
   });
+
+  it('allows the Census boundaries source about 400 days, not the 14-day default', () => {
+    const loaded = run('2025-10-20T00:00:00.000Z');
+    const at = (iso: string) =>
+      assessSources([source('census-boundaries', loaded)], new Date(iso), 24 * 14)[0];
+    // A year after the last run: still fresh (the default would have called it stale at 14 days).
+    expect(at('2026-10-20T00:00:00.000Z')).toMatchObject({
+      freshness: 'fresh',
+      maxAgeSeconds: 400 * 24 * 3600,
+    });
+    expect(at('2026-11-24T00:00:00.000Z')?.freshness).toBe('fresh'); // day 400
+    expect(at('2026-11-25T00:00:00.000Z')?.freshness).toBe('stale'); // day 401
+  });
 });

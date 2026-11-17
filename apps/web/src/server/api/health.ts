@@ -17,6 +17,9 @@ const SOURCE_MAX_AGE_HOURS: Record<string, number> = {
   'govinfo-billstatus': 48,
   'fec-bulk': 14 * 24,
   voteview: 14 * 24,
+  // Boundaries change with redistricting, not weekly: the Census files are re-issued about once a
+  // year, so only a source untouched for over a year is stale (default would flag it after 14 days).
+  'census-boundaries': 400 * 24,
 };
 
 type SourcesStatus = CapabilityOutput<'sources.status'>;
