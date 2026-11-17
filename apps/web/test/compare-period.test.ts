@@ -4,6 +4,7 @@ import {
   agreementSentence,
   compareHref,
   disagreementsLinkText,
+  exclusionText,
   parseAgreementFilter,
   parsePeriod,
   votesPeriodLabel,
@@ -102,5 +103,18 @@ describe('agreement wording', () => {
   it('counts disagreements in the link text', () => {
     expect(disagreementsLinkText(1)).toBe('Open the 1 disagreement');
     expect(disagreementsLinkText(12)).toBe('Open the 12 disagreements');
+  });
+});
+
+describe('exclusion wording', () => {
+  it('lists only the reasons that occurred, in a fixed order', () => {
+    expect(
+      exclusionText({ total: 0, notServing: 0, unavailable: 0, notVoting: 0, present: 0 }),
+    ).toBeNull();
+    expect(
+      exclusionText({ total: 5, notServing: 3, unavailable: 1, notVoting: 1, present: 0 }),
+    ).toBe(
+      'Not counted: 1 not voting, 1 serving but no vote record stored, 3 not serving in that chamber.',
+    );
   });
 });
