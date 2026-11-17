@@ -1,4 +1,5 @@
 import {
+  boolean,
   doublePrecision,
   index,
   integer,
@@ -26,6 +27,12 @@ export const ideologyScore = pgTable(
     method: text('method').notNull(),
     dim1: doublePrecision('dim1').notNull(),
     dim2: doublePrecision('dim2'),
+    /**
+     * Source-stated provisional estimate (Voteview `conditional = 1`): true provisional,
+     * false final, null = status unknown (rows loaded before migration 0009 until their
+     * congress is reprocessed).
+     */
+    provisional: boolean('provisional'),
     ...provenanceColumns(),
   },
   (t) => [

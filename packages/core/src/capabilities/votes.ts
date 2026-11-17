@@ -13,6 +13,7 @@ import { and, asc, desc, eq, exists, gt, gte, inArray, isNull, lte, or, sql } fr
 import { z } from 'zod';
 import { defineCapability } from '../capability';
 import { notFound } from '../errors';
+import { ambiguousTerm, voteTimeTerm } from '../frameworks/membership';
 import {
   BillRefSchema,
   ChamberSchema,
@@ -35,6 +36,8 @@ const TallySchema = z.object({
   notVoting: z.int(),
 });
 type Tally = z.infer<typeof TallySchema>;
+
+const TALLY_CHECK_STATUSES = ['matches_source', 'differs_from_source'] as const;
 
 export const VotesListInput = z.strictObject({
   slug: SlugSchema.optional().describe(
@@ -59,6 +62,23 @@ export const VotesListOutput = z.object({
         .array(TallySchema.extend({ party: z.string() }))
         .describe(
           "Party = the member's party on their term at the vote date. Rows are alphabetical by party name (no ideological or size order), 'Unknown' (no term started by the vote date) last, and always sum to `tally`.",
+        ),
+      sourceTally: z
+        .object({ yea: z.int(), nay: z.int() })
+        .describe('Yea and nay totals as recorded by the source on the rollcall itself'),
+      tallyCheck: z
+        .object({
+          status: z.enum(TALLY_CHECK_STATUSES),
+          yeaDifference: z.int().describe('tally.yea minus sourceTally.yea'),
+          nayDifference: z.int().describe('tally.nay minus sourceTally.nay'),
+        })
+        .describe(
+          '`tally` is reconstructed from stored member positions; this compares it with the source totals. A difference means the stored positions are incomplete or coded differently (e.g. paired votes are stored as not voting).',
+        ),
+      ambiguousTermPositions: z
+        .int()
+        .describe(
+          'Stored positions whose member had more than one term covering the vote date; each still counts once, under the deterministically chosen term',
         ),
     }),
   ),
@@ -115,6 +135,8 @@ export const votesList = defineCapability({
           voteDate: rollcall.voteDate,
           question: rollcall.question,
           result: rollcall.result,
+          yeaCount: rollcall.yeaCount,
+          nayCount: rollcall.nayCount,
           ...provenanceFields(rollcall),
         })
         .from(rollcall)
@@ -134,14 +156,29 @@ export const votesList = defineCapability({
 
     return {
       person: who ? { slug: who.slug, fullName: who.fullName } : null,
-      items: page.map(({ id, ...rc }) => ({
-        rollcall: withProvenance(rc),
-        bill: bills.get(id)?.bill ?? null,
-        policyArea: bills.get(id)?.policyArea ?? null,
-        position: positions.get(id) ?? null,
-        tally: tallies.get(id)?.total ?? emptyTally(),
-        byParty: tallies.get(id)?.byParty ?? [],
-      })),
+      items: page.map(({ id, yeaCount, nayCount, ...rc }) => {
+        const tally = tallies.get(id)?.total ?? emptyTally();
+        const yeaDifference = tally.yea - yeaCount;
+        const nayDifference = tally.nay - nayCount;
+        return {
+          rollcall: withProvenance(rc),
+          bill: bills.get(id)?.bill ?? null,
+          policyArea: bills.get(id)?.policyArea ?? null,
+          position: positions.get(id) ?? null,
+          tally,
+          byParty: tallies.get(id)?.byParty ?? [],
+          sourceTally: { yea: yeaCount, nay: nayCount },
+          tallyCheck: {
+            status:
+              yeaDifference === 0 && nayDifference === 0
+                ? ('matches_source' as const)
+                : ('differs_from_source' as const),
+            yeaDifference,
+            nayDifference,
+          },
+          ambiguousTermPositions: tallies.get(id)?.ambiguous ?? 0,
+        };
+      }),
       total: count?.total ?? 0,
       limit: input.limit,
       offset: input.offset,
@@ -232,10 +269,16 @@ type PartyRow = { rollcallId: number; party: string; position: Position; count: 
  * Fast path: one grouped query joining the term in force on the vote date. It is exact when
  * every position matches exactly one term. A roll call where that does not hold (a member
  * with no term in force, or two overlapping terms) is recomputed on the exact path.
+ * `ambiguous` counts the positions whose member had more than one covering term
+ * (`ambiguousTerm`, the same flag member states carry); each still counts once.
  */
 async function talliesFor(db: Db, rollcallIds: number[]) {
-  const result = new Map<number, { total: Tally; byParty: (Tally & { party: string })[] }>();
+  const result = new Map<
+    number,
+    { total: Tally; byParty: (Tally & { party: string })[]; ambiguous: number }
+  >();
   if (rollcallIds.length === 0) return result;
+  const vt = voteTimeTerm(db, votePosition.personId);
   const [fast, counts] = await Promise.all([
     db
       .select({
@@ -261,12 +304,19 @@ async function talliesFor(db: Db, rollcallIds: number[]) {
         votePosition.position,
       ),
     db
-      .select({ rollcallId: votePosition.rollcallId, n: sql<number>`count(*)::int` })
+      .select({
+        rollcallId: votePosition.rollcallId,
+        n: sql<number>`count(*)::int`,
+        ambiguous: sql<number>`(count(*) filter (where ${ambiguousTerm(vt)}))::int`,
+      })
       .from(votePosition)
+      .innerJoin(rollcall, eq(rollcall.id, votePosition.rollcallId))
+      .leftJoinLateral(vt, sql`true`)
       .where(inArray(votePosition.rollcallId, rollcallIds))
       .groupBy(votePosition.rollcallId),
   ]);
   const expected = new Map(counts.map((c) => [c.rollcallId, c.n]));
+  const ambiguous = new Map(counts.map((c) => [c.rollcallId, c.ambiguous]));
   const got = new Map<number, number>();
   const suspect = new Set<number>();
   for (const row of fast) {
@@ -278,7 +328,7 @@ async function talliesFor(db: Db, rollcallIds: number[]) {
   if (suspect.size > 0) rows.push(...(await exactParties(db, [...suspect])));
 
   for (const row of rows) {
-    const entry = result.get(row.rollcallId) ?? { total: emptyTally(), byParty: [] };
+    const entry = result.get(row.rollcallId) ?? { total: emptyTally(), byParty: [], ambiguous: 0 };
     let partyTally = entry.byParty.find((p) => p.party === row.party);
     if (!partyTally) {
       partyTally = { party: row.party, ...emptyTally() };
@@ -289,6 +339,7 @@ async function talliesFor(db: Db, rollcallIds: number[]) {
     partyTally[key] += row.count;
     result.set(row.rollcallId, entry);
   }
+  for (const [id, entry] of result) entry.ambiguous = ambiguous.get(id) ?? 0;
   for (const entry of result.values())
     entry.byParty.sort((a, b) => compareParties(a.party, b.party));
   return result;

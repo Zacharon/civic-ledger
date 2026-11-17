@@ -18,14 +18,14 @@ export type Agreed = <T>(name: string, input: Json) => Promise<T>;
 async function raw(locator: Locator) {
   return JSON.parse((await locator.getAttribute('data-value')) ?? 'undefined') as unknown;
 }
-async function keyed(locator: Locator, key: string) {
+async function keyed(locator: Locator, key: string, value = 'data-value') {
   return locator.evaluateAll(
-    (nodes, attribute) =>
+    (nodes, [attribute, valueAttribute]) =>
       nodes.map((node) => [
         node.getAttribute(attribute),
-        JSON.parse(node.getAttribute('data-value') ?? 'undefined') as unknown,
+        JSON.parse(node.getAttribute(valueAttribute) ?? 'undefined') as unknown,
       ]),
-    key,
+    [key, value] as const,
   );
 }
 async function text(locator: Locator, expected: string | number | null) {
@@ -430,6 +430,17 @@ export async function checkSources(page: Page, baseUrl: string, agreed: Agreed) 
     const item = page.locator(`[data-source="${source.id}"]`);
     await expect(item.getByRole('heading')).toHaveText(source.name);
     await text(item, source.license);
+    // Check time, change time and data coverage are distinct values, each shown as given.
+    const f = source.freshness;
+    expect(await raw(item.locator('[data-checked]'))).toEqual(f.lastSuccessfulCheckAt);
+    await text(
+      item.locator('[data-checked]'),
+      formatDate(f.lastSuccessfulCheckAt) ?? 'Not yet checked',
+    );
+    expect(await raw(item.locator('[data-changed]'))).toEqual(f.lastChangedAt);
+    await text(item.locator('[data-changed]'), formatDate(f.lastChangedAt) ?? 'Never');
+    expect(await raw(item.locator('[data-covers]'))).toEqual(f.coverageThrough);
+    await text(item.locator('[data-covers]'), formatDate(f.coverageThrough) ?? 'No date');
     const counts = source.lastRun?.counts ?? {};
     const observed = await keyed(item.locator('[data-count]'), 'data-count');
     expect(Object.fromEntries(observed as [string, unknown][])).toEqual(counts);
@@ -584,8 +595,22 @@ export async function checkPolicy(page: Page, baseUrl: string, agreed: Agreed) {
         [v.tally.yea, v.tally.nay, v.rollcall.result],
       ]),
     );
+    // Reconstructed tally beside the source totals (T-C): same values as the API, and a
+    // difference is said in words, never shown as a complete count.
+    expect(await keyed(page.locator('li[data-rollcall]'), 'data-rollcall', 'data-source')).toEqual(
+      votes.items.map((v) => [
+        `${v.rollcall.chamber}.${v.rollcall.congress}.${v.rollcall.number}`,
+        [v.sourceTally.yea, v.sourceTally.nay, v.tallyCheck.status, v.ambiguousTermPositions],
+      ]),
+    );
     for (const [i, vote] of votes.items.entries()) {
       const row = page.locator('li[data-rollcall]').nth(i);
+      await text(
+        row.locator('[data-tally-check]'),
+        vote.tallyCheck.status === 'matches_source'
+          ? 'Matches the source totals'
+          : 'Differs from the source totals',
+      );
       await text(row, vote.rollcall.result);
       await text(row, `Yea ${vote.tally.yea}`);
       await text(row, `Nay ${vote.tally.nay}`);
@@ -625,10 +650,12 @@ export async function checkPolicy(page: Page, baseUrl: string, agreed: Agreed) {
           alignedPosition: 'yea',
         })),
       },
-      people: { chamber },
+      // The matrix uses vote-time membership (T-C): members who voted in this chamber then.
+      people: { chamber, basis: 'at_vote' },
       limit: 100,
       offset: 0,
     });
+    expect(matrix.peopleBasis).toBe('at_vote');
     expect(matrix.results.length).toBeGreaterThan(0);
     expect(await keyed(page.locator('tr[data-slug][data-value]'), 'data-slug')).toEqual(
       matrix.results.map((r) => [
@@ -636,16 +663,35 @@ export async function checkPolicy(page: Page, baseUrl: string, agreed: Agreed) {
         votes.items.map((_, i) => r.votes.find((v) => v.ruleIndex === i)?.position ?? null),
       ]),
     );
+    const stateOf = (r: (typeof matrix.results)[number], i: number) =>
+      r.rollcallStates.find((s) => s.ruleIndex === i)?.state ?? null;
+    expect(
+      await keyed(page.locator('tr[data-slug][data-states]'), 'data-slug', 'data-states'),
+    ).toEqual(matrix.results.map((r) => [r.person.slug, votes.items.map((_, i) => stateOf(r, i))]));
+    // Written here, not imported from the page: the visible legend and the screen-reader
+    // labels must name the API state, and absence is never "not a member".
+    const STATE_TEXT = {
+      yea: 'Yea',
+      nay: 'Nay',
+      present: 'Present',
+      not_voting: 'Not voting',
+      not_serving: 'Not serving in this chamber on the vote date',
+      unavailable: 'Serving, but no vote record stored',
+    } as const;
+    const legend = page.getByRole('list', { name: 'Legend' });
+    for (const [state, label] of Object.entries(STATE_TEXT)) {
+      await text(legend.locator(`li[data-state="${state}"]`), label);
+    }
     for (const result of matrix.results) {
       const row = page.locator(`tr[data-slug="${result.person.slug}"]`);
       await expect(row.locator('th a')).toHaveText(result.person.fullName);
       for (const [i] of votes.items.entries()) {
-        const cast = result.votes.find((v) => v.ruleIndex === i);
-        const label = cast
-          ? { yea: 'Yea', nay: 'Nay', present: 'Present', not_voting: 'Not voting' }[cast.position]
-          : 'Not a member at the time';
+        const state = stateOf(result, i);
+        if (!state) throw new Error(`${result.person.slug} has no state for R${i + 1}`);
+        const cell = row.locator('td').nth(i);
+        await expect(cell).toHaveAttribute('data-state', state);
         // Screen-reader text is an ordinary readable label, not the raw-value hook.
-        await expect(row.locator('td').nth(i).locator('.sr-only')).toHaveText(label);
+        await expect(cell.locator('.sr-only')).toHaveText(STATE_TEXT[state]);
       }
     }
   }

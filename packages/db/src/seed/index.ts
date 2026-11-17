@@ -728,6 +728,8 @@ async function loadScores(
         method: 'dw-nominate',
         dim1: p.dim1,
         dim2: p.dim2,
+        // The fictional seed models a current-format load: final estimates, not "unknown".
+        provisional: false,
         ...provenance(`nominate:${SEED_CONGRESS}:${p.icpsr}`),
       })),
     )

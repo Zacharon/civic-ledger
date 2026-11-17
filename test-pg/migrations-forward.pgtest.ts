@@ -37,7 +37,6 @@ const journal = JSON.parse(
   readFileSync(join(MIGRATIONS_FOLDER, 'meta', '_journal.json'), 'utf8'),
 ) as Journal;
 let source: MigratedDatabase;
-const closers: Array<() => Promise<void>> = [];
 
 async function client(url: string): Promise<pg.Client> {
   const c = new pg.Client({ connectionString: url });
@@ -71,12 +70,17 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  for (const close of closers.reverse()) await close().catch(() => undefined);
   await source?.cleanup();
 });
 
-/** A database migrated to the first `count` journal entries. */
-async function databaseAtVersion(count: number): Promise<{ db: TestDatabase; handle: DbHandle }> {
+/**
+ * A database migrated to the first `count` journal entries. The caller closes it: each
+ * version's databases are released by its own test, so adding a migration never raises the
+ * suite's peak connection count (Postgres refuses past `max_connections`).
+ */
+async function databaseAtVersion(
+  count: number,
+): Promise<{ db: TestDatabase; handle: DbHandle; close: () => Promise<void> }> {
   const folder = await mkdtemp(join(tmpdir(), 'civic-migrations-'));
   await cp(MIGRATIONS_FOLDER, folder, { recursive: true });
   await writeFile(
@@ -85,13 +89,18 @@ async function databaseAtVersion(count: number): Promise<{ db: TestDatabase; han
   );
   const db = await createTestDatabase();
   const handle = createDb({ kind: 'pg', url: db.url, poolMax: 4 });
-  closers.push(async () => {
+  const close = async () => {
     await handle.close();
     await db.drop();
-  });
-  if (handle.kind !== 'pg') throw new Error('expected pg');
-  await migrate(handle.db, { migrationsFolder: folder });
-  return { db, handle };
+  };
+  try {
+    if (handle.kind !== 'pg') throw new Error('expected pg');
+    await migrate(handle.db, { migrationsFolder: folder });
+  } catch (error) {
+    await close().catch(() => undefined);
+    throw error;
+  }
+  return { db, handle, close };
 }
 
 type Columns = Map<string, string[]>;
@@ -264,36 +273,41 @@ describe('forward migrations over a realistic dataset at every earlier version',
     'upgrading from $tag preserves rows, cards and every capability answer',
     async ({ count }) => {
       const old = await databaseAtVersion(count);
-      const oldColumns = await tableColumns(old.db.url);
-      const loaded = await copyData(old.db.url, oldColumns);
-      const readableBefore = await readableColumns(old.db.url);
+      let reference: MigratedDatabase | undefined;
+      try {
+        const oldColumns = await tableColumns(old.db.url);
+        const loaded = await copyData(old.db.url, oldColumns);
+        const readableBefore = await readableColumns(old.db.url);
 
-      await runMigrations(old.handle);
-      await refreshPersonCard(old.handle.db);
+        await runMigrations(old.handle);
+        await refreshPersonCard(old.handle.db);
 
-      // The same data (same columns: nothing the old schema could not hold) loaded at latest.
-      const reference = await migratedDatabase();
-      closers.push(() => reference.cleanup());
-      await copyData(reference.database.url, oldColumns);
-      await refreshPersonCard(reference.handle.db);
+        // The same data (same columns: nothing the old schema could not hold) loaded at latest.
+        reference = await migratedDatabase();
+        await copyData(reference.database.url, oldColumns);
+        await refreshPersonCard(reference.handle.db);
 
-      expect(await counts(old.db.url, loaded.keys())).toEqual(loaded);
-      expect(loaded.get('person')).toBeGreaterThan(30);
-      expect(loaded.get('vote_position')).toBeGreaterThan(100);
-      expect(await personCard(old.db.url)).toEqual(await personCard(reference.database.url));
-      const upgraded = await answers(old.handle);
-      expect(upgraded).toEqual(await answers(reference.handle));
-      // Not vacuous: the answers carry money and votes.
-      const table = upgraded['explore.table'] as { rows: Array<{ totalReceiptsCents: unknown }> };
-      expect(table.rows.filter((r) => r.totalReceiptsCents !== null).length).toBeGreaterThan(10);
-      expect((upgraded['votes.list'] as { items: unknown[] }).items.length).toBeGreaterThan(10);
+        expect(await counts(old.db.url, loaded.keys())).toEqual(loaded);
+        expect(loaded.get('person')).toBeGreaterThan(30);
+        expect(loaded.get('vote_position')).toBeGreaterThan(100);
+        expect(await personCard(old.db.url)).toEqual(await personCard(reference.database.url));
+        const upgraded = await answers(old.handle);
+        expect(upgraded).toEqual(await answers(reference.handle));
+        // Not vacuous: the answers carry money and votes.
+        const table = upgraded['explore.table'] as { rows: Array<{ totalReceiptsCents: unknown }> };
+        expect(table.rows.filter((r) => r.totalReceiptsCents !== null).length).toBeGreaterThan(10);
+        expect((upgraded['votes.list'] as { items: unknown[] }).items.length).toBeGreaterThan(10);
 
-      // Expand-only: what the previous app could read still exists with the same type.
-      const readableAfter = await readableColumns(old.db.url);
-      const broken = [...readableBefore]
-        .filter(([key, type]) => readableAfter.get(key) !== type)
-        .map(([key, type]) => `${key} ${type} -> ${readableAfter.get(key) ?? 'missing'}`);
-      expect(broken).toEqual([]);
+        // Expand-only: what the previous app could read still exists with the same type.
+        const readableAfter = await readableColumns(old.db.url);
+        const broken = [...readableBefore]
+          .filter(([key, type]) => readableAfter.get(key) !== type)
+          .map(([key, type]) => `${key} ${type} -> ${readableAfter.get(key) ?? 'missing'}`);
+        expect(broken).toEqual([]);
+      } finally {
+        await reference?.cleanup().catch(() => undefined);
+        await old.close().catch(() => undefined);
+      }
     },
   );
 });

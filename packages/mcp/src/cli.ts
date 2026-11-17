@@ -1,5 +1,12 @@
 import { resolve } from 'node:path';
-import { createDb, type DbConfig, dbConfigFromEnv, dispatchByName } from '@civic-ledger/core';
+import {
+  attestReadOnlyCredentials,
+  createDb,
+  type DbConfig,
+  dbConfigFromEnv,
+  dispatchByName,
+  type ReadOnlyAttestation,
+} from '@civic-ledger/core';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createMcpServer, SERVER_NAME } from './server';
 
@@ -8,10 +15,15 @@ const USAGE = `Usage: pnpm --filter @civic-ledger/mcp start [--pglite <dir>]
 Runs the Civic Ledger MCP server over stdio (read-only tools).
 Database: --pglite <dir>, else DATABASE_URL_READONLY (Postgres), else .pglite/dev.
 Development also falls back to DATABASE_URL. With NODE_ENV=production it refuses to start
-without DATABASE_URL_READONLY unless DB_ALLOW_OWNER_CREDENTIALS=1.
+without DATABASE_URL_READONLY, or when that login can write (checked against the database),
+unless DB_ALLOW_OWNER_CREDENTIALS=1.
 Logs are JSON lines on stderr; stdout carries the protocol and nothing else.`;
 
-function log(level: 'info' | 'error', message: string, extra: Record<string, unknown> = {}): void {
+function log(
+  level: 'info' | 'warn' | 'error',
+  message: string,
+  extra: Record<string, unknown> = {},
+): void {
   const line = { level, time: new Date().toISOString(), name: SERVER_NAME, message, ...extra };
   process.stderr.write(`${JSON.stringify(line)}\n`);
 }
@@ -39,12 +51,31 @@ function parseConfig(argv: string[]): DbConfig | undefined {
     : config;
 }
 
+/**
+ * A61 attestation: what the read-only login can really do. Refused (production, writable,
+ * unacknowledged) or unverifiable stops startup; a warning is logged. Codes only, no URL.
+ */
+async function attestCredentials(config: DbConfig): Promise<void> {
+  const attestation: ReadOnlyAttestation = await attestReadOnlyCredentials(config, process.env);
+  if (attestation.action === 'skipped') return;
+  if (attestation.action === 'unverified') {
+    throw new Error(
+      'database is not ready: the read-only credentials could not be verified' +
+        (attestation.code ? ` (${attestation.code})` : ''),
+    );
+  }
+  const fields = { problems: attestation.problems, warnings: attestation.warnings };
+  if (attestation.action === 'refuse') throw new Error(attestation.message);
+  log(attestation.action === 'warn' ? 'warn' : 'info', attestation.message, fields);
+}
+
 async function main(): Promise<void> {
   const config = parseConfig(process.argv.slice(2));
   if (!config) {
     process.stderr.write(`${USAGE}\n`);
     return;
   }
+  await attestCredentials(config);
   const handle = createDb(config);
   // Fail at startup, not on the first tool call, when the database is empty or unreachable.
   try {

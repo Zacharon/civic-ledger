@@ -1,9 +1,17 @@
 import { type IngestRunReceipt, type SourceId, SourceIdSchema } from '@civic-ledger/core';
-import { conflictUpdateSet, type Db, ingestRun, personCard, source } from '@civic-ledger/db';
+import {
+  conflictUpdateSet,
+  type Db,
+  ingestCheck,
+  ingestRun,
+  personCard,
+  source,
+} from '@civic-ledger/db';
 import { and, desc, eq, inArray, max } from 'drizzle-orm';
 import type { SourceInfo } from '../adapter';
 
 type RunRow = typeof ingestRun.$inferSelect;
+type CheckRow = typeof ingestCheck.$inferSelect;
 
 /** The `source` row is the Sources page entry: terms and description per source. */
 export async function ensureSource(db: Db, info: SourceInfo): Promise<void> {
@@ -127,6 +135,41 @@ export async function deleteRun(db: Db, id: number): Promise<void> {
   await db.delete(ingestRun).where(eq(ingestRun.id, id));
 }
 
+/**
+ * A deduplicated fetch (migration 0009): records that upstream was checked and still
+ * matches the publication `publication`, and drops the attempt's provisional run row, in
+ * one transaction. The publication receipt itself is never rewritten.
+ */
+export async function recordUnchangedCheck(
+  db: Db,
+  values: {
+    provisionalRunId: number;
+    publication: RunRow;
+    scope: string;
+    adapterVersion: string;
+    snapshotChecksum: string;
+    startedAt: Date;
+  },
+): Promise<CheckRow> {
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(ingestCheck)
+      .values({
+        sourceId: values.publication.sourceId,
+        scope: values.scope,
+        adapterVersion: values.adapterVersion,
+        outcome: 'unchanged',
+        snapshotChecksum: values.snapshotChecksum,
+        publicationRunId: values.publication.id,
+        startedAt: values.startedAt,
+      })
+      .returning();
+    if (!row) throw new Error('Could not create the ingest_check row');
+    await tx.delete(ingestRun).where(eq(ingestRun.id, values.provisionalRunId));
+    return row;
+  });
+}
+
 /** Latest successful run id per source (null when a source never succeeded). */
 export async function latestSucceededRunIds(
   db: Db,
@@ -148,7 +191,16 @@ export async function readModelRefreshedAt(db: Db): Promise<Date | null> {
   return row?.at ?? null;
 }
 
-export function toReceipt(row: RunRow, deduplicated: boolean): IngestRunReceipt {
+/**
+ * The receipt of `row`. `check` is the unchanged check a deduplicated fetch just recorded
+ * (null when the run was not deduplicated, or was deduplicated from a `--snapshot` reload,
+ * which is not an upstream check).
+ */
+export function toReceipt(
+  row: RunRow,
+  deduplicated: boolean,
+  check: CheckRow | null = null,
+): IngestRunReceipt {
   return {
     runId: row.id,
     operation: 'ingest.run',
@@ -167,5 +219,7 @@ export function toReceipt(row: RunRow, deduplicated: boolean): IngestRunReceipt 
     error: row.error,
     note: row.note,
     replayOf: row.replayOf,
+    snapshotLocator: row.snapshotLocator,
+    check: check ? { id: check.id, checkedAt: check.checkedAt.toISOString() } : null,
   };
 }

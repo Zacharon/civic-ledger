@@ -413,6 +413,10 @@ function Results({
           Show members
         </button>
       </form>
+      <p className="mt-2 text-xs text-ink-3" data-people-basis={evaluation.peopleBasis}>
+        Chamber, state and party select members by their current seat and party; each member’s votes
+        on these roll calls are counted whenever they were cast.
+      </p>
 
       <h3 className="mt-6 font-semibold">
         Members{' '}

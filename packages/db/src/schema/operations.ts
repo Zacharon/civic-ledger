@@ -41,9 +41,47 @@ export const ingestRun = pgTable(
     note: text('note'),
     /** `--force-replay`: the earlier successful run whose snapshot this run reloaded. */
     replayOf: integer('replay_of'),
+    /**
+     * Where this run's raw evidence lives: a path relative to the raw root for an immutable
+     * fetched snapshot, or the absolute directory given with `--snapshot`. Null on runs that
+     * predate migration 0009 (their evidence, if retained, is in the legacy
+     * `<source>/<YYYY-MM-DD>` directory, which a later same-day run could overwrite).
+     */
+    snapshotLocator: text('snapshot_locator'),
   },
   (t) => [
     index('ingest_run_source_started_idx').on(t.sourceId, t.startedAt),
     index('ingest_run_dedupe_idx').on(t.sourceId, t.adapterVersion, t.snapshotChecksum),
+  ],
+);
+
+/**
+ * A successful upstream check that found the current publication unchanged (its key equals
+ * the latest successful run of the scope). The publication receipt stays immutable; this
+ * row records that the source was validated again (migration 0009). Changed publications
+ * and failed attempts remain `ingest_run` rows.
+ */
+export const ingestCheck = pgTable(
+  'ingest_check',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    sourceId: text('source_id')
+      .notNull()
+      .references(() => source.id),
+    scope: text('scope').notNull(),
+    adapterVersion: text('adapter_version').notNull(),
+    /** Only `unchanged` is written today. */
+    outcome: text('outcome').notNull().default('unchanged'),
+    snapshotChecksum: text('snapshot_checksum').notNull(),
+    /** The publication this check confirmed (the current generation of the scope). */
+    publicationRunId: integer('publication_run_id')
+      .notNull()
+      .references(() => ingestRun.id),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+    checkedAt: timestamp('checked_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('ingest_check_source_scope_idx').on(t.sourceId, t.scope, t.checkedAt),
+    index('ingest_check_publication_run_idx').on(t.publicationRunId),
   ],
 );

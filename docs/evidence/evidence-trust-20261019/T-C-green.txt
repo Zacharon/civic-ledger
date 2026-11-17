@@ -1,0 +1,33 @@
+
+ RUN  v5.0.4 <worktree>
+
+
+ Test Files  10 passed (10)
+      Tests  102 passed (102)
+   Start at  02:04:56
+   Duration  70.79s (tests 65%, import 33%, transform 1%)
+
+exit=0
+
+--- verbose: regression files ---
+
+ RUN  v5.0.4 <worktree>
+
+ ✓ apps/web/test/policy-member-states.test.ts > policy matrix member states > covers every API state, in API order, with nothing extra 5ms
+ ✓ apps/web/test/policy-member-states.test.ts > policy matrix member states > gives each state a distinct label and glyph 1ms
+ ✓ apps/web/test/policy-member-states.test.ts > policy matrix member states > labels recorded positions as everywhere else and never reads absence as non-membership 1ms
+ ✓ packages/core/test/vote-membership.test.ts > vote-time membership (T-C) > 1: a serving member with no stored record reads "unavailable", not non-membership 69ms
+ ✓ packages/core/test/vote-membership.test.ts > vote-time membership (T-C) > 2: a House -> Senate mover keeps historical House votes on the vote-time basis 47ms
+ ✓ packages/core/test/vote-membership.test.ts > vote-time membership (T-C) > 3: a party changer is grouped by the party held on the vote date 135ms
+ ✓ packages/core/test/vote-membership.test.ts > vote-time membership (T-C) > 4: two overlapping terms and one yea count one yea and flag the ambiguity 69ms
+ ✓ packages/core/test/vote-membership.test.ts > vote-time membership (T-C) > 5: reconstructed tallies are reported beside the source totals 23ms
+ ✓ packages/core/test/vote-membership.test.ts > vote-time membership (T-C) > 6: every state value the API can return is one documented enum 73ms
+ ✓ packages/core/test/vote-membership.test.ts > v1 compatibility on the seed (T-C) > without filters both bases score the same people and votes; states agree with votes 243ms
+ ✓ packages/core/test/vote-membership.test.ts > v1 compatibility on the seed (T-C) > seed tallies reconcile with the seeded source totals 54ms
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  02:06:31
+   Duration  15.85s (tests 56%, import 36%, transform 8%)
+
+exit=0

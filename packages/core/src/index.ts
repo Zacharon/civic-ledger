@@ -1,11 +1,15 @@
 // Database access for adapters goes through these re-exports so apps depend only on core.
 export {
+  attestReadOnlyCredentials,
   createDb,
+  createReadOnlyGate,
   type Db,
   type DbConfig,
   type DbHandle,
   dbConfigFromEnv,
   defaultPgliteDir,
+  type ReadOnlyAttestation,
+  ReadOnlyCredentialsError,
 } from '@civic-ledger/db';
 
 export * from './capabilities/attendance';

@@ -97,9 +97,11 @@ describe('raw snapshot manifest schema version (H3-08)', () => {
     await ingestFixture(rt, 'congress-legislators');
     const receipt = await runIngest({ source: 'voteview', scope: SCOPES.voteview }, rt);
     expect(receipt.status).toBe('succeeded');
-    const day = new Date().toISOString().slice(0, 10);
+    // Each fetched snapshot is retained in its own directory, named by the run's locator.
+    const locator = receipt.snapshotLocator ?? '';
+    expect(locator.startsWith(`voteview/${new Date().toISOString().slice(0, 10)}/`)).toBe(true);
     const manifest = JSON.parse(
-      await readFile(join(rt.rawRoot, 'voteview', day, MANIFEST_FILE), 'utf8'),
+      await readFile(join(rt.rawRoot, ...locator.split('/'), MANIFEST_FILE), 'utf8'),
     );
     expect(manifest.schema_version).toBe(1);
   });

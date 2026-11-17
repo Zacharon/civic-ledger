@@ -1,7 +1,7 @@
 import { CapabilityError } from '@civic-ledger/core';
 import type { ApiConfig, RuleName } from './config';
 import { errorResponse } from './http';
-import type { Logger } from './logger';
+import { type Logger, logSafely } from './logger';
 import { clientIp, type RateLimiter } from './rate-limit';
 import { RATE_LIMIT_IDENTITY_MESSAGE, rateLimitIdentityProblem } from './rate-limit-identity';
 import { requestIdFrom } from './request-id';
@@ -58,7 +58,7 @@ let warnedSharedBucket = false;
  */
 export function createGuard({ limiter, config, logger }: GuardDeps): Guard {
   const problem = rateLimitIdentityProblem(config);
-  if (problem) logger.error({ problem }, RATE_LIMIT_IDENTITY_MESSAGE);
+  if (problem) logSafely(() => logger.error({ problem }, RATE_LIMIT_IDENTITY_MESSAGE));
 
   return {
     async check(request) {
@@ -85,14 +85,18 @@ export function createGuard({ limiter, config, logger }: GuardDeps): Guard {
 
       if (!config.trustedProxyHeader && !warnedSharedBucket) {
         warnedSharedBucket = true;
-        logger.warn('TRUSTED_PROXY_HEADER is unset: all callers share one rate-limit bucket');
+        logSafely(() =>
+          logger.warn('TRUSTED_PROXY_HEADER is unset: all callers share one rate-limit bucket'),
+        );
       }
       const ip = clientIp(request.headers, config);
       const rule = ruleFor(pathname);
       const decision = await limiter.take(`${rule}:${ip}`, config.rules[rule]);
 
       if (!decision.allowed) {
-        logger.warn({ requestId, rule, path: pathname, status: 429 }, 'rate limited');
+        logSafely(() =>
+          logger.warn({ requestId, rule, path: pathname, status: 429 }, 'rate limited'),
+        );
         if (rule === 'page') {
           return {
             kind: 'block',

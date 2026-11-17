@@ -3,15 +3,23 @@ import {
   type Db,
   framework,
   frameworkRule,
+  person,
   personCard,
   rollcall,
   rollcallBill,
   votePosition,
 } from '@civic-ledger/db';
-import { and, asc, eq, inArray, or } from 'drizzle-orm';
+import { and, asc, eq, inArray, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { defineCapability } from '../capability';
-import { type RollcallClaim, scoreVotes } from '../frameworks/score';
+import {
+  ambiguousTerm,
+  MEMBER_VOTE_STATES,
+  memberVoteState,
+  servingInChamber,
+  voteTimeTerm,
+} from '../frameworks/membership';
+import { type CastVote, type RollcallClaim, scoreVotes } from '../frameworks/score';
 import {
   BillTypeSchema,
   FrameworkRuleSchema,
@@ -137,6 +145,11 @@ const UNRESOLVED_REASONS = [
   'duplicate_rollcall',
 ] as const;
 
+export { MEMBER_VOTE_STATES, type MemberVoteState } from '../frameworks/membership';
+export const MemberVoteStateSchema = z.enum(MEMBER_VOTE_STATES);
+
+const PEOPLE_BASES = ['current', 'at_vote'] as const;
+
 export const FrameworksEvaluateInput = z.strictObject({
   framework: FrameworkSpecSchema,
   people: z
@@ -145,8 +158,14 @@ export const FrameworksEvaluateInput = z.strictObject({
       chamber: ChamberSchema.optional(),
       state: StateCodeSchema.optional(),
       party: PartySchema.optional(),
+      basis: z
+        .enum(PEOPLE_BASES)
+        .default('current')
+        .describe(
+          "What chamber/state/party are matched against. 'current' (default, v1): the person's latest term, i.e. people currently in that chamber/state/party, with all their votes. 'at_vote': the term covering each rollcall's vote date; a vote is kept only if cast while in that chamber/state/party (historical membership).",
+        ),
     })
-    .default({})
+    .default({ basis: 'current' })
     .describe('Who to score; default everyone with a recorded vote on a resolved rollcall'),
   limit: z.int().min(1).max(600).default(100),
   offset: z.int().min(0).default(0),
@@ -162,6 +181,9 @@ const RollcallKeySchema = RollcallRefSchema.pick({
 
 export const FrameworksEvaluateOutput = z.object({
   framework: z.object({ title: z.string(), ruleCount: z.int() }),
+  peopleBasis: z
+    .enum(PEOPLE_BASES)
+    .describe('The basis the people filters were applied on (input `people.basis`)'),
   rules: z.array(
     z.object({
       ruleIndex: z.int(),
@@ -191,6 +213,26 @@ export const FrameworksEvaluateOutput = z.object({
           aligned: z.boolean().nullable(),
         }),
       ),
+      rollcallStates: z
+        .array(
+          z.object({
+            ruleIndex: z.int(),
+            rollcall: RollcallKeySchema,
+            state: MemberVoteStateSchema.describe(
+              'The stored position; with none stored, not_serving (no term in an office of the rollcall chamber covers the vote date) or unavailable (serving per the terms, but no stored record)',
+            ),
+            partyAtVote: z
+              .string()
+              .nullable()
+              .describe(
+                'Party on the term covering the vote date; `person.party` is the current (latest-term) party',
+              ),
+            ambiguousTerm: z
+              .boolean()
+              .describe('More than one term covers the vote date; the latest-starting one is used'),
+          }),
+        )
+        .describe('One entry per resolved rollcall in rule order, including those with no vote'),
     }),
   ),
   ...PageSchema,
@@ -214,27 +256,11 @@ export const frameworksEvaluate = defineCapability({
       title: input.framework.title,
       ruleCount: input.framework.rules.length,
     };
+    const peopleBasis = input.people.basis;
     if (claims.size === 0)
-      return { framework: frameworkSummary, rules, results: [], total: 0, ...page };
+      return { framework: frameworkSummary, peopleBasis, rules, results: [], total: 0, ...page };
 
-    const { slugs, chamber, state, party } = input.people;
-    const votes = await db
-      .select({
-        personId: votePosition.personId,
-        rollcallId: votePosition.rollcallId,
-        position: votePosition.position,
-      })
-      .from(votePosition)
-      .innerJoin(personCard, eq(personCard.personId, votePosition.personId))
-      .where(
-        and(
-          inArray(votePosition.rollcallId, [...claims.keys()]),
-          slugs ? inArray(personCard.slug, slugs) : undefined,
-          chamber ? eq(personCard.chamber, chamber) : undefined,
-          state ? eq(personCard.state, state) : undefined,
-          party ? eq(personCard.party, party) : undefined,
-        ),
-      );
+    const votes = await castVotes(db, [...claims.keys()], input.people);
     const scores = scoreVotes(claims, votes);
     const people =
       scores.size === 0
@@ -245,27 +271,137 @@ export const frameworksEvaluate = defineCapability({
             .where(inArray(personCard.personId, [...scores.keys()]))
             .orderBy(asc(personCard.state), asc(personCard.sortName), asc(personCard.personId));
 
-    const results = people
-      .slice(input.offset, input.offset + input.limit)
-      .flatMap(({ personId, ...person }) => {
-        const score = scores.get(personId);
-        if (!score) return [];
-        const { votes: cast, ...counts } = score;
-        return [
-          {
-            person,
-            ...counts,
-            alignmentRate: counts.considered > 0 ? counts.aligned / counts.considered : null,
-            votes: cast.flatMap(({ rollcallId, ...v }) => {
-              const rollcallKey = rollcallKeys.get(rollcallId);
-              return rollcallKey ? [{ ...v, rollcall: rollcallKey }] : [];
-            }),
-          },
-        ];
-      });
-    return { framework: frameworkSummary, rules, results, total: people.length, ...page };
+    const pagePeople = people.slice(input.offset, input.offset + input.limit);
+    const states = await rollcallStates(
+      db,
+      [...claims.keys()],
+      pagePeople.map((p) => p.personId),
+    );
+    const claimOrder = [...claims.entries()]
+      .map(([rollcallId, claim]) => ({ rollcallId, ruleIndex: claim.ruleIndex }))
+      .sort((a, b) => a.ruleIndex - b.ruleIndex || a.rollcallId - b.rollcallId);
+    const results = pagePeople.flatMap(({ personId, ...summary }) => {
+      const score = scores.get(personId);
+      if (!score) return [];
+      const { votes: cast, ...counts } = score;
+      return [
+        {
+          person: summary,
+          ...counts,
+          alignmentRate: counts.considered > 0 ? counts.aligned / counts.considered : null,
+          votes: cast.flatMap(({ rollcallId, ...v }) => {
+            const rollcallKey = rollcallKeys.get(rollcallId);
+            return rollcallKey ? [{ ...v, rollcall: rollcallKey }] : [];
+          }),
+          rollcallStates: claimOrder.flatMap(({ rollcallId, ruleIndex }) => {
+            const rollcallKey = rollcallKeys.get(rollcallId);
+            if (!rollcallKey) return [];
+            const found = states.get(`${personId}:${rollcallId}`);
+            return [
+              {
+                ruleIndex,
+                rollcall: rollcallKey,
+                state: memberVoteState(found?.position ?? null, found?.serving ?? false),
+                partyAtVote: found?.party ?? null,
+                ambiguousTerm: found?.ambiguous ?? false,
+              },
+            ];
+          }),
+        },
+      ];
+    });
+    return {
+      framework: frameworkSummary,
+      peopleBasis,
+      rules,
+      results,
+      total: people.length,
+      ...page,
+    };
   },
 });
+
+type PeopleFilter = z.output<typeof FrameworksEvaluateInput>['people'];
+
+/**
+ * Stored votes on the claimed rollcalls for the people the filter selects. On the
+ * 'current' basis chamber/state/party match the person card (latest term, v1); on
+ * 'at_vote' they match the term covering each rollcall's vote date (`voteTimeTerm`).
+ */
+async function castVotes(db: Db, rollcallIds: number[], filter: PeopleFilter): Promise<CastVote[]> {
+  const { slugs, chamber, state, party, basis } = filter;
+  const fields = {
+    personId: votePosition.personId,
+    rollcallId: votePosition.rollcallId,
+    position: votePosition.position,
+  };
+  if (basis === 'current') {
+    return db
+      .select(fields)
+      .from(votePosition)
+      .innerJoin(personCard, eq(personCard.personId, votePosition.personId))
+      .where(
+        and(
+          inArray(votePosition.rollcallId, rollcallIds),
+          slugs ? inArray(personCard.slug, slugs) : undefined,
+          chamber ? eq(personCard.chamber, chamber) : undefined,
+          state ? eq(personCard.state, state) : undefined,
+          party ? eq(personCard.party, party) : undefined,
+        ),
+      );
+  }
+  const vt = voteTimeTerm(db, votePosition.personId);
+  return db
+    .select(fields)
+    .from(votePosition)
+    .innerJoin(personCard, eq(personCard.personId, votePosition.personId))
+    .innerJoin(rollcall, eq(rollcall.id, votePosition.rollcallId))
+    .leftJoinLateral(vt, sql`true`)
+    .where(
+      and(
+        inArray(votePosition.rollcallId, rollcallIds),
+        slugs ? inArray(personCard.slug, slugs) : undefined,
+        chamber ? eq(vt.chamber, chamber) : undefined,
+        state ? eq(vt.state, state) : undefined,
+        party ? eq(vt.party, party) : undefined,
+      ),
+    );
+}
+
+/** Every (person, rollcall) pair on the page, voted or not, with its vote-time term facts. */
+async function rollcallStates(db: Db, rollcallIds: number[], personIds: number[]) {
+  const result = new Map<
+    string,
+    {
+      position: CastVote['position'] | null;
+      serving: boolean;
+      party: string | null;
+      ambiguous: boolean;
+    }
+  >();
+  if (personIds.length === 0) return result;
+  const vt = voteTimeTerm(db, person.id);
+  const rows = await db
+    .select({
+      personId: person.id,
+      rollcallId: rollcall.id,
+      position: votePosition.position,
+      party: vt.party,
+      serving: servingInChamber(vt),
+      ambiguous: ambiguousTerm(vt),
+    })
+    .from(rollcall)
+    .innerJoin(person, inArray(person.id, personIds))
+    .leftJoin(
+      votePosition,
+      and(eq(votePosition.rollcallId, rollcall.id), eq(votePosition.personId, person.id)),
+    )
+    .leftJoinLateral(vt, sql`true`)
+    .where(inArray(rollcall.id, rollcallIds));
+  for (const { personId, rollcallId, ...facts } of rows)
+    result.set(`${personId}:${rollcallId}`, facts);
+  return result;
+}
 
 /**
  * Resolves rule targets to rollcalls. A rollcall is claimed by the first rule that
