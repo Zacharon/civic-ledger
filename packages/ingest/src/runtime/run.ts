@@ -187,7 +187,7 @@ export async function runIngest(rawInput: unknown, rt: IngestRuntime): Promise<I
             // Same bytes are already retained under the publication's locator.
             await discardStagedSnapshot(rt.rawRoot, pending);
           } else {
-            // The publication predates 0006 (or lost its evidence): keep this copy.
+            // The publication predates 0009 (or lost its evidence): keep this copy.
             const kept = await finalizeSnapshot(rt.rawRoot, pending, `check-${check.id}`);
             log.warn(
               { checkId: check.id, locator: kept.locator },

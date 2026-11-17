@@ -88,7 +88,7 @@ export const IngestRunReceiptSchema = z.object({
   /**
    * Where the run's raw evidence is retained (migration 0009): relative to the raw root
    * for a fetched snapshot (`<source>/<YYYY-MM-DD>/<runId>-<checksum first 12>`), or the
-   * absolute `--snapshot` directory. Null for runs that predate 0006 or failed before
+   * absolute `--snapshot` directory. Null for runs that predate 0009 or failed before
    * their snapshot was complete.
    */
   snapshotLocator: z.string().nullable(),

@@ -44,7 +44,7 @@ export const ingestRun = pgTable(
     /**
      * Where this run's raw evidence lives: a path relative to the raw root for an immutable
      * fetched snapshot, or the absolute directory given with `--snapshot`. Null on runs that
-     * predate migration 0006 (their evidence, if retained, is in the legacy
+     * predate migration 0009 (their evidence, if retained, is in the legacy
      * `<source>/<YYYY-MM-DD>` directory, which a later same-day run could overwrite).
      */
     snapshotLocator: text('snapshot_locator'),
@@ -58,7 +58,7 @@ export const ingestRun = pgTable(
 /**
  * A successful upstream check that found the current publication unchanged (its key equals
  * the latest successful run of the scope). The publication receipt stays immutable; this
- * row records that the source was validated again (migration 0006). Changed publications
+ * row records that the source was validated again (migration 0009). Changed publications
  * and failed attempts remain `ingest_run` rows.
  */
 export const ingestCheck = pgTable(

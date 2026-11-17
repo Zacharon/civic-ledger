@@ -13,6 +13,9 @@ branch's own `0006` cannot be upgraded: drizzle skips every migration older than
 and the renumbered file then fails (`type "portrait_variant" already exists`, `relation
 "candidate_id_seq" already exists`). Recreate such a database (`pnpm db:migrate` on an empty one, then
 ingest). A district-map branch database upgrades normally. Databases at `0005` or earlier are unaffected.
+`0009_evidence_checks_provisional` was the evidence-trust branch's own `0006`, renumbered when it was
+merged after `0006`-`0008` (2026-11-17). A database that ran that branch's `0006` has the same problem
+(`relation "ingest_check" already exists`); recreate it the same way. Databases at `0008` upgrade normally.
 
 | Migration | Change | Rollback note |
 |---|---|---|

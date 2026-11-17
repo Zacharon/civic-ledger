@@ -136,7 +136,7 @@ export async function deleteRun(db: Db, id: number): Promise<void> {
 }
 
 /**
- * A deduplicated fetch (migration 0006): records that upstream was checked and still
+ * A deduplicated fetch (migration 0009): records that upstream was checked and still
  * matches the publication `publication`, and drops the attempt's provisional run row, in
  * one transaction. The publication receipt itself is never rewritten.
  */

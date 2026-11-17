@@ -216,7 +216,10 @@ export default async function PolicyAreaPage({
                 {STATE_LEGEND.map((state) => (
                   <li key={state} data-state={state} className="inline-flex items-center gap-1.5">
                     {state === 'not_serving' || state === 'unavailable' ? (
-                      <span aria-hidden="true" className="num inline-block w-4 text-center text-ink-3">
+                      <span
+                        aria-hidden="true"
+                        className="num inline-block w-4 text-center text-ink-3"
+                      >
                         {STATE_GLYPH[state]}
                       </span>
                     ) : (

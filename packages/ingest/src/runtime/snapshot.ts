@@ -103,39 +103,25 @@ export async function stageSnapshot(
   await mkdir(directory, { recursive: true });
   try {
     const limit = pLimit(plan.concurrency ?? DOWNLOAD_CONCURRENCY);
-    const files = await Promise.all(
+    // After the first failure, queued requests are skipped and the ones in flight are left
+    // to settle before the staging directory is removed: removing it under a download that
+    // is still writing fails (EBUSY on Windows) or races it.
+    let failure: { error: unknown } | undefined;
+    const settled = await Promise.allSettled(
       plan.requests.map((request) =>
         limit(async (): Promise<SnapshotFile> => {
-          const targetPath = join(directory, request.fileName);
-          if (request.localPath) {
-            await mkdir(dirname(targetPath), { recursive: true });
-            await copyFile(request.localPath, targetPath);
-            return { fileName: request.fileName, ...(await hashFile(targetPath, ctx.signal)) };
+          if (failure) throw failure.error;
+          try {
+            return await fetchOne(request);
+          } catch (error) {
+            failure ??= { error };
+            throw error;
           }
-          if (!request.url) throw new Error(`Fetch request ${request.fileName} has no url`);
-          const file = await downloadToFile(
-            {
-              url: request.url,
-              targetPath,
-              cachePath,
-              cacheBodyDir,
-              timeoutMs: request.timeoutMs,
-              browserLike: request.browserLike,
-              headers: request.headers,
-              signal: ctx.signal,
-              logger: ctx.logger,
-              gitBlob: request.gitBlob,
-              maxBytes:
-                request.maxBytes === undefined
-                  ? ctx.maxDownloadBytes
-                  : Math.min(request.maxBytes, ctx.maxDownloadBytes ?? request.maxBytes),
-            },
-            http,
-          );
-          return { fileName: request.fileName, sha256: file.sha256, bytes: file.bytes };
         }),
       ),
     );
+    if (failure) throw failure.error;
+    const files = settled.map((r) => (r as PromiseFulfilledResult<SnapshotFile>).value);
     const snapshot: RawSnapshot = {
       source: plan.source,
       directory,
@@ -148,8 +134,41 @@ export async function stageSnapshot(
     await writeManifest(snapshot, plan, runId);
     return snapshot;
   } catch (error) {
-    await rm(directory, { recursive: true, force: true });
+    // The original error is what the run reports; a failed cleanup is only logged.
+    await rm(directory, { recursive: true, force: true }).catch((cleanup: unknown) =>
+      ctx.logger?.warn({ err: cleanup, directory }, 'could not remove the staging directory'),
+    );
     throw error;
+  }
+
+  async function fetchOne(request: FetchPlan['requests'][number]): Promise<SnapshotFile> {
+    const targetPath = join(directory, request.fileName);
+    if (request.localPath) {
+      await mkdir(dirname(targetPath), { recursive: true });
+      await copyFile(request.localPath, targetPath);
+      return { fileName: request.fileName, ...(await hashFile(targetPath, ctx.signal)) };
+    }
+    if (!request.url) throw new Error(`Fetch request ${request.fileName} has no url`);
+    const file = await downloadToFile(
+      {
+        url: request.url,
+        targetPath,
+        cachePath,
+        cacheBodyDir,
+        timeoutMs: request.timeoutMs,
+        browserLike: request.browserLike,
+        headers: request.headers,
+        signal: ctx.signal,
+        logger: ctx.logger,
+        gitBlob: request.gitBlob,
+        maxBytes:
+          request.maxBytes === undefined
+            ? ctx.maxDownloadBytes
+            : Math.min(request.maxBytes, ctx.maxDownloadBytes ?? request.maxBytes),
+      },
+      http,
+    );
+    return { fileName: request.fileName, sha256: file.sha256, bytes: file.bytes };
   }
 }
 

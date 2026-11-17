@@ -257,7 +257,7 @@ describe('Voteview reconciliation (F3)', () => {
     expect(stored.length).toBe(7);
     for (const s of stored) expect(s.provisional, s.bioguide).toBe(s.bioguide === 'B001282');
 
-    // A row loaded before migration 0006 has no stated status.
+    // A row loaded before migration 0009 has no stated status.
     await handle.db.execute(sql`
       update ideology_score set provisional = null
       where person_id = (select person_id from person_identifier where scheme = 'bioguide' and value = 'N000147')`);

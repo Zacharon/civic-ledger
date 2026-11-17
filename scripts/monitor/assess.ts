@@ -13,7 +13,7 @@ export interface Run {
   startedAt: string;
   finishedAt: string | null;
 }
-/** Attempt outcomes of `sources.status` freshness (evidence trust, migration 0006). */
+/** Attempt outcomes of `sources.status` freshness (evidence trust, migration 0009). */
 export const ATTEMPT_OUTCOMES = ['published', 'unchanged', 'failed', 'running'] as const;
 export type AttemptOutcome = (typeof ATTEMPT_OUTCOMES)[number];
 export interface Attempt {
