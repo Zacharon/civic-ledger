@@ -97,7 +97,9 @@ Examples:
   pnpm ingest voteview --congress 119
   pnpm ingest fec-bulk --cycle 2026
   pnpm ingest all --congress 119 --cycle 2026 --db .pglite/live --migrate
-  pnpm ingest voteview --snapshot data/raw/voteview/2026-10-16
+  pnpm ingest voteview --snapshot data/raw/voteview/2026-10-19/42-0123456789ab
+  (each fetched snapshot is kept in its own directory, named by the receipt's
+  "snapshotLocator"; legacy data/raw/<source>/<date> directories still load)
 
 Shrink guard: a run is failed and rolled back when its stale-row sweep would delete more than
 $INGEST_MAX_DELETE_FRACTION (default 0.1) of the source's rows, or it loads fewer than
@@ -110,7 +112,8 @@ downloaded or cache-reused file), $INGEST_MAX_DECOMPRESSED_BYTES (2 GiB per zip 
 member-photos also caps every image at 2 MiB and the whole selection at $INGEST_MAX_PORTRAIT_TOTAL_BYTES (400 MiB).
 
 Exit codes: 0 succeeded (or already loaded), 1 failed, cancelled or refused, 2 usage error.
-A rerun of the current snapshot returns the current run with "deduplicated": true. A snapshot
+A rerun of the current snapshot returns the current run with "deduplicated": true (a fetch also
+records the unchanged check in "check" and keeps no duplicate copy of the files). A snapshot
 that an older run loaded but a later run superseded is refused (snapshot_superseded): replaying
 it is not a restore unless you pass --force-replay.`,
   )

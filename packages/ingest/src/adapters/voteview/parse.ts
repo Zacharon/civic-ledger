@@ -25,7 +25,7 @@ export interface MemberRecord {
   bioname: string;
   dim1: number | null;
   dim2: number | null;
-  /** Voteview `conditional = 1`: a provisional estimate. */
+  /** Voteview `conditional = 1`: a provisional estimate; any other value is final. */
   provisional: boolean;
 }
 
@@ -99,6 +99,21 @@ function required<T>(value: T | null, what: string, line: number): T {
   return value;
 }
 
+/**
+ * Completeness rule C1: the files of one congress assert only that congress. A record of
+ * another congress would be loaded (and reconciled) under the wrong scope, so the whole
+ * snapshot is refused and the offending file and line are named.
+ */
+function inScope(raw: string | undefined, file: string, line: number, congress: number): number {
+  const value = required(parseIntOrNull(raw), `${file} congress`, line);
+  if (value !== congress) {
+    throw new Error(
+      `${file} line ${line}: congress ${value} is outside the run scope (congress ${congress})`,
+    );
+  }
+  return value;
+}
+
 /** Members, then rollcalls, then votes: the loader needs members before it can map votes. */
 export async function* parseVoteview(
   snapshot: RawSnapshot,
@@ -111,13 +126,14 @@ export async function* parseVoteview(
   for await (const row of headerCsvRows(open(files.members), MEMBER_COLUMNS)) {
     line++;
     const chamber = chamberOf(row.chamber);
+    const memberCongress = inScope(row.congress, files.members, line, congress);
     if (!chamber) {
       yield { kind: 'president', icpsr: (row.icpsr ?? '').trim() };
       continue;
     }
     yield {
       kind: 'member',
-      congress: required(parseIntOrNull(row.congress), 'congress', line),
+      congress: memberCongress,
       chamber,
       icpsr: required(trimOrNull(row.icpsr), 'icpsr', line),
       bioguide: trimOrNull(row.bioguide_id),
@@ -136,7 +152,7 @@ export async function* parseVoteview(
       throw new Error(`${files.rollcalls} line ${line}: unknown chamber "${row.chamber}"`);
     yield {
       kind: 'rollcall',
-      congress: required(parseIntOrNull(row.congress), 'congress', line),
+      congress: inScope(row.congress, files.rollcalls, line, congress),
       chamber,
       number: required(parseIntOrNull(row.rollnumber), 'rollnumber', line),
       session: parseIntOrNull(row.session),
@@ -155,10 +171,11 @@ export async function* parseVoteview(
   for await (const row of headerCsvRows(open(files.votes), VOTE_COLUMNS)) {
     line++;
     const chamber = chamberOf(row.chamber);
+    const voteCongress = inScope(row.congress, files.votes, line, congress);
     if (!chamber) continue;
     yield {
       kind: 'vote',
-      congress: required(parseIntOrNull(row.congress), 'congress', line),
+      congress: voteCongress,
       chamber,
       number: required(parseIntOrNull(row.rollnumber), 'rollnumber', line),
       icpsr: required(trimOrNull(row.icpsr), 'icpsr', line),

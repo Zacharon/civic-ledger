@@ -493,14 +493,13 @@ describe('member-photos ingest over HTTP (fake server, no network)', () => {
       `unitedstates/images gh-pages tree ${TREE_SHA}; 7 files verified against their git blob SHA-1`,
     );
 
-    const [directory] = await readdir(join(rt.rawRoot, 'member-photos'), {
-      withFileTypes: true,
-    }).then((entries) => entries.filter((e) => e.isDirectory()));
+    // The run's evidence is retained in its own directory, named by its locator.
+    const locator = receipt.snapshotLocator ?? '';
+    expect(locator.startsWith(`member-photos/${new Date().toISOString().slice(0, 10)}/`)).toBe(
+      true,
+    );
     const manifest = JSON.parse(
-      await readFile(
-        join(rt.rawRoot, 'member-photos', directory?.name ?? '', 'manifest.json'),
-        'utf8',
-      ),
+      await readFile(join(rt.rawRoot, ...locator.split('/'), 'manifest.json'), 'utf8'),
     ) as {
       source: string;
       note?: string;
@@ -533,13 +532,18 @@ describe('member-photos ingest over HTTP (fake server, no network)', () => {
     expect(receipt.status).toBe('failed');
     expect(receipt.error).toMatch(/N000147\.jpg: the body .* does not match the listing/);
     expect(await photoRows()).toEqual([]);
-    // The bad body never reached its final name.
+    // The bad body never reached its final name: a failed run retains no evidence (its
+    // staging directory is removed), and the body was never cached for a later 304.
     const dir = join(rt.rawRoot, 'member-photos');
-    const [day] = await readdir(dir, { withFileTypes: true }).then((e) =>
-      e.filter((x) => x.isDirectory()),
+    const retained = (await readdir(dir, { withFileTypes: true })).filter(
+      (e) => e.isDirectory() && !e.name.startsWith('.'),
     );
-    const names = await readdir(join(dir, day?.name ?? '', '450x550'));
-    expect(names).not.toContain('N000147.jpg');
+    expect(retained).toEqual([]);
+    expect(await readdir(join(dir, '.staging')).catch(() => [])).toEqual([]);
+    const cache = JSON.parse(
+      await readFile(join(dir, 'http-cache.json'), 'utf8').catch(() => '{}'),
+    ) as Record<string, unknown>;
+    expect(Object.keys(cache).filter((url) => url.endsWith('/450x550/N000147.jpg'))).toEqual([]);
   });
 
   it('does not offer a cached copy that no longer matches the listing for a 304', async () => {
@@ -549,12 +553,14 @@ describe('member-photos ingest over HTTP (fake server, no network)', () => {
     expect((await runIngest({ source: 'member-photos', scope: { kind: 'all' } }, rt)).status).toBe(
       'succeeded',
     );
-    // Damage the cached file on disk but keep its size: the sha256 check and the listing's
-    // SHA-1 both catch it, so the file is fetched in full again.
-    const day = (await readdir(join(rt.rawRoot, 'member-photos'), { withFileTypes: true })).find(
-      (e) => e.isDirectory(),
-    );
-    const cached = join(rt.rawRoot, 'member-photos', day?.name ?? '', '225x275', 'C000127.jpg');
+    // Damage the cached copy (the one a 304 would reuse) but keep its size: the sha256 check
+    // and the listing's SHA-1 both catch it, so the file is fetched in full again.
+    const cacheIndex = JSON.parse(
+      await readFile(join(rt.rawRoot, 'member-photos', 'http-cache.json'), 'utf8'),
+    ) as Record<string, { path: string }>;
+    const cachedUrl = Object.keys(cacheIndex).find((u) => u.endsWith('/225x275/C000127.jpg'));
+    const cached = cacheIndex[cachedUrl ?? '']?.path ?? '';
+    expect(cached).not.toBe('');
     const damaged = await readFile(cached);
     damaged[damaged.length - 3] = (damaged[damaged.length - 3] ?? 0) ^ 1;
     await writeFile(cached, damaged);

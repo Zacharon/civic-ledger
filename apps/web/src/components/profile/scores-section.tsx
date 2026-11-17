@@ -7,6 +7,7 @@ import type { ExploreRow } from '@/lib/explore-columns';
 import { formatScore, formatSigned, ordinal, safeHref } from '@/lib/format';
 import { read } from '@/server/capabilities';
 import { sourceInfos } from '@/server/sources';
+import { ideologyStatusLabel } from './ideology-status';
 import { Figure, ProfileSection } from './section';
 
 const PAGE = 100;
@@ -38,6 +39,7 @@ export async function ScoresSection({
   ]);
   const notes = new SourceNotes('scores', sources);
   const latest = scores.ideology[0];
+  const latestStatus = latest ? ideologyStatusLabel(latest.provisional) : null;
   const chamberName = chamber === 'senate' ? 'Senate' : 'House';
   const sameCongress = latest
     ? peers.filter((p) => p.dwNominateDim1 !== null && p.ideologyCongress === latest.congress)
@@ -71,12 +73,18 @@ export async function ScoresSection({
               className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
               data-ideology={latest.method}
               data-value={JSON.stringify([latest.congress, latest.dim1, latest.dim2])}
+              data-provisional={JSON.stringify(latest.provisional)}
             >
               <span className="text-ink-2">First dimension</span>
               <PositionStrip value={latest.dim1} width={140} />
               {latest.dim2 !== null ? (
                 <span className="text-ink-2">
                   Second dimension <span className="num text-ink">{formatSigned(latest.dim2)}</span>
+                </span>
+              ) : null}
+              {latestStatus ? (
+                <span className="text-xs font-semibold text-ink-3" data-ideology-status>
+                  {latestStatus}
                 </span>
               ) : null}
             </p>
@@ -101,6 +109,7 @@ export async function ScoresSection({
                     <th scope="col">Congress</th>
                     <th scope="col">First dimension</th>
                     <th scope="col">Second dimension</th>
+                    <th scope="col">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -109,6 +118,7 @@ export async function ScoresSection({
                       key={`${row.congress}-${row.method}`}
                       data-ideology-congress={`${row.method}:${row.congress}`}
                       data-value={JSON.stringify([row.dim1, row.dim2])}
+                      data-provisional={JSON.stringify(row.provisional)}
                       className="border-b border-rule"
                     >
                       <th scope="row" className="py-1 text-left font-normal text-ink-2">
@@ -117,6 +127,9 @@ export async function ScoresSection({
                       <td className="num py-1 text-right">{formatSigned(row.dim1)}</td>
                       <td className="num py-1 text-right text-ink-2">
                         {formatSigned(row.dim2) ?? '—'}
+                      </td>
+                      <td className="py-1 pl-3 text-right text-xs text-ink-3">
+                        {ideologyStatusLabel(row.provisional)}
                       </td>
                     </tr>
                   ))}

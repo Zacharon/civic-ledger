@@ -80,7 +80,7 @@ pnpm ingest all --db .pglite/live --migrate          # local PGlite, applies mig
 DATABASE_URL=postgres://... pnpm db:migrate && pnpm ingest all   # Postgres
 pnpm ingest voteview --allow-shrink                  # commit a load the shrink guard refused
 pnpm ingest voteview --congress 119                  # one source
-pnpm ingest fec-bulk --snapshot data/raw/fec-bulk/2026-10-16   # reload files already on disk
+pnpm ingest fec-bulk --snapshot data/raw/fec-bulk/2026-10-19/42-0123456789ab   # reload a retained snapshot (receipt snapshotLocator)
 pnpm ingest:report --db .pglite/live                 # data-quality report (read-only)
 pnpm curate:validate                                 # check curated YAML before a PR
 ```
@@ -95,24 +95,38 @@ with `runId`, `source` and `scope` on every line (`LOG_LEVEL=debug` for more). E
    in-process). A second run of the same source is refused with
    `conflict: run_in_progress`. Rows left `running` by a dead process are marked failed.
 2. Writes the `ingest_run` row (`running`) before fetching anything.
-3. Downloads into `data/raw/<source>/<YYYY-MM-DD>/` (gitignored) with a `manifest.json`
-   (sha256 per file, upstream run ids, snapshot checksum). Requests use a timeout,
-   at most 3 retries with full-jitter backoff on 429/5xx/network errors only, follow
-   redirects (FEC → S3) and send `If-None-Match` / `If-Modified-Since` from
-   `data/raw/<source>/http-cache.json`. A cached copy is offered for that 304 reuse only
-   if it still matches its recorded size and sha256 and is within the current
-   `INGEST_MAX_DOWNLOAD_BYTES`; otherwise the file is fetched in full (A65).
+3. Downloads into a staging directory `data/raw/<source>/.staging/<runId>-<random>/`
+   (gitignored) and writes its `manifest.json` there (sha256 per file, upstream run ids,
+   snapshot checksum, plus `run_id` and `scope`). Requests use a timeout, at most 3
+   retries with full-jitter backoff on 429/5xx/network errors only, follow redirects
+   (FEC → S3) and send `If-None-Match` / `If-Modified-Since` from
+   `data/raw/<source>/http-cache.json`; the body a 304 reuses is a separate copy in
+   `data/raw/<source>/.http-cache/`, never a retained snapshot. A cached copy is offered
+   for that 304 reuse only if it still matches its recorded size and sha256 and is within
+   the current `INGEST_MAX_DOWNLOAD_BYTES`; otherwise the file is fetched in full (A65).
+   A failed or cancelled download removes its staging directory.
 4. If (source, adapter version, snapshot checksum) is the key of the latest successful
    run of the scope (also when that run was a `--force-replay`), the provisional row is
-   dropped and that run's receipt is returned with `"deduplicated": true`. If the key
-   succeeded earlier but a later run superseded it, the run is refused with
-   `snapshot_superseded` (see "How to rerun").
-5. Opens **one transaction** (DECISIONS A50) and, inside it: streams, parses and upserts
+   dropped and that run's receipt is returned with `"deduplicated": true`. A fetched
+   repeat also records an `ingest_check` (`outcome: unchanged`, the publication run, the
+   attempt's start and check time), returned as the receipt's `check`, and discards the
+   duplicate staged files (the publication's own evidence is already retained). If the
+   publication has no retained evidence (it predates migration 0009), the copy is kept as
+   `data/raw/<source>/<YYYY-MM-DD>/check-<checkId>-<checksum 12>/` instead. A `--snapshot`
+   repeat records no check (it is not an upstream check). If the key succeeded earlier but
+   a later run superseded it, the run is refused with `snapshot_superseded` (see "How to
+   rerun").
+5. Otherwise renames the staging directory, in one step, to the run's immutable evidence
+   directory `data/raw/<source>/<YYYY-MM-DD>/<runId>-<checksum first 12>/` and stores that
+   path (relative to the raw root) as the run's `snapshot_locator`, returned as the
+   receipt's `snapshotLocator`, before anything is loaded. Nothing writes into a retained
+   directory again. `--snapshot <dir>` runs record the absolute directory instead.
+6. Opens **one transaction** (DECISIONS A50) and, inside it: streams, parses and upserts
    in batches (each a savepoint), stages FEC pas2/IE rows and dedupes them in SQL
    (A53), deletes rows the source no longer asserts (A18), runs the shrink guard (below),
    refreshes `person_card` and `person_card_scorecard` (`CONCURRENTLY`: readers keep the
    old rows), and writes the `succeeded` receipt with counts and refresh times.
-6. Commits. Facts, both read models and the receipt become visible together. Any error,
+7. Commits. Facts, both read models and the receipt become visible together. Any error,
    refusal, Ctrl-C or deadline before this point rolls all of it back; the receipt then
    says `failed` or `cancelled`. Written before the transaction (and kept on failure):
    the `source` metadata row and the `running` receipt with its snapshot checksum.
@@ -147,6 +161,7 @@ re-codes new committees and re-resolves framework targets even when the YAML is 
 | receipt `status: failed`, `error: GET … HTTP 404` | File moved or not published yet (new cycle/congress). | Check the URL in DATA_SOURCES.md; nothing was loaded. |
 | `failed` after retries on 5xx / timeout | Source down or slow. | Rerun later; nothing was loaded. |
 | `failed`, `error: shrink guard: …` | The upstream file looks truncated or empty (see below). Nothing was changed. | Check the upstream file (size, row count). If the source really shrank, rerun with `--allow-shrink`. |
+| `failed`, `error: voteview snapshot incomplete: …` or `… line N: congress X is outside the run scope` | The Voteview files are inconsistent or partial (see "Voteview completeness and reconciliation"). Nothing was changed. | Rerun later (a fresh download); if it persists, inspect the named file and line. Rerun congress-legislators first when the error says members match no person. |
 | `failed` with a parse error (`line N`, `Unexpected BILLSTATUS shape`, `Unknown Voteview cast_code`) | Source format changed. | Fix the parser with a fixture cut from the new file, bump the adapter `version`, rerun. |
 | `failed`, `error: … the metadata no longer states when the states provided district boundaries` | Census reworded the metadata abstract, so the as-of date cannot be read (it is shown to readers and must not be guessed). | Read the new `.shp.iso.xml` abstract, update `asOfFromMetadata` and its test, bump the adapter version. |
 | `failed`, `error: Census boundary files look truncated` / `… is for Congress N, expected 119` | A cut-off download, or the URL now serves another Congress. | Check the two zips (441 district and 56 state records expected); nothing was loaded. |
@@ -191,6 +206,51 @@ load of a source and the `curated` source (git-reviewed, where removing a file i
 intended change) are not guarded. Thresholds are the agent's defaults pending owner input
 (readiness audit, owner item 8); tune them with the environment variables above.
 
+## Voteview completeness and reconciliation
+
+A Voteview snapshot (`HS<congress>_members/rollcalls/votes.csv`, both chambers) is the
+complete record of its congress. After loading it, inside the same transaction, the
+loader withdraws what it no longer asserts: Voteview `vote_position` rows of that
+congress's rollcalls (both chambers) and `dw-nominate` `ideology_score` rows of that
+congress that this run did not write. That covers a vote changed to cast code 0 or
+removed, a score whose `nominate_dim1` is now empty, and a vote or score left under the
+person an icpsr used to map to (votes are keyed by the person the snapshot's members file
+gives the icpsr, by Bioguide id, never by name; `source_key` stays `<rollKey>:<icpsr>`).
+A Voteview-owned `icpsr` identifier follows a corrected mapping (`icpsr_reassigned`);
+one owned by congress-legislators is never moved (`icpsr_held_by_other_person`).
+Rollcall rows are never deleted (BILLSTATUS links them); a rollcall missing from the
+snapshot keeps its row, loses its withdrawn positions and is counted in
+`rollcalls_absent_from_snapshot`. Receipt counters: `stale_vote_positions_deleted`,
+`stale_ideology_scores_deleted`, `stale_rows_deleted` (their sum); the shrink guard judges
+both per congress (positions through their rollcall).
+
+Before anything is withdrawn the snapshot must pass these checks; any failure refuses the
+run (`voteview snapshot incomplete: …`, rolled back, nothing changed):
+
+| Rule | Refused when | Why |
+|---|---|---|
+| C1 one congress | any row of the three files has a `congress` other than the run's scope (file and line named) | it would be loaded and reconciled under the wrong congress |
+| C2 members present | the members file has no member rows | votes cannot be attributed |
+| C3 rollcalls present | the rollcalls file is empty while the congress already has rollcalls loaded | an empty file would withdraw the congress |
+| C4 votes reference rollcalls | any vote row's rollcall is missing from the rollcalls file | files from different moments (or a truncated rollcalls file) |
+| C5 rollcalls have votes | any rollcall has no vote rows at all (any cast code) | a truncated votes file would withdraw those positions |
+| C6 one Bioguide per icpsr | the members file gives one icpsr two Bioguide ids | one source vote would belong to two people |
+| C7 one position per person and rollcall | two icpsrs map to the same person with a position on the same rollcall | one source vote would silently replace another |
+| C8a members resolve | more than 10% of member rows match no person, judged from 20 member rows | congress-legislators is behind; rerun it first |
+| C8b votes name listed members | more than 1% of vote rows name an icpsr the members file lacks, judged from 1,000 vote rows | members file truncated or from another moment |
+
+Thresholds live in `VOTEVIEW_COMPLETENESS` (`adapters/voteview/load.ts`). The shrink
+guard still bounds what a passing snapshot may delete (10% of a dataset per congress by
+default; `--allow-shrink` for a genuine large correction).
+
+The source's provisional flag (`conditional = 1`) is stored on every loaded score
+(`ideology_score.provisional`: true provisional, false final, null = loaded before
+migration 0009 and not reprocessed since) and returned by `scores.list@1`; a later final
+estimate overwrites it. **History:** facts are current state. A withdrawn assertion is
+traced through the earlier run: its receipt (`ingest_run` counts, `snapshot_locator`) and
+its raw snapshot files still hold the old vote, score or mapping; the reconciling run's
+receipt counts what was withdrawn.
+
 ## How to rerun
 
 - Same files again → deduplicated, no writes (by design). This also holds right after a
@@ -199,7 +259,8 @@ intended change) are not guarded. Thresholds are the agent's defaults pending ow
 - **Replaying an older snapshot is not a restore.** If snapshot A succeeded, then B, then
   A is offered again, the run is refused (`snapshot_superseded`) and B's data stays. To
   load A again as a new run (receipt `replayOf` = A's run), pass `--force-replay`:
-  `pnpm ingest <source> --snapshot data/raw/<source>/<date> --force-replay`. It is a new
+  `pnpm ingest <source> --snapshot data/raw/<source>/<date>/<runId>-<checksum> --force-replay`
+  (the run's `snapshotLocator`). It is a new
   load under the shrink guard, not a rewind of other sources or of curated data.
 - Reload a saved snapshot after restoring a database: `--snapshot` as above (add
   `--force-replay` if the restored ledger already lists it as superseded). Snapshot
@@ -207,9 +268,18 @@ intended change) are not guarded. Thresholds are the agent's defaults pending ow
 - Re-parse unchanged files after a parser/loader fix: bump `version` in the adapter's
   `index.ts` (it is part of the idempotency key), then run the source and every source
   after it in the order above.
-- Raw snapshots are one directory per source and UTC day; a second download on the same
-  day with changed content replaces that day's files (the earlier run keeps its checksum
-  in the ledger).
+- Every fetched snapshot is kept in its own directory, named by the receipt's
+  `snapshotLocator` (`<source>/<YYYY-MM-DD>/<runId>-<checksum 12>`), so two changed
+  downloads on one day, or two scopes on one day, never share or overwrite files. A run
+  that later failed to parse, was cancelled or failed to publish keeps its directory for
+  diagnosis; it never touches another run's. Cleanup is manual and is not done by any
+  command: a directory whose run is `failed` or `cancelled` may be deleted once diagnosed;
+  a directory named by a `succeeded` run is that receipt's evidence. Leftovers under
+  `<source>/.staging/` belong to a process that died mid-download and may be deleted while
+  no ingest is running (they are never archived). Directories written before migration
+  0009 (`<source>/<YYYY-MM-DD>/` with files directly inside) still load with `--snapshot`;
+  their runs have `snapshot_locator` null, and a later same-day run may have overwritten
+  them.
 
 ## Data-quality checks after a load
 
@@ -219,6 +289,9 @@ sharply between runs.
 | Counter / metric | Expected (2026-10-16) | If it moves |
 |---|---|---|
 | `voteview.members_bioguide_not_in_legislators`, `votes_unmatched_member` | 0 | c-l is behind Voteview: rerun c-l, then voteview. |
+| `voteview.stale_vote_positions_deleted`, `stale_ideology_scores_deleted` | small (corrections) | A jump means Voteview withdrew or re-attributed many assertions: compare with the previous run's snapshot before trusting it. |
+| `voteview.rollcalls_absent_from_snapshot`, `icpsr_reassigned` | 0 | Voteview dropped a rollcall or corrected an icpsr mapping: check the previous snapshot. |
+| `voteview.votes_icpsr_not_in_members` | 0 | Vote rows for members the members file lacks (refused above 1%). |
 | `voteview.ideology_missing_dim1` | 2 (new members) | Normal for members with few votes. |
 | `fec-bulk.pas2_amendment_superseded`, `pas2_duplicate_reports` | 2, 10 | A jump means FEC changed how amendments appear: review A13. |
 | `fec-bulk.ie_implausible_amount_dropped` | 15 | New bogus filings; check none is a real buy. |

@@ -772,7 +772,7 @@ describe('ingest.run for census-boundaries (fixture zips, PGlite)', () => {
     return { deps, requests };
   }
 
-  it('downloads from the Census URLs into data/raw with a sha256 manifest, then dedupes via 304', async () => {
+  it('downloads from the Census URLs into data/raw/<source>/<date>/<run>-<checksum>/ with a sha256 manifest, then dedupes via 304', async () => {
     const server = fixtureServer();
     const rt = await testRuntime(handle, { adapters, http: server.deps });
     const first = await runIngest(
@@ -784,7 +784,11 @@ describe('ingest.run for census-boundaries (fixture zips, PGlite)', () => {
       'https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_cd119_500k.zip',
       'https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_state_500k.zip',
     ]);
-    const dir = join(rt.rawRoot, 'census-boundaries', new Date().toISOString().slice(0, 10));
+    // Each fetched snapshot is retained in its own directory, named by the run's locator.
+    const day = new Date().toISOString().slice(0, 10);
+    const leaf = `${first.runId}-${first.snapshotChecksum?.slice(0, 12)}`;
+    expect(first.snapshotLocator).toBe(`census-boundaries/${day}/${leaf}`);
+    const dir = join(rt.rawRoot, 'census-boundaries', day, leaf);
     expect((await readdir(dir)).sort()).toEqual([
       FIXTURE_DISTRICT_ZIP,
       FIXTURE_STATE_ZIP,
@@ -799,7 +803,11 @@ describe('ingest.run for census-boundaries (fixture zips, PGlite)', () => {
       { source: 'census-boundaries', scope: SCOPES['census-boundaries'] },
       rt,
     );
-    expect(second).toEqual({ ...first, deduplicated: true });
+    expect(second).toEqual({
+      ...first,
+      deduplicated: true,
+      check: { id: expect.any(Number), checkedAt: expect.any(String) },
+    });
     expect(server.requests.slice(-2).every((r) => r.conditional)).toBe(true);
   });
 });

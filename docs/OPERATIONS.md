@@ -14,7 +14,7 @@ Related: [API.md](API.md) (contract), [ARCHITECTURE.md](ARCHITECTURE.md) section
 |---|---|---|
 | `DATABASE_URL` | empty = PGlite `.pglite/dev` | Postgres for ingest, migrations and (when `DATABASE_URL_READONLY` is unset: development only, or with `DB_ALLOW_OWNER_CREDENTIALS=1`) the app and MCP server |
 | `DATABASE_URL_READONLY` | unset | Select-only role used by the web app, the MCP server and `pnpm ingest:report`; see [Database roles](#database-roles-and-connections) |
-| `DB_ALLOW_OWNER_CREDENTIALS` | unset | `1` lets a production web/MCP process run without `DATABASE_URL_READONLY` (on `DATABASE_URL` or a local PGlite). Otherwise `NODE_ENV=production` web (`next start`) and MCP exit 1 at startup. |
+| `DB_ALLOW_OWNER_CREDENTIALS` | unset | `1` lets a production web/MCP process run without `DATABASE_URL_READONLY` (on `DATABASE_URL` or a local PGlite), or with a `DATABASE_URL_READONLY` login that the [attestation](#read-only-credential-attestation) finds writable (then a warning). Otherwise `NODE_ENV=production` web and MCP exit 1 at startup. |
 | `DB_POOL_MAX` | 10 | pg pool size per process |
 | `DB_STATEMENT_TIMEOUT_MS` | 15000 | Web / MCP statement timeout (`0` disables) |
 | `INGEST_DB_STATEMENT_TIMEOUT_MS` | 600000 | Ingest, `db:migrate`, `db:seed` statement timeout (`0` disables) |
@@ -39,7 +39,7 @@ Related: [API.md](API.md) (contract), [ARCHITECTURE.md](ARCHITECTURE.md) section
 | `HEALTH_DB_TIMEOUT_MS` | 2000 | Database round-trip budget for health |
 | `HEALTH_MAX_INGEST_AGE_HOURS` | 336 | Staleness limit for sources without a built-in limit |
 | `API_BODY_TIMEOUT_MS` | 10000 | Absolute JSON body deadline; interrupted/stalled bodies answer uncached 408 |
-| `WEB_READ_TIMEOUT_MS` | 20000 | Page capability response deadline; does not itself cancel database work |
+| `WEB_READ_TIMEOUT_MS` | 20000 | Page capability response deadline; does not itself cancel database work. After one read of a page request misses it, that request starts no further reads (`outcome: "skipped_expired"`) |
 | `HTTP_HEADERS_TIMEOUT_MS` | 10000 | Production native-server header deadline |
 | `HTTP_REQUEST_TIMEOUT_MS` | 30000 | Production native-server request deadline; must be at least the header deadline |
 | `HTTP_INACTIVITY_TIMEOUT_MS` | 30000 | Close an inactive socket |
@@ -92,6 +92,36 @@ cover objects the owner creates later. `test-pg/roles.pgtest.ts` proves on Postg
 that the read-only role cannot insert, update, delete, truncate, refresh or run DDL
 (42501) and still serves every public read capability, and that the ingest role can
 load and refresh but cannot change the schema.
+
+### Read-only credential attestation
+
+The variables above only prove that `DATABASE_URL_READONLY` is *set*. Before the first read,
+the web app (at startup in `instrumentation.ts`, and again before the first read of a
+request path), and the MCP server (at startup) ask the database what that login can actually do
+(`packages/db/src/readonly-attestation.ts`, one catalog query on a separate connection):
+
+| Finding | Meaning | Production | Elsewhere |
+|---|---|---|---|
+| `superuser`, `create_role`, `create_db` | Role attributes that can write or grant themselves write | refuse | warn |
+| `owns_relations` | The login (or a role it is a member of) owns a table, view, matview or sequence | refuse | warn |
+| `writable_relations` | `INSERT`/`UPDATE`/`DELETE`/`TRUNCATE`/`TRIGGER` on any application table or view | refuse | warn |
+| `writable_sequences` | `USAGE`/`UPDATE` on a sequence (`nextval`/`setval`) | refuse | warn |
+| `create_on_schema`, `create_on_database` | Can create objects or schemas | refuse | warn |
+| `default_transaction_read_only_off` | The login does not set it (A44 says it should) | warn | warn |
+
+Refuse means: in production, unless `DB_ALLOW_OWNER_CREDENTIALS=1`, the web process exits 1
+at startup (`refusing to start: database configuration`) and the MCP server exits 1. If
+the database was unreachable at startup, the web starts anyway and checks again before the
+first read. A refusal found then is permanent for that process: reads answer `internal`
+errors, and `/api/health` reports the database as `down` while `/api/live` stays up. Until
+the check succeeds, production reads fail closed; development lets them through. A missing
+`default_transaction_read_only` only warns: `begin read write` overrides it, so privileges
+are the boundary. The result is one JSON line on stderr, for example
+`{"event":"db.readonly_attestation","outcome":"accept","problems":[],"warnings":[]}`.
+The line carries codes only, never the URL or the role name. PGlite is skipped. Proven on
+Postgres 17 by `test-pg/readonly-attestation.pgtest.ts`: an owner, superuser or
+`civic_ingest` login is refused, and a `civic_readonly` login is accepted.
+`pnpm ingest:report` does not run the check yet (see T-O evidence).
 
 **Connection budget.** Every process has its own pool (`DB_POOL_MAX`, default 10), and
 ingest holds one extra connection for the source lock plus one for the load
@@ -169,12 +199,16 @@ Structured JSON, one object per line, on stdout (web) and stderr (MCP), via pino
 * API failures log at `error`; rate-limited requests log at `warn`
   (`msg: "rate limited"`, with `rule`). Exceptions retain only allowed categories
   and safe codes, never raw messages, stacks, SQL or URLs.
-* Page core reads log the same request id, capability, outcome and duration.
+* Page core reads log the same request id, capability, outcome (`succeeded`, `failed`,
+  `timed_out`, or `skipped_expired` when an earlier read of the same request already
+  timed out) and duration.
   Headers, query strings, inputs and client addresses are not emitted. Logger
   redaction remains defense in depth; a failed diagnostic sink cannot replace the
   intended business response.
 * Background database-pool errors have no HTTP request context. They emit a fixed
   event and an allowed SQLSTATE only; raw driver text is suppressed there too.
+* Health, guard (429/503) and API handler diagnostics are written through `logSafely`:
+  a throwing log destination or logger never replaces the HTTP answer.
 * MCP logs only startup and tool failures (stderr; stdout is the protocol).
 * Retention target: seven days ordinary logs, 30 days selected incident metadata.
   Configure and verify host capture, access and retention during provisioning;
@@ -264,6 +298,25 @@ an owner decision). Prepared monitoring produces GitHub incident drafts and a
 success digest only. Independent uptime monitoring, actual notification delivery
 and owner receipt remain NOT RUN; see DEPLOY_RENDER before activation.
 
+**What the monitor counts as fresh (evidence trust, 2026-10-19).** `sources.status`
+reports, per source and per scope, `freshness` / `scopes[]`: the latest attempt
+(`lastAttemptAt`, `lastAttemptOutcome`: `published`, `unchanged`, `failed`, `running`),
+`lastSuccessfulCheckAt` (latest successful run **or** unchanged check), `lastChangedAt`
+(latest successful run) and `coverageThrough` (the period the data itself covers, e.g.
+the latest Voteview roll-call date; never the check time). A scheduled fetch that finds
+upstream unchanged no longer leaves an `ingest_run` row; it is an `ingest_check`. The
+monitor therefore judges `stale` by `lastSuccessfulCheckAt`, `missed` by `lastAttemptAt`
+and `failed` by `lastAttemptOutcome`, so a successful unchanged check clears an earlier
+failure. `lastRun` / `lastSuccess` keep their v1 meaning (runs only) and are the
+fallback against a server without `freshness`. When `CIVIC_CONGRESS` / `CIVIC_CYCLE` are
+set for the monitor, each scheduled source is judged on its expected scope only
+(`voteview` and `govinfo-billstatus`: `congress:<N>`, `fec-bulk`: `cycle:<N>`,
+`congress-legislators`: `all`): a check of a historical Congress does not make the
+current one fresh, and a failure in a historical scope does not raise a finding. Without
+them the source-level values (any scope) are used. `/api/health` freshness still uses
+`lastSuccess` only (see Health above); an unchanged source can read `degraded` there
+while the monitor reports it current.
+
 ### First 15 minutes
 
 1. **Confirm and classify (0-3 min).** Open `/api/health?strict=1`. Note the time and
@@ -304,7 +357,12 @@ What exists regardless of host:
 
 * Curated data (`data/curated/**`) and code are in git: that is their backup.
 * All database content is derived: sources are public and re-fetchable, raw snapshots
-  are checksummed in `ingest_run`, and loads are idempotent upserts. A total loss can be
+  are checksummed in `ingest_run`, and loads are idempotent upserts. Since migration
+  0009 each run also records `snapshot_locator`, the raw-root-relative directory that
+  holds exactly its snapshot (`<source>/<YYYY-MM-DD>/<runId>-<checksum 12>`); the raw
+  archive (`scripts/backup/raw.ts`) carries those directories and the conditional-request
+  cache, skips in-flight `<source>/.staging/`, and a restore keeps every locator readable
+  with matching checksums (`packages/ingest/test/evidence-raw-restore.test.ts`). A total loss can be
   rebuilt by `pnpm db:migrate` then re-running every ingest, then refreshing the read
   model. That costs hours and depends on upstream availability, so it is the
   fallback, not the plan.

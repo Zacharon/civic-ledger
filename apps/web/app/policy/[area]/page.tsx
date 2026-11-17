@@ -1,3 +1,4 @@
+import type { CapabilityOutput } from '@civic-ledger/core';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -17,14 +18,15 @@ import {
   seatLabel,
   shortTitle,
 } from '@/lib/format';
-import { POSITION_LABEL } from '@/lib/labels';
 import { VOTE_KEY_CLASS } from '@/lib/vote';
 import { read } from '@/server/capabilities';
 import { sourceInfos } from '@/server/sources';
+import { STATE_GLYPH, STATE_LABEL, STATE_LEGEND } from './member-states';
 
 const MATRIX_ROLLCALLS = 10;
 const MATRIX_PAGE = 100;
-const POSITION_SHORT = { yea: 'Y', nay: 'N', present: 'P', not_voting: '–' } as const;
+const CHAMBER_NAME = { house: 'House', senate: 'Senate' } as const;
+const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
@@ -62,8 +64,9 @@ export default async function PolicyAreaPage({
   const page = Math.max(1, Number.parseInt(first(query.page) ?? '1', 10) || 1);
   const notes = new SourceNotes('policy', sources);
 
-  // "How every member voted": the same rollcalls scored through frameworks.evaluate,
-  // read only for positions (the alignment numbers are not shown on this page).
+  // "How every member voted": the same rollcalls through frameworks.evaluate, read only for
+  // each member's state per roll call (the alignment numbers are not shown on this page).
+  // Membership is vote-time: anyone who voted in this chamber then, even if since moved.
   const matrix =
     votes.items.length > 0
       ? await read('frameworks.evaluate', {
@@ -79,7 +82,7 @@ export default async function PolicyAreaPage({
               alignedPosition: 'yea' as const,
             })),
           },
-          people: { chamber },
+          people: { chamber, basis: 'at_vote' as const },
           limit: MATRIX_PAGE,
           offset: (page - 1) * MATRIX_PAGE,
         })
@@ -149,6 +152,12 @@ export default async function PolicyAreaPage({
                     key={v.rollcall.number}
                     data-rollcall={`${v.rollcall.chamber}.${v.rollcall.congress}.${v.rollcall.number}`}
                     data-value={JSON.stringify([v.tally.yea, v.tally.nay, v.rollcall.result])}
+                    data-source={JSON.stringify([
+                      v.sourceTally.yea,
+                      v.sourceTally.nay,
+                      v.tallyCheck.status,
+                      v.ambiguousTermPositions,
+                    ])}
                     className="grid gap-4 py-5 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:gap-10"
                   >
                     <div>
@@ -180,6 +189,7 @@ export default async function PolicyAreaPage({
                     </div>
                     <div>
                       <TallyBar tally={v.tally} />
+                      <TallyCheck vote={v} />
                       <PartyBreakdown byParty={v.byParty} tally={v.tally} placement="list" />
                     </div>
                   </li>
@@ -193,20 +203,36 @@ export default async function PolicyAreaPage({
               <h2 id="every-member" className="section-title">
                 How every member voted
               </h2>
-              <p className="mt-1.5 text-sm text-ink-2">
-                Columns R1–R{votes.items.length} are the roll calls above.
+              <p className="mt-1.5 max-w-3xl text-sm text-ink-2">
+                Everyone who voted in the {CHAMBER_NAME[chamber]} on the roll calls above (columns
+                R1–R{votes.items.length}), judged by the terms they held on each vote date, so
+                members who have since left or changed chamber are included. Party and seat next to
+                a name are current; “voted as” shows a different party held on the vote date.
               </p>
-              <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-2">
-                {(['yea', 'nay', 'present', 'not_voting'] as const).map((position) => (
-                  <li key={position} className="inline-flex items-center gap-1.5">
-                    <span aria-hidden="true" className={`vote-key ${VOTE_KEY_CLASS[position]}`} />
-                    <span className="font-semibold text-ink">{POSITION_SHORT[position]}</span> ={' '}
-                    {POSITION_LABEL[position].toLowerCase()}
+              <ul
+                aria-label="Legend"
+                className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-2"
+              >
+                {STATE_LEGEND.map((state) => (
+                  <li key={state} data-state={state} className="inline-flex items-center gap-1.5">
+                    {state === 'not_serving' || state === 'unavailable' ? (
+                      <span
+                        aria-hidden="true"
+                        className="num inline-block w-4 text-center text-ink-3"
+                      >
+                        {STATE_GLYPH[state]}
+                      </span>
+                    ) : (
+                      <>
+                        <span aria-hidden="true" className={`vote-key ${VOTE_KEY_CLASS[state]}`} />
+                        <span aria-hidden="true" className="num font-semibold text-ink">
+                          {STATE_GLYPH[state]}
+                        </span>
+                      </>
+                    )}{' '}
+                    {STATE_LABEL[state]}
                   </li>
                 ))}
-                <li>
-                  <span className="font-semibold text-ink">·</span> = not a member at the time
-                </li>
               </ul>
               <section
                 className="relative mt-4 max-h-[70dvh] overflow-auto border-y border-ink bg-surface"
@@ -240,62 +266,91 @@ export default async function PolicyAreaPage({
                     </tr>
                   </thead>
                   <tbody>
-                    {matrix.results.map((r) => (
-                      <tr
-                        key={r.person.slug}
-                        data-slug={r.person.slug}
-                        data-value={JSON.stringify(
-                          votes.items.map(
-                            (_, i) => r.votes.find((x) => x.ruleIndex === i)?.position ?? null,
+                    {matrix.results.map((r) => {
+                      const states = votes.items.map((_, i) =>
+                        r.rollcallStates.find((x) => x.ruleIndex === i),
+                      );
+                      const votedAs = [
+                        ...new Set(
+                          states.flatMap((s) =>
+                            s?.partyAtVote && s.partyAtVote !== r.person.party
+                              ? [s.partyAtVote]
+                              : [],
                           ),
-                        )}
-                        className="group"
-                      >
-                        <th
-                          scope="row"
-                          className="sticky left-0 z-[1] border-b border-rule bg-surface px-3 py-2 text-left font-normal whitespace-nowrap group-hover:bg-sunk"
+                        ),
+                      ];
+                      const nowIn =
+                        r.person.chamber !== null && r.person.chamber !== chamber
+                          ? CHAMBER_NAME[r.person.chamber]
+                          : null;
+                      return (
+                        <tr
+                          key={r.person.slug}
+                          data-slug={r.person.slug}
+                          data-value={JSON.stringify(
+                            votes.items.map(
+                              (_, i) => r.votes.find((x) => x.ruleIndex === i)?.position ?? null,
+                            ),
+                          )}
+                          data-states={JSON.stringify(states.map((s) => s?.state ?? null))}
+                          className="group"
                         >
-                          <Link
-                            href={`/people/${r.person.slug}`}
-                            className="link-quiet font-medium"
+                          <th
+                            scope="row"
+                            className="sticky left-0 z-[1] border-b border-rule bg-surface px-3 py-2 text-left font-normal whitespace-nowrap group-hover:bg-sunk"
                           >
-                            {r.person.fullName}
-                          </Link>{' '}
-                          <PartyChip party={r.person.party} />{' '}
-                          <span className="text-xs text-ink-3">
-                            {seatLabel(r.person.chamber, r.person.state, r.person.district)}
-                            {r.person.isCurrent ? '' : ` · ${formerLabel(r.person, 'Former')}`}
-                          </span>
-                        </th>
-                        {votes.items.map((v, i) => {
-                          const cast = r.votes.find((x) => x.ruleIndex === i);
-                          return (
-                            <td
-                              key={v.rollcall.number}
-                              className="num border-b border-rule px-2 py-2 text-center group-hover:bg-sunk/60"
+                            <Link
+                              href={`/people/${r.person.slug}`}
+                              className="link-quiet font-medium"
                             >
-                              {cast ? (
-                                <>
+                              {r.person.fullName}
+                            </Link>{' '}
+                            <span className="sr-only">Current party: </span>
+                            <PartyChip party={r.person.party} />{' '}
+                            <span className="text-xs text-ink-3">
+                              {nowIn ? `Now ${nowIn} · ` : ''}
+                              {seatLabel(r.person.chamber, r.person.state, r.person.district)}
+                              {r.person.isCurrent ? '' : ` · ${formerLabel(r.person, 'Former')}`}
+                              {votedAs.length > 0 ? ` · voted as ${votedAs.join(', ')}` : ''}
+                            </span>
+                          </th>
+                          {votes.items.map((v, i) => {
+                            const state = states[i]?.state;
+                            return (
+                              <td
+                                key={v.rollcall.number}
+                                data-state={state ?? undefined}
+                                className="num border-b border-rule px-2 py-2 text-center group-hover:bg-sunk/60"
+                              >
+                                {state ? (
                                   <span
-                                    aria-hidden="true"
-                                    className="inline-flex items-center gap-1 font-semibold"
+                                    className={
+                                      state === 'not_serving' || state === 'unavailable'
+                                        ? 'text-ink-3'
+                                        : 'inline-flex items-center gap-1 font-semibold'
+                                    }
                                   >
-                                    <span className={`vote-key ${VOTE_KEY_CLASS[cast.position]}`} />
-                                    {POSITION_SHORT[cast.position]}
+                                    {state === 'not_serving' || state === 'unavailable' ? null : (
+                                      <span
+                                        aria-hidden="true"
+                                        className={`vote-key ${VOTE_KEY_CLASS[state]}`}
+                                      />
+                                    )}
+                                    <span aria-hidden="true">{STATE_GLYPH[state]}</span>
+                                    <span className="sr-only">{STATE_LABEL[state]}</span>
                                   </span>
-                                  <span className="sr-only">{POSITION_LABEL[cast.position]}</span>
-                                </>
-                              ) : (
-                                <span className="text-ink-3">
-                                  <span aria-hidden="true">·</span>
-                                  <span className="sr-only">Not a member at the time</span>
-                                </span>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
+                                ) : (
+                                  <span className="text-ink-3">
+                                    <span aria-hidden="true">·</span>
+                                    <span className="sr-only">Roll call not resolved</span>
+                                  </span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </section>
@@ -329,5 +384,39 @@ export default async function PolicyAreaPage({
       </section>
       <SourceList notes={notes} />
     </div>
+  );
+}
+
+/**
+ * The tally above is rebuilt from stored member positions; this line compares it with
+ * the totals the source recorded on the roll call, and never presents a gap as complete.
+ */
+function TallyCheck({ vote }: { vote: CapabilityOutput<'votes.list'>['items'][number] }) {
+  const { sourceTally, tallyCheck, ambiguousTermPositions } = vote;
+  return (
+    <p className="mt-2 text-xs text-ink-2" data-tally-check={tallyCheck.status}>
+      {tallyCheck.status === 'matches_source' ? (
+        <>
+          Matches the source totals ({formatNumber(sourceTally.yea)} yea,{' '}
+          {formatNumber(sourceTally.nay)} nay).
+        </>
+      ) : (
+        <>
+          <span className="font-semibold text-ink">Differs from the source totals</span>:{' '}
+          {formatNumber(sourceTally.yea)} yea, {formatNumber(sourceTally.nay)} nay on the roll call
+          record. The counts above come from stored member positions (yea{' '}
+          {signed(tallyCheck.yeaDifference)}, nay {signed(tallyCheck.nayDifference)}), so they are
+          incomplete or coded differently; paired votes count as not voting here.
+        </>
+      )}
+      {ambiguousTermPositions > 0 ? (
+        <>
+          {' '}
+          {formatNumber(ambiguousTermPositions)}{' '}
+          {ambiguousTermPositions === 1 ? 'position' : 'positions'} matched more than one term on
+          the vote date; each counts once, under the latest-starting term’s party.
+        </>
+      ) : null}
+    </p>
   );
 }

@@ -35,6 +35,9 @@ jobs:
         env:
           CIVIC_SITE_URL: ${{ vars.CIVIC_SITE_URL }}
           CIVIC_ALERT_ASSIGNEE: ${{ vars.CIVIC_ALERT_ASSIGNEE }}
+          # Judge each scheduled source on its current scope (evidence trust T-A).
+          CIVIC_CONGRESS: ${{ vars.CIVIC_CONGRESS }}
+          CIVIC_CYCLE: ${{ vars.CIVIC_CYCLE }}
           BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
           BACKUP_S3_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}
           BACKUP_S3_PREFIX: civic-ledger

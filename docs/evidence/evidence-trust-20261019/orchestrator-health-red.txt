@@ -1,0 +1,1 @@
+health red @ 2216e55: pnpm vitest run apps/web/test/health.test.ts -> exit 1; AssertionError: expected 'stale' to be 'fresh'

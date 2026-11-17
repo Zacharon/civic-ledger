@@ -14,12 +14,16 @@ import { cache } from 'react';
 import { requestIdFrom } from './api/request-id';
 import { apiLogger } from './api/runtime';
 import { webContext } from './db';
-import { observedRead } from './observed-read';
+import { createReadBudget, observedRead, readTimeoutMs } from './observed-read';
 
 /**
  * The web UI's only path to data: core capabilities through the registry.
  * Pages never import the database; they call `read(name, input)`.
  */
+
+// One read budget per request (React `cache` is request-scoped): after one page read misses
+// its deadline, the request starts no further capability work.
+const requestReadBudget = cache(createReadBudget);
 
 // Deduplicates identical reads within one request (e.g. the footer and a page both
 // asking for sources.status). Keyed by a JSON string because `cache` compares by identity.
@@ -32,8 +36,10 @@ const cachedRead = cache(async (name: CapabilityName, inputJson: string) => {
   return observedRead(
     name,
     requestId,
-    () => dispatch(name, JSON.parse(inputJson), webContext()),
+    async () => dispatch(name, JSON.parse(inputJson), await webContext()),
     apiLogger(),
+    readTimeoutMs(),
+    requestReadBudget(),
   );
 });
 

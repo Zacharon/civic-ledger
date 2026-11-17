@@ -231,7 +231,7 @@ describe('fetching', () => {
     return { deps, requests };
   }
 
-  it('downloads into data/raw/<source>/<date>/ with a manifest, retries a 503, then dedupes via 304', async () => {
+  it('downloads into data/raw/<source>/<date>/<run>-<checksum>/ with a manifest, retries a 503, then dedupes via 304', async () => {
     const server = fixtureServer(join(FIXTURES, 'voteview'), 'HS119_rollcalls.csv');
     const rt = await testRuntime(handle, { http: server.deps });
     await ingestFixture(rt, 'congress-legislators');
@@ -240,7 +240,15 @@ describe('fetching', () => {
     expect(server.requests.filter((r) => r.url.endsWith('HS119_rollcalls.csv'))).toHaveLength(2);
 
     const day = new Date().toISOString().slice(0, 10);
-    const dir = join(rt.rawRoot, 'voteview', day);
+    expect(first.snapshotLocator).toBe(
+      `voteview/${day}/${first.runId}-${first.snapshotChecksum?.slice(0, 12)}`,
+    );
+    const dir = join(
+      rt.rawRoot,
+      'voteview',
+      day,
+      `${first.runId}-${first.snapshotChecksum?.slice(0, 12)}`,
+    );
     expect((await readdir(dir)).sort()).toEqual([
       'HS119_members.csv',
       'HS119_rollcalls.csv',
@@ -253,7 +261,11 @@ describe('fetching', () => {
     expect(manifest.files[0].sha256).toMatch(/^[0-9a-f]{64}$/);
 
     const second = await runIngest({ source: 'voteview', scope: SCOPES.voteview }, rt);
-    expect(second).toEqual({ ...first, deduplicated: true });
+    expect(second).toEqual({
+      ...first,
+      deduplicated: true,
+      check: { id: expect.any(Number), checkedAt: expect.any(String) },
+    });
     expect(server.requests.slice(-3).every((r) => r.conditional)).toBe(true);
   });
 });

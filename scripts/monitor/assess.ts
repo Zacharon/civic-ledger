@@ -13,10 +13,24 @@ export interface Run {
   startedAt: string;
   finishedAt: string | null;
 }
+/** Attempt outcomes of `sources.status` freshness (evidence trust, migration 0009). */
+export const ATTEMPT_OUTCOMES = ['published', 'unchanged', 'failed', 'running'] as const;
+export type AttemptOutcome = (typeof ATTEMPT_OUTCOMES)[number];
+export interface Attempt {
+  lastAttemptAt: string | null;
+  lastAttemptOutcome: AttemptOutcome | null;
+  lastSuccessfulCheckAt: string | null;
+}
+export interface ScopeAttempt extends Attempt {
+  scope: string;
+}
 export interface Source {
   id: string;
   lastRun: Run | null;
   lastSuccess: Run | null;
+  /** Absent from servers that predate freshness; the monitor then reads lastRun/lastSuccess. */
+  freshness?: Attempt;
+  scopes?: ScopeAttempt[];
 }
 export interface Observation {
   time: string;
@@ -28,6 +42,13 @@ export interface Observation {
   rawBackupTakenAt?: string | null;
   rawBackupAuthenticated?: boolean;
   backupWorkflowConclusion?: string | null;
+  /**
+   * The scope each source is expected to keep fresh (e.g. `voteview: 'congress:119'`), from
+   * the scheduled ingest's CIVIC_CONGRESS / CIVIC_CYCLE. When set and the server reports
+   * scopes, only that scope's attempts and checks count; a check of another scope does
+   * not. When unset, the source-level freshness (any scope) is used.
+   */
+  expectedScopes?: Record<string, string>;
 }
 export interface Finding {
   key: string;
@@ -72,13 +93,108 @@ export function normalizeSources(value: unknown): Source[] {
       finishedAt: row.finishedAt as string | null,
     };
   };
+  const time = (input: unknown): string | null => {
+    if (input === null) return null;
+    if (typeof input !== 'string' || !Number.isFinite(Date.parse(input)))
+      throw new Error('source freshness is malformed');
+    return input;
+  };
+  const attempt = (input: unknown): Attempt => {
+    if (!input || typeof input !== 'object') throw new Error('source freshness is malformed');
+    const row = input as Record<string, unknown>;
+    const outcome = row.lastAttemptOutcome;
+    if (outcome !== null && !ATTEMPT_OUTCOMES.includes(outcome as AttemptOutcome))
+      throw new Error('source freshness is malformed');
+    return {
+      lastAttemptAt: time(row.lastAttemptAt),
+      lastAttemptOutcome: outcome as AttemptOutcome | null,
+      lastSuccessfulCheckAt: time(row.lastSuccessfulCheckAt),
+    };
+  };
+  const scopes = (input: unknown): ScopeAttempt[] => {
+    if (!Array.isArray(input) || input.length > 1_000)
+      throw new Error('source scopes are malformed');
+    return input.map((entry: unknown) => {
+      const scope = (entry as Record<string, unknown> | null)?.scope;
+      if (typeof scope !== 'string' || !SCOPE_PATTERN.test(scope))
+        throw new Error('source scope is malformed');
+      return { scope, ...attempt(entry) };
+    });
+  };
   return value.map((input: unknown) => {
     if (!input || typeof input !== 'object') throw new Error('source status is malformed');
     const row = input as Record<string, unknown>;
     if (typeof row.id !== 'string' || !/^[a-z0-9-]{1,80}$/.test(row.id))
       throw new Error('source id is malformed');
-    return { id: row.id, lastRun: run(row.lastRun), lastSuccess: run(row.lastSuccess) };
+    const source: Source = {
+      id: row.id,
+      lastRun: run(row.lastRun),
+      lastSuccess: run(row.lastSuccess),
+    };
+    // Coverage dates and basis text are not projected: they are not monitor inputs.
+    if (row.freshness !== undefined) source.freshness = attempt(row.freshness);
+    if (row.scopes !== undefined) source.scopes = scopes(row.scopes);
+    return source;
   });
+}
+const SCOPE_PATTERN = /^(all|congress:\d{1,3}|cycle:\d{4})$/;
+
+/**
+ * The scope each scheduled source keeps fresh, from the scheduled ingest's environment
+ * (`scripts/monitor/ingest-runner.ts` uses the same variables). Invalid or missing values
+ * leave that source on source-level freshness.
+ */
+export function expectedScopesFromEnv(
+  env: Record<string, string | undefined>,
+): Record<string, string> {
+  const out: Record<string, string> = { 'congress-legislators': 'all' };
+  const congress = Number(env.CIVIC_CONGRESS);
+  const cycle = Number(env.CIVIC_CYCLE);
+  if (Number.isInteger(congress) && congress >= 1 && congress <= 200) {
+    out.voteview = `congress:${congress}`;
+    out['govinfo-billstatus'] = `congress:${congress}`;
+  }
+  if (Number.isInteger(cycle) && cycle >= 2000 && cycle % 2 === 0)
+    out['fec-bulk'] = `cycle:${cycle}`;
+  return out;
+}
+
+interface Evidence {
+  /** Latest successful run or unchanged check: the data was confirmed current. */
+  confirmedAt: string | null | undefined;
+  /** Latest attempt of any outcome. */
+  attemptedAt: string | null | undefined;
+  failed: boolean;
+  running: boolean;
+}
+
+/**
+ * What the monitor judges a source by. With `expected` and per-scope data: only that
+ * scope (absent = never attempted). Else the source-level freshness. Else, from a server
+ * that predates freshness, the v1 run receipts.
+ */
+function evidenceFor(source: Source, expected: string | undefined): Evidence {
+  const view = (a: Attempt): Evidence => ({
+    confirmedAt: a.lastSuccessfulCheckAt,
+    attemptedAt: a.lastAttemptAt,
+    failed: a.lastAttemptOutcome === 'failed',
+    running: a.lastAttemptOutcome === 'running',
+  });
+  if (expected && source.scopes) {
+    const scope = source.scopes.find((s) => s.scope === expected);
+    return scope
+      ? view(scope)
+      : { confirmedAt: null, attemptedAt: null, failed: false, running: false };
+  }
+  if (source.freshness) return view(source.freshness);
+  return {
+    confirmedAt: source.lastSuccess?.finishedAt,
+    attemptedAt: source.lastRun?.startedAt,
+    failed: Boolean(
+      source.lastRun && ['failed', 'partial', 'cancelled'].includes(source.lastRun.status),
+    ),
+    running: source.lastRun?.status === 'running',
+  };
 }
 function ageHours(value: string | null | undefined, now: number): number {
   const parsed = value ? Date.parse(value) : Number.NaN;
@@ -128,25 +244,26 @@ export function assess(observation: Observation): Finding[] {
         );
         continue;
       }
-      if (ageHours(source.lastSuccess?.finishedAt, now) > policy.freshHours)
+      const evidence = evidenceFor(source, observation.expectedScopes?.[id]);
+      if (ageHours(evidence.confirmedAt, now) > policy.freshHours)
         add(
           `ingest:${id}:stale`,
           `${id}: published data is stale`,
-          `No valid successful receipt within ${policy.freshHours} hours. Inspect Sources and the ingest workflow.`,
+          `No valid successful receipt or unchanged check within ${policy.freshHours} hours. Inspect Sources and the ingest workflow.`,
         );
-      if (ageHours(source.lastRun?.startedAt, now) > policy.attemptHours)
+      if (ageHours(evidence.attemptedAt, now) > policy.attemptHours)
         add(
           `ingest:${id}:missed`,
           `${id}: scheduled ingest was missed`,
           `No valid attempt receipt within ${policy.attemptHours} hours. Check the schedule, credentials and runner availability.`,
         );
-      if (source.lastRun && ['failed', 'partial', 'cancelled'].includes(source.lastRun.status))
+      if (evidence.failed)
         add(
           `ingest:${id}:failed`,
           `${id}: latest ingest failed`,
-          'The latest run is failed, partial or cancelled. Review its receipt; successful prior publication may still be available.',
+          'The latest attempt is failed, partial or cancelled. Review its receipt; successful prior publication may still be available.',
         );
-      if (source.lastRun?.status === 'running' && ageHours(source.lastRun.startedAt, now) > 2)
+      if (evidence.running && ageHours(evidence.attemptedAt, now) > 2)
         add(
           `ingest:${id}:stuck`,
           `${id}: ingest has exceeded two hours`,
