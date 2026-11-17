@@ -106,7 +106,8 @@ $INGEST_MIN_RECORD_RATIO (default 0.5) of the last successful run's records. --a
 Atomicity: facts, both read models and the success receipt commit in one transaction. Ctrl-C
 or the deadline (--deadline-minutes, or $INGEST_RUN_DEADLINE_MS) before that commit rolls
 everything back and records "cancelled". Byte caps: $INGEST_MAX_DOWNLOAD_BYTES (1 GiB per
-downloaded or cache-reused file), $INGEST_MAX_DECOMPRESSED_BYTES (2 GiB per zip entry).
+downloaded or cache-reused file), $INGEST_MAX_DECOMPRESSED_BYTES (2 GiB per zip entry);
+member-photos also caps every image at 2 MiB and the whole selection at $INGEST_MAX_PORTRAIT_TOTAL_BYTES (400 MiB).
 
 Exit codes: 0 succeeded (or already loaded), 1 failed, cancelled or refused, 2 usage error.
 A rerun of the current snapshot returns the current run with "deduplicated": true. A snapshot

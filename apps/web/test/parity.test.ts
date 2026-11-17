@@ -50,6 +50,12 @@ beforeAll(async () => {
     'people.get': [{ slug: a }, { slug: b }, { slug: 'cornelius-oakhurst' }],
     'people.glance': [{ slug: a }, { slug: b }, { slug: 'cornelius-oakhurst' }],
     'explainers.list': [{}, { id: 'pac' }, { id: 'small-dollar' }],
+    'districts.shape': [
+      { state: 'ZV', district: 3 },
+      { state: 'ZX' },
+      { slug: 'emerson-elderquay' },
+      { slug: 'avery-ashvale' },
+    ],
     'people.compare': [
       { slugs: [a, b] },
       { slugs: [a, b, c] },
@@ -71,9 +77,24 @@ beforeAll(async () => {
       { policyArea: 'education', congress: 119, chamber: 'senate' },
       { limit: 3, offset: 1 },
     ],
+    'votes.attendance': [
+      { slug: a },
+      { slug: b, congress: 119 },
+      { slug: 'jules-kindlewood' },
+      { slug: 'cornelius-oakhurst' },
+    ],
+    'chamber.composition': [{}],
     'scores.list': [{ slug: a }, { slug: c }],
     'promises.list': [{ slug: withPromises }, { slug: withPromises, status: 'kept' }],
     'policy.areas': [{}],
+    'races.list': [{}, { chamber: 'senate' }, { state: 'ZV' }, { cycle: 2024 }],
+    'races.get': [
+      { seat: 'zv-senate' },
+      { seat: 'zv-senate', sort: 'receipts' },
+      { seat: 'zz-3' },
+      { seat: 'zv-1', cycle: 2026 },
+      { seat: 'zv-2' },
+    ],
     'frameworks.list': [{}],
     'frameworks.evaluate': [
       { framework: spec, limit: 5 },
@@ -82,17 +103,22 @@ beforeAll(async () => {
     ],
     'sources.status': [{}],
     'explore.facets': [{}, { scope: 'all' }],
+    'people.portrait': [{ slug: a }],
   };
 });
 
 const names = publicCapabilities().map((c) => c.name);
+/** Binary capabilities are not JSON: see "binary capabilities" below. */
+const jsonNames = publicCapabilities()
+  .filter((c) => c.transport !== 'binary')
+  .map((c) => c.name);
 
 describe('read capabilities return equal payloads through dispatch, HTTP and MCP', () => {
   it('has representative inputs for every public capability', () => {
     expect(Object.keys(cases).sort()).toEqual([...names].sort());
   });
 
-  it.each(names)('%s', async (name) => {
+  it.each(jsonNames)('%s', async (name) => {
     const { direct, http, mcp } = stack();
     for (const input of cases[name] ?? []) {
       const expected = plain(await direct(name, input));
@@ -111,6 +137,89 @@ describe('read capabilities return equal payloads through dispatch, HTTP and MCP
   });
 });
 
+describe('binary capabilities return the same file through dispatch, HTTP and MCP', () => {
+  async function portraitSlugs(): Promise<{ withPortrait: string; without: string }> {
+    const { direct } = stack();
+    let withPortrait: string | undefined;
+    let without: string | undefined;
+    for (const slug of slugs) {
+      const { portrait } = (await direct('people.get', { slug })) as { portrait: unknown };
+      if (portrait && !withPortrait) withPortrait = slug;
+      if (!portrait && !without) without = slug;
+    }
+    if (!withPortrait || !without)
+      throw new Error('seed needs members with and without a portrait');
+    return { withPortrait, without };
+  }
+
+  it.each([225, 450])(
+    'people.portrait at %i px is byte-identical in every adapter',
+    async (size) => {
+      const { direct, http, mcp } = stack();
+      const { withPortrait } = await portraitSlugs();
+      const input = { slug: withPortrait, size };
+      const expected = (await direct('people.portrait', input)) as {
+        bytes: Uint8Array;
+        sha256: string;
+      };
+      const { bytes, ...metadata } = expected;
+
+      const response = await http('people.portrait', input);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('image/jpeg');
+      expect(response.headers.get('etag')).toBe(`"${expected.sha256}"`);
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(Buffer.from(await response.arrayBuffer()).equals(Buffer.from(bytes))).toBe(true);
+
+      const tool = await mcp('people.portrait', input);
+      expect(tool.isError).not.toBe(true);
+      expect(tool.structuredContent).toEqual(plain(metadata));
+      const blocks = tool.content as Array<{
+        type: string;
+        data?: string;
+        mimeType?: string;
+        text?: string;
+      }>;
+      expect(JSON.parse(blocks.find((b) => b.type === 'text')?.text ?? 'null')).toEqual(
+        plain(metadata),
+      );
+      const image = blocks.find((b) => b.type === 'image');
+      expect(image?.mimeType).toBe('image/jpeg');
+      expect(Buffer.from(image?.data ?? '', 'base64').equals(Buffer.from(bytes))).toBe(true);
+    },
+  );
+
+  it('people.get states the same file facts that people.portrait serves', async () => {
+    const { direct, http, mcp } = stack();
+    const { withPortrait } = await portraitSlugs();
+    const profile = plain(await direct('people.get', { slug: withPortrait })) as {
+      portrait: { variants: Array<{ size: 225 | 450; sha256: string; url: string }> };
+    };
+    for (const variant of profile.portrait.variants) {
+      const file = (await direct('people.portrait', {
+        slug: withPortrait,
+        size: variant.size,
+      })) as { sha256: string };
+      expect(variant.sha256).toBe(file.sha256);
+      expect(variant.url).toContain(`size=${variant.size}&v=${file.sha256.slice(0, 12)}`);
+    }
+    expect(await (await http('people.get', { slug: withPortrait })).json()).toEqual(profile);
+    expect((await mcp('people.get', { slug: withPortrait })).structuredContent).toEqual(profile);
+  });
+
+  it('people.get says portrait is null (not absent) for a member without one', async () => {
+    const { direct, http, mcp } = stack();
+    const { without } = await portraitSlugs();
+    const profile = plain(await direct('people.get', { slug: without })) as { portrait: unknown };
+    expect(profile.portrait).toBeNull();
+    const overHttp = (await (await http('people.get', { slug: without })).json()) as {
+      portrait: unknown;
+    };
+    expect(overHttp.portrait).toBeNull();
+    expect((await mcp('people.get', { slug: without })).structuredContent).toEqual(profile);
+  });
+});
+
 const INVALID: Array<[string, Record<string, unknown>, 'invalid_input' | 'not_found']> = [
   ['people.search', { limt: 5 }, 'invalid_input'],
   ['people.search', { limit: 0 }, 'invalid_input'],
@@ -118,6 +227,13 @@ const INVALID: Array<[string, Record<string, unknown>, 'invalid_input' | 'not_fo
   ['people.search', { chamber: 'lords' }, 'invalid_input'],
   ['people.search', { state: 'zy' }, 'invalid_input'],
   ['people.get', {}, 'invalid_input'],
+  ['districts.shape', {}, 'invalid_input'],
+  ['districts.shape', { state: 'ZV', district: 'ten' }, 'invalid_input'],
+  ['districts.shape', { state: 'GA', district: 10 }, 'not_found'],
+  ['districts.shape', { state: 'ZV', district: 0 }, 'not_found'],
+  ['districts.shape', { slug: 'cornelius-oakhurst' }, 'not_found'],
+  ['districts.shape', { slug: 'nobody-by-this-name' }, 'not_found'],
+  ['districts.shape', { slug: 'avery-ashvale', state: 'ZV' }, 'invalid_input'],
   ['people.glance', {}, 'invalid_input'],
   ['people.glance', { slug: 'nobody-by-this-name' }, 'not_found'],
   ['explainers.list', { id: 'No Spaces' }, 'invalid_input'],
@@ -132,12 +248,27 @@ const INVALID: Array<[string, Record<string, unknown>, 'invalid_input' | 'not_fo
   ['explore.facets', { scope: 'everyone' }, 'invalid_input'],
   ['money.summary', { slug: 'a-slug', cycle: 1800 }, 'invalid_input'],
   ['votes.list', { congress: 'x' }, 'invalid_input'],
+  ['votes.attendance', {}, 'invalid_input'],
+  ['votes.attendance', { slug: 'a-slug', congress: 0 }, 'invalid_input'],
+  ['votes.attendance', { slug: 'nobody-by-this-name' }, 'not_found'],
+  ['chamber.composition', { chamber: 'house' }, 'invalid_input'],
   ['scores.list', { slug: 'nobody-by-this-name' }, 'not_found'],
   ['promises.list', { slug: 'x', status: 'maybe' }, 'invalid_input'],
   ['policy.areas', { anything: 1 }, 'invalid_input'],
+  ['races.list', { cycle: 'next' }, 'invalid_input'],
+  ['races.list', { state: 'zv' }, 'invalid_input'],
+  ['races.get', {}, 'invalid_input'],
+  ['races.get', { seat: 'ZV-1' }, 'invalid_input'],
+  ['races.get', { seat: 'zv-01' }, 'invalid_input'],
+  ['races.get', { seat: 'zv-1', sort: 'ideology' }, 'invalid_input'],
+  ['races.get', { seat: 'zy-al' }, 'not_found'],
   ['frameworks.evaluate', { framework: { title: '', rules: [] } }, 'invalid_input'],
   ['frameworks.evaluate', { framework: { title: 'x', rules: [{ bogus: true }] } }, 'invalid_input'],
   ['sources.status', { verbose: true }, 'invalid_input'],
+  ['people.portrait', {}, 'invalid_input'],
+  ['people.portrait', { slug: 'nobody-by-this-name' }, 'not_found'],
+  ['people.portrait', { slug: 'someone', size: 300 }, 'invalid_input'],
+  ['people.portrait', { slug: 'someone', v: 'NOT-HEX' }, 'invalid_input'],
 ];
 
 describe('the same invalid input fails the same way through dispatch, HTTP and MCP', () => {

@@ -32,6 +32,11 @@ describe('pool limits on real Postgres', () => {
     );
   });
 
+  it('evaluates dates in UTC on interactive and batch connections, like PGlite', async () => {
+    expect(await setting(db.database.url, false, 'TimeZone')).toBe('UTC');
+    expect(await setting(db.database.url, true, 'TimeZone')).toBe('UTC');
+  });
+
   it('cancels a statement that outlives the configured timeout (57014)', async () => {
     const handle = createDb({
       kind: 'pg',

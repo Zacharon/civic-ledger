@@ -13,12 +13,8 @@ export function ProfileSection({
   children: ReactNode;
 }) {
   return (
-    <section
-      id={id}
-      aria-labelledby={`${id}-title`}
-      className="scroll-mt-24 border-t border-ink pt-6"
-    >
-      <h2 id={`${id}-title`} className="font-serif text-2xl font-medium tracking-tight">
+    <section id={id} aria-labelledby={`${id}-title`} className="rule-strong scroll-mt-6 pt-6">
+      <h2 id={`${id}-title`} className="section-title">
         {title}
       </h2>
       {lede ? <p className="mt-1.5 max-w-3xl text-ink-2">{lede}</p> : null}
@@ -33,9 +29,9 @@ export function SectionFallback({ id, title }: { id: string; title: string }) {
       id={id}
       aria-labelledby={`${id}-title`}
       aria-busy="true"
-      className="scroll-mt-24 border-t border-ink pt-6"
+      className="rule-strong scroll-mt-6 pt-6"
     >
-      <h2 id={`${id}-title`} className="font-serif text-2xl font-medium tracking-tight">
+      <h2 id={`${id}-title`} className="section-title">
         {title}
       </h2>
       <p className="mt-3 text-sm text-ink-3">Loading {title.toLowerCase()}…</p>

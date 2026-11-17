@@ -3,8 +3,10 @@ import Link from 'next/link';
 import { type ReactNode, Suspense } from 'react';
 import { CareerTimeline } from '@/components/charts/career-timeline';
 import { PositionStrip } from '@/components/charts/position-strip';
+import { MemberPortrait } from '@/components/member-portrait';
 import { PartyChip } from '@/components/party-chip';
 import { GlanceSection } from '@/components/profile/glance';
+import { MemberDistrictMap } from '@/components/profile/member-district-map';
 import { MoneySection } from '@/components/profile/money-section';
 import { PlatformSection } from '@/components/profile/platform-section';
 import { PromisesSection } from '@/components/profile/promises-section';
@@ -24,7 +26,9 @@ import {
   seatLabel,
   serviceYears,
 } from '@/lib/format';
-import { readOrNotFound } from '@/server/capabilities';
+import { raceHref, raceTitle } from '@/lib/races';
+import { apiLogger } from '@/server/api/runtime';
+import { read, readOrNotFound } from '@/server/capabilities';
 import { comparedNames } from '@/server/compare-names';
 import { sourceInfos } from '@/server/sources';
 
@@ -75,10 +79,19 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
   const query = await searchParams;
   const slug = safeSlug(rawSlug);
   const chosen = parseCompareIds(firstParam(query.compare));
-  const [profile, sources, compared] = await Promise.all([
+  const [profile, sources, compared, races] = await Promise.all([
     readOrNotFound('people.get', { slug }),
     sourceInfos(),
     comparedNames(chosen),
+    // The member's election-cycle races (registered there, or sitting there with the seat up).
+    read('races.list', { person: slug }).catch((error: unknown) => {
+      // The race link is extra: fail soft, but never silently.
+      apiLogger().warn(
+        { err: error, capability: 'races.list' },
+        'races.list unavailable on a profile',
+      );
+      return null;
+    }),
   ]);
   // Comparison in progress (carried from Compare through Explore): add to it, don't restart.
   const others = compared.filter((m) => m.slug !== slug);
@@ -103,32 +116,43 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
   const headerNotes = new SourceNotes('summary', sources);
   const personMark = headerNotes.cite(person.provenance);
   const termMark = headerNotes.cite(terms[0]?.provenance);
+  const portraitMark = headerNotes.cite(profile.portrait?.provenance);
   const title = memberTitle(card.chamber);
   const seat = seatLabel(card.chamber, card.state, card.district);
   const careerNotes = new SourceNotes('career', sources);
   careerNotes.citeAll([...terms.map((t) => t.provenance), ...candidacies.map((c) => c.provenance)]);
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10">
-      <nav aria-label="Breadcrumb" className="text-sm text-ink-2">
-        <Link href={exploreHref(ids)} className="link">
-          Explore
-        </Link>{' '}
-        / <span aria-current="page">{person.fullName}</span>
-      </nav>
-
-      <header className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <div>
-          <h1 className="font-serif text-4xl font-medium tracking-tight sm:text-5xl">
+    <div className="page-frame pt-6 sm:pt-8">
+      <div className="grid gap-x-10 gap-y-8 lg:grid-cols-12">
+        <header className="profile-header min-w-0 lg:col-span-8">
+          <nav aria-label="Breadcrumb" className="text-sm text-ink-2">
+            <Link href={exploreHref(ids)} className="link">
+              Explore
+            </Link>{' '}
+            <span aria-hidden="true" className="px-1 text-ink-3">
+              /
+            </span>{' '}
+            <span aria-current="page">{person.fullName}</span>
+          </nav>
+          <p className="eyebrow mt-6">Member record</p>
+          <h1 className="page-title mt-3">
             {person.fullName}
             <SourceMark notes={headerNotes} n={personMark} />
           </h1>
-          <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-lg text-ink-2">
-            {card.isCurrent ? null : (
-              <span className="chip border border-control bg-sunk font-semibold text-ink">
-                Former member
-              </span>
-            )}
+          {/* After the h1 in the DOM so assistive tech reads the name first; CSS grid puts it at left. */}
+          <MemberPortrait
+            portrait={profile.portrait}
+            name={person.fullName}
+            notes={headerNotes}
+            mark={portraitMark}
+          />
+          <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-lg text-ink-2">
+            <span
+              className={card.isCurrent ? 'record-status' : 'record-status record-status-plain'}
+            >
+              {card.isCurrent ? 'Current member' : 'Former member'}
+            </span>
             <PartyChip party={card.party} full />
             <span>
               {card.isCurrent ? '' : 'Last served as '}
@@ -149,168 +173,195 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
               {`; last term ended ${formatDate(card.termEnd) ?? 'on an unknown date'}.`}
             </p>
           ) : null}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href={compareAction.href} className="btn btn-primary" data-compare-action>
-            {compareAction.label}
-          </Link>
-          <Link
-            href={exploreHref(ids, `q=${encodeURIComponent(person.lastName)}`)}
-            className="btn btn-secondary"
-          >
-            Find in table
-          </Link>
-          {others.length > 0 ? (
-            <p className="w-full text-sm text-ink-2" data-compare={ids.join(',')}>
-              {inComparison ? 'In your comparison with ' : 'Comparing '}
-              {others.map((m) => m.name).join(', ')}.{' '}
-              {ids.length < COMPARE_MAX ? (
-                <Link href={exploreHref(ids)} className="link">
-                  Pick another from the table
-                </Link>
-              ) : null}
-            </p>
-          ) : null}
-        </div>
-      </header>
-
-      <dl className="mt-8 grid grid-cols-2 border-y border-ink sm:grid-cols-3 lg:grid-cols-6">
-        <Fact
-          label={card.moneyCycle ? `Raised, ${card.moneyCycle}` : 'Raised'}
-          value={formatCents(card.totalReceiptsCents, { compact: true })}
-          raw={['totalReceiptsCents', card.totalReceiptsCents]}
-        />
-        <Fact
-          label="From PACs"
-          value={formatShare(card.pacShare)}
-          raw={['pacShare', card.pacShare]}
-        />
-        <Fact
-          label={
-            card.smallDollarAsOf
-              ? `Small donors, through ${formatDate(card.smallDollarAsOf)?.replace(/, \d{4}$/, '')}`
-              : 'Small donors'
-          }
-          value={formatShare(card.smallDollarShare)}
-          raw={['smallDollarShare', card.smallDollarShare]}
-        />
-        <Fact
-          label="Missed votes"
-          value={formatShare(card.missedVoteRate)}
-          empty={card.isCurrent ? 'No data' : 'No votes loaded'}
-          raw={['missedVoteRate', card.missedVoteRate]}
-        />
-        <Fact
-          label={
-            card.ideologyCongress ? `DW-NOMINATE, ${ordinal(card.ideologyCongress)}` : 'DW-NOMINATE'
-          }
-          value={
-            card.dwNominateDim1 === null ? null : (
-              <PositionStrip value={card.dwNominateDim1} width={64} />
-            )
-          }
-          empty={card.isCurrent ? 'No data' : 'No votes loaded'}
-          raw={['dwNominateDim1', card.dwNominateDim1]}
-        />
-        <Fact
-          label="Promises kept"
-          value={
-            card.promiseKeptRate === null
-              ? null
-              : `${formatShare(card.promiseKeptRate)} of ${card.promisesRated}`
-          }
-          empty={card.promisesRated === null ? 'None tracked' : 'None rated yet'}
-          raw={['promiseKeptRate', card.promiseKeptRate]}
-        />
-      </dl>
-      <p className="mt-2 text-xs text-ink-3">
-        Summary from the ledger table, rebuilt {formatDate(card.refreshedAt)}. Details and sources
-        in each section below.
-      </p>
-
-      <div className="mt-12 grid gap-12 lg:grid-cols-[11rem_minmax(0,1fr)]">
-        <nav aria-label="On this page" className="hidden lg:block">
-          <ul className="sticky top-24 space-y-1 border-l border-rule text-sm">
-            {SECTIONS.map((s) => (
-              <li key={s.id}>
-                <a
-                  href={`#${s.id}`}
-                  className="-ml-px block border-l border-transparent py-1 pl-3 text-ink-2 hover:border-ink hover:text-ink"
-                >
-                  {s.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <div className="min-w-0 space-y-16">
-          <Suspense fallback={<SectionFallback id="glance" title="At a glance" />}>
-            <GlanceSection slug={slug} />
-          </Suspense>
-          <Suspense fallback={<SectionFallback id="money" title="Money" />}>
-            <MoneySection slug={slug} cycle={Number.isInteger(cycle) ? cycle : null} />
-          </Suspense>
-          <Suspense fallback={<SectionFallback id="votes" title="Votes" />}>
-            <VotesSection
-              slug={slug}
-              area={area}
-              page={Number.isInteger(votesPage) && votesPage > 0 ? votesPage : 1}
-              missedVoteRate={card.missedVoteRate}
-              votesEligible={card.votesEligible}
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Link href={compareAction.href} className="btn btn-primary" data-compare-action>
+              {compareAction.label}
+            </Link>
+            <Link
+              href={exploreHref(ids, `q=${encodeURIComponent(person.lastName)}`)}
+              className="btn btn-secondary"
+            >
+              Find in table
+            </Link>
+            {races && races.items.length > 0 ? (
+              <p className="w-full text-sm text-ink-2" data-race-links>
+                {races.cycle} {races.items.length === 1 ? 'race' : 'races'}:{' '}
+                {races.items.map((r, i) => (
+                  <span key={r.seat.key}>
+                    {i > 0 ? ', ' : ''}
+                    <Link href={raceHref(races.cycle, r.seat.key)} className="link">
+                      {raceTitle(r.seat)}
+                    </Link>
+                  </span>
+                ))}
+                . <span className="text-ink-3">FEC registration is not a ballot listing.</span>
+              </p>
+            ) : null}
+            {others.length > 0 ? (
+              <p className="w-full text-sm text-ink-2" data-compare={ids.join(',')}>
+                {inComparison ? 'In your comparison with ' : 'Comparing '}
+                {others.map((m) => m.name).join(', ')}.{' '}
+                {ids.length < COMPARE_MAX ? (
+                  <Link href={exploreHref(ids)} className="link">
+                    Pick another from the table
+                  </Link>
+                ) : null}
+              </p>
+            ) : null}
+          </div>
+          <dl className="rule-strong mt-8 grid grid-cols-2 gap-x-6 sm:grid-cols-3">
+            <Fact
+              label={card.moneyCycle ? `Raised, ${card.moneyCycle}` : 'Raised'}
+              value={formatCents(card.totalReceiptsCents, { compact: true })}
+              raw={['totalReceiptsCents', card.totalReceiptsCents]}
             />
-          </Suspense>
-          <Suspense fallback={<SectionFallback id="scores" title="Scores" />}>
-            <ScoresSection slug={slug} name={person.fullName} chamber={card.chamber} />
-          </Suspense>
-          <Suspense fallback={<SectionFallback id="promises" title="Promises" />}>
-            <PromisesSection slug={slug} />
-          </Suspense>
-          <Suspense fallback={<SectionFallback id="platform" title="Platform and record" />}>
-            <PlatformSection slug={slug} platform={platform} />
-          </Suspense>
+            <Fact
+              label="From PACs"
+              value={formatShare(card.pacShare)}
+              raw={['pacShare', card.pacShare]}
+            />
+            <Fact
+              label={
+                card.smallDollarAsOf
+                  ? `Small donors, through ${formatDate(card.smallDollarAsOf)?.replace(/, \d{4}$/, '')}`
+                  : 'Small donors'
+              }
+              value={formatShare(card.smallDollarShare)}
+              raw={['smallDollarShare', card.smallDollarShare]}
+            />
+            <Fact
+              label="Missed votes"
+              value={formatShare(card.missedVoteRate)}
+              empty={card.isCurrent ? 'No data' : 'No votes loaded'}
+              raw={['missedVoteRate', card.missedVoteRate]}
+            />
+            <Fact
+              label={
+                card.ideologyCongress
+                  ? `DW-NOMINATE, ${ordinal(card.ideologyCongress)}`
+                  : 'DW-NOMINATE'
+              }
+              value={
+                card.dwNominateDim1 === null ? null : (
+                  <PositionStrip value={card.dwNominateDim1} width={64} />
+                )
+              }
+              empty={card.isCurrent ? 'No data' : 'No votes loaded'}
+              raw={['dwNominateDim1', card.dwNominateDim1]}
+            />
+            <Fact
+              label="Promises kept"
+              value={
+                card.promiseKeptRate === null
+                  ? null
+                  : `${formatShare(card.promiseKeptRate)} of ${card.promisesRated}`
+              }
+              empty={card.promisesRated === null ? 'None tracked' : 'None rated yet'}
+              raw={['promiseKeptRate', card.promiseKeptRate]}
+            />
+          </dl>
+          <p className="mt-2 text-xs text-ink-3">
+            Summary from the ledger table, rebuilt {formatDate(card.refreshedAt)}. Details and
+            sources in each section below.
+          </p>
+        </header>
 
-          <ProfileSection
-            id="career"
-            title="Career"
-            lede="Terms served and campaigns run, across offices, from the earliest on record."
-          >
-            {terms.length === 0 && candidacies.length === 0 ? (
-              <p className="text-ink-2">No terms or campaigns on record.</p>
-            ) : (
-              <CareerTimeline
-                terms={terms}
-                campaigns={candidacies}
-                asOfYear={new Date(card.refreshedAt).getUTCFullYear()}
-              />
-            )}
+        <section aria-labelledby="evidence-title" className="min-w-0 lg:col-span-4 lg:pt-10">
+          <div className="evidence-panel">
+            <h2 id="evidence-title" className="subsection-title">
+              Source records
+            </h2>
+            <p className="mt-1 text-sm text-ink-2">
+              Official records for this member, and the sources behind the header.
+            </p>
+            <MemberDistrictMap slug={slug} />
             {identifiers.length > 0 ? (
-              <div className="mt-10">
-                <h3 className="font-semibold">Records elsewhere</h3>
-                <ul className="mt-2 space-y-1 text-sm">
-                  {identifiers.map((id) => {
-                    const link = IDENTIFIER_LINKS[id.scheme];
-                    const href = link ? safeHref(link.href(id.value)) : null;
-                    return (
-                      <li key={`${id.scheme}-${id.value}`}>
+              <ol className="mt-4 border-t border-rule">
+                {identifiers.map((id, i) => {
+                  const link = IDENTIFIER_LINKS[id.scheme];
+                  const href = link ? safeHref(link.href(id.value)) : null;
+                  return (
+                    <li
+                      key={`${id.scheme}-${id.value}`}
+                      className="flex gap-3 border-b border-rule py-3 text-sm"
+                    >
+                      <span aria-hidden="true" className="num pt-0.5 text-xs text-ink-3">
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <span className="min-w-0">
                         {href && link ? (
-                          <a className="link" href={href} rel="noreferrer">
+                          <a className="link font-semibold" href={href} rel="noreferrer">
                             {link.label}
                           </a>
                         ) : (
-                          id.scheme
-                        )}{' '}
-                        <span className="num text-ink-3">{id.value}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ) : null}
-            <SourceList notes={careerNotes} />
-          </ProfileSection>
-          <SourceList notes={headerNotes} title="Sources for the header" />
-        </div>
+                          <span className="font-semibold">{id.scheme}</span>
+                        )}
+                        <span className="num mt-0.5 block break-all text-ink-3">{id.value}</span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <p className="mt-4 border-t border-rule pt-3 text-sm text-ink-3">
+                No external record identifiers on file for this member.
+              </p>
+            )}
+            <SourceList notes={headerNotes} title="Sources for the header" />
+          </div>
+        </section>
+      </div>
+
+      <nav aria-label="On this page" className="section-nav mt-12">
+        {SECTIONS.map((s) => (
+          <a key={s.id} href={`#${s.id}`}>
+            {s.label}
+          </a>
+        ))}
+      </nav>
+
+      <div className="mt-10 min-w-0 space-y-16">
+        <Suspense fallback={<SectionFallback id="glance" title="At a glance" />}>
+          <GlanceSection slug={slug} />
+        </Suspense>
+        <Suspense fallback={<SectionFallback id="money" title="Money" />}>
+          <MoneySection slug={slug} cycle={Number.isInteger(cycle) ? cycle : null} />
+        </Suspense>
+        <Suspense fallback={<SectionFallback id="votes" title="Votes" />}>
+          <VotesSection
+            slug={slug}
+            area={area}
+            page={Number.isInteger(votesPage) && votesPage > 0 ? votesPage : 1}
+            missedVoteRate={card.missedVoteRate}
+            votesEligible={card.votesEligible}
+          />
+        </Suspense>
+        <Suspense fallback={<SectionFallback id="scores" title="Scores" />}>
+          <ScoresSection slug={slug} name={person.fullName} chamber={card.chamber} />
+        </Suspense>
+        <Suspense fallback={<SectionFallback id="promises" title="Promises" />}>
+          <PromisesSection slug={slug} />
+        </Suspense>
+        <Suspense fallback={<SectionFallback id="platform" title="Platform and record" />}>
+          <PlatformSection slug={slug} platform={platform} />
+        </Suspense>
+
+        <ProfileSection
+          id="career"
+          title="Career"
+          lede="Terms served and campaigns run, across offices, from the earliest on record."
+        >
+          {terms.length === 0 && candidacies.length === 0 ? (
+            <p className="text-ink-2">No terms or campaigns on record.</p>
+          ) : (
+            <CareerTimeline
+              terms={terms}
+              campaigns={candidacies}
+              asOfYear={new Date(card.refreshedAt).getUTCFullYear()}
+            />
+          )}
+          <SourceList notes={careerNotes} />
+        </ProfileSection>
       </div>
     </div>
   );
@@ -332,7 +383,7 @@ function Fact({
     <div
       data-fact={raw[0]}
       data-value={JSON.stringify(raw[1])}
-      className="border-rule px-1 py-4 sm:px-4 [&:not(:first-child)]:border-l max-sm:[&:nth-child(odd)]:border-l-0"
+      className="border-b border-rule py-4"
     >
       <dt className="text-sm text-ink-2">{label}</dt>
       <dd className="num mt-1 text-xl font-semibold">

@@ -9,6 +9,14 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 
 ### Added
 
+- Official member portraits (A81-A85): ingest source `member-photos` (public-domain GPO Member
+  Guide photos via unitedstates/images, self-hosted in `person_portrait`, migration 0007),
+  `people.portrait@1` (binary public read; file over HTTP, image block over MCP),
+  `portrait` facts on `people.get`, `/people/<slug>/portrait`, and a 4:5 portrait or a neutral
+  tile in the member record header. Member records only; never on race pages.
+- Races: `candidate` table (migration 0008, `fec-bulk@3`), `races.list` / `races.get`
+  capabilities (API and MCP), `/races` and `/races/<cycle>/<seat>` pages, a race line on
+  member profiles and a Races nav link (DECISIONS A21 amendment, A86-A95).
 - Monorepo: `packages/db` (Drizzle schema, forward-only SQL migrations, read-model
   materialized views), `packages/core` (the capability registry: 13 public read
   capabilities plus the operator-only `ingest.run` and `curated.validate`),
@@ -20,6 +28,7 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 - Ingest shrink guard: a load that would delete more than 10% of a source's rows, or
   load under half the last run's records, is rolled back and recorded `failed`;
   `--allow-shrink` overrides (A42).
+- District locator map on current members' profiles: `census-boundaries` ingest source (Census 2025 cartographic boundary files, 119th Congress), `district_map` table (migration `0006`), public `districts.shape@1` read capability (API and MCP) and the reusable `DistrictLocator` component, with the boundary vintage and as-of date on every map (A75-A79).
 - `GET /api/live` liveness probe separate from `/api/health` readiness (A47).
 - Page rate limiting (300 per minute per client) next to the API limits (A43).
 - `scripts/db/roles.sql`: read-only and ingest database roles, `DATABASE_URL_READONLY`

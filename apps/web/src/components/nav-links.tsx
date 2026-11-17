@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 const LINKS = [
   { href: '/explore', label: 'Explore' },
   { href: '/compare', label: 'Compare' },
+  { href: '/races', label: 'Races' },
   { href: '/policy', label: 'Policy areas' },
   { href: '/frameworks', label: 'Frameworks' },
   { href: '/sources', label: 'Sources' },
@@ -17,9 +18,9 @@ export function NavLinks() {
   return (
     <nav
       aria-label="Main"
-      className="relative -mx-1 min-w-0 flex-1 overflow-x-auto [mask-image:linear-gradient(to_right,black_85%,transparent)] lg:[mask-image:none]"
+      className="relative -mx-1 min-w-0 overflow-x-auto [mask-image:linear-gradient(to_right,black_85%,transparent)] lg:[mask-image:none]"
     >
-      <ul className="flex items-center gap-1 whitespace-nowrap text-sm">
+      <ul className="flex items-center gap-1 pr-12 whitespace-nowrap text-[0.9375rem] lg:gap-3 lg:pr-0">
         {LINKS.map(({ href, label }) => {
           const current = pathname === href || pathname.startsWith(`${href}/`);
           return (
@@ -27,10 +28,10 @@ export function NavLinks() {
               <Link
                 href={href}
                 aria-current={current ? 'page' : undefined}
-                className={`inline-flex min-h-11 items-center rounded-control px-2.5 transition-colors duration-150 ${
+                className={`inline-flex min-h-11 items-center px-1.5 transition-colors duration-150 focus-visible:outline-offset-[-2px] ${
                   current
-                    ? 'font-semibold text-ink underline decoration-accent decoration-2 underline-offset-[6px]'
-                    : 'text-ink-2 hover:text-ink'
+                    ? 'font-semibold text-ink underline decoration-accent decoration-2 underline-offset-[8px]'
+                    : 'text-ink-2 hover:text-ink hover:underline hover:decoration-rule hover:decoration-2 hover:underline-offset-[8px]'
                 }`}
               >
                 {label}

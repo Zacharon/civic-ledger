@@ -35,7 +35,7 @@ export function ColumnPicker({ columns }: { columns: ColumnDef[] }) {
           collisionPadding={16}
           className="z-20 max-h-[min(32rem,var(--radix-popover-content-available-height))] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto rounded-panel border border-control bg-surface p-4 text-ink shadow-[0_8px_24px_-12px_rgb(28_27_24/0.35)]"
         >
-          <p className="font-serif text-lg font-medium">Show columns</p>
+          <p className="font-semibold">Show columns</p>
           <p className="mt-1 text-sm text-ink-3">Name, party and seat are always shown.</p>
           <div className="mt-3 space-y-4">
             {COLUMN_GROUPS.map((group) => {

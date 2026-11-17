@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { AttendanceStrip } from '@/components/charts/attendance-strip';
+import { PartyBreakdown } from '@/components/charts/party-breakdown';
 import { FullTitle } from '@/components/full-title';
 import { Pagination } from '@/components/pagination';
 import { ScrollRegion } from '@/components/scroll-region';
 import { SourceList, SourceMark, SourceNotes } from '@/components/sources';
+import { monthLabel } from '@/lib/attendance';
 import {
   formatDate,
   formatNumber,
@@ -14,6 +17,7 @@ import {
   shortTitle,
 } from '@/lib/format';
 import { POSITION_LABEL } from '@/lib/labels';
+import { VOTE_KEY_CLASS } from '@/lib/vote';
 import { read } from '@/server/capabilities';
 import { sourceInfos } from '@/server/sources';
 import { ProfileSection } from './section';
@@ -35,13 +39,17 @@ export async function VotesSection({
 }) {
   const [areas, sources] = await Promise.all([read('policy.areas', {}), sourceInfos()]);
   const activeArea = areas.items.find((a) => a.id === area) ?? null;
-  const votes = await read('votes.list', {
-    slug,
-    ...(activeArea ? { policyArea: activeArea.id } : {}),
-    limit: PAGE_SIZE,
-    offset: (Math.max(page, 1) - 1) * PAGE_SIZE,
-  });
+  const [votes, attendance] = await Promise.all([
+    read('votes.list', {
+      slug,
+      ...(activeArea ? { policyArea: activeArea.id } : {}),
+      limit: PAGE_SIZE,
+      offset: (Math.max(page, 1) - 1) * PAGE_SIZE,
+    }),
+    read('votes.attendance', { slug }),
+  ]);
   const notes = new SourceNotes('votes', sources);
+  const attendanceMark = notes.cite(attendance.provenance);
   const congress = votes.items[0]?.rollcall.congress;
   const href = (next: { area?: string | null; page?: number }) => {
     const params = new URLSearchParams();
@@ -68,6 +76,21 @@ export async function VotesSection({
         )
       }
     >
+      {attendance.months.length > 0 ? (
+        <div className="mb-10">
+          <AttendanceStrip attendance={attendance} />
+          <p className="mt-3 max-w-3xl text-sm text-ink-3">
+            Eligible votes are the roll-call positions on file for this member in the Congress (yea,
+            nay, present and not voting), the same count behind the missed-vote rate above. Missed
+            means recorded as not voting.
+            <SourceMark notes={notes} n={attendanceMark} />
+            {attendance.throughMonth
+              ? ` Months run through ${monthLabel(attendance.throughMonth)}, the latest month with a roll call on file.`
+              : ''}
+          </p>
+        </div>
+      ) : null}
+
       <nav aria-label="Filter votes by policy area" className="flex flex-wrap gap-2 text-sm">
         <AreaLink href={href({ area: null })} current={activeArea === null}>
           All areas
@@ -80,6 +103,12 @@ export async function VotesSection({
             </AreaLink>
           ))}
       </nav>
+
+      <p className="mt-6 max-w-3xl text-sm text-ink-3">
+        “How each party voted” under a roll call counts its recorded positions by each member’s
+        party on the vote date, from their term records; the party lines add up to the “All parties”
+        line, the roll call’s total.
+      </p>
 
       {votes.items.length === 0 ? (
         <p className="mt-6 text-ink-2">
@@ -145,6 +174,7 @@ export async function VotesSection({
                         <SourceMark notes={notes} n={notes.cite(v.rollcall.provenance)} />
                       </span>
                       {bill ? <FullTitle title={bill.title} /> : null}
+                      <PartyBreakdown byParty={v.byParty} tally={v.tally} placement="row" />
                     </td>
                     <td className="py-2.5 pr-4 text-ink-2">{v.rollcall.result}</td>
                     <td className="num py-2.5 pr-4 text-right whitespace-nowrap text-ink-2">
@@ -152,7 +182,13 @@ export async function VotesSection({
                     </td>
                     <td className="py-2.5 font-semibold whitespace-nowrap">
                       {v.position ? (
-                        POSITION_LABEL[v.position]
+                        <span className="inline-flex items-center gap-2" data-position={v.position}>
+                          <span
+                            aria-hidden="true"
+                            className={`vote-key ${VOTE_KEY_CLASS[v.position]}`}
+                          />
+                          {POSITION_LABEL[v.position]}
+                        </span>
                       ) : (
                         <span className="font-normal text-ink-3">No record</span>
                       )}
@@ -196,7 +232,7 @@ function AreaLink({
       href={href}
       scroll={false}
       aria-current={current ? 'true' : undefined}
-      className={`inline-flex min-h-9 items-center rounded-control border px-3 ${
+      className={`inline-flex min-h-11 items-center rounded-control border px-3 ${
         current
           ? 'border-accent bg-accent-wash font-semibold'
           : 'border-control text-ink-2 hover:border-ink-2 hover:text-ink'

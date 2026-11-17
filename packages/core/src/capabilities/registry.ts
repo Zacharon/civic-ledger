@@ -1,5 +1,8 @@
 import type { Capability } from '../capability';
+import { votesAttendance } from './attendance';
+import { chamberComposition } from './chamber';
 import { curatedValidate } from './curated';
+import { districtsShape } from './districts';
 import { explainersList } from './explainers';
 import { exploreTable } from './explore';
 import { exploreFacets } from './facets';
@@ -8,7 +11,9 @@ import { peopleGlance } from './glance';
 import { moneySummary } from './money';
 import { peopleCompare, peopleGet, peopleSearch } from './people';
 import { policyAreas } from './policy';
+import { peoplePortrait } from './portraits';
 import { promisesList } from './promises';
+import { racesGet, racesList } from './races';
 import { scoresList } from './scores';
 import { sourcesStatus } from './sources';
 import { votesList } from './votes';
@@ -23,13 +28,19 @@ export const registry = {
   'people.get': peopleGet,
   'people.compare': peopleCompare,
   'people.glance': peopleGlance,
+  'districts.shape': districtsShape,
+  'people.portrait': peoplePortrait,
   'explore.table': exploreTable,
   'explore.facets': exploreFacets,
   'money.summary': moneySummary,
   'votes.list': votesList,
+  'votes.attendance': votesAttendance,
+  'chamber.composition': chamberComposition,
   'scores.list': scoresList,
   'promises.list': promisesList,
   'policy.areas': policyAreas,
+  'races.list': racesList,
+  'races.get': racesGet,
   'frameworks.list': frameworksList,
   'frameworks.evaluate': frameworksEvaluate,
   'sources.status': sourcesStatus,

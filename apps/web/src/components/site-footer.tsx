@@ -5,10 +5,10 @@ import { read } from '@/server/capabilities';
 
 export function SiteFooter() {
   return (
-    <footer className="mt-24 border-t border-rule">
-      <div className="mx-auto grid max-w-[1440px] gap-8 px-4 py-10 text-sm text-ink-2 sm:px-6 md:grid-cols-[2fr_1fr_1fr]">
+    <footer className="page-frame mt-24">
+      <div className="rule-strong grid gap-8 pt-8 pb-12 text-sm text-ink-2 md:grid-cols-[2fr_1fr_1fr] md:gap-10">
         <div className="max-w-prose space-y-2">
-          <p className="font-serif text-lg text-ink">Civic Ledger</p>
+          <p className="wordmark text-ink">Civic Ledger</p>
           <p>
             A non-partisan record of public data. Every number links to its source; every score
             names who made it and how.

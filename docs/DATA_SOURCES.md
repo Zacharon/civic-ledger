@@ -41,6 +41,7 @@ Base `https://www.fec.gov/files/bulk-downloads/2026/` (302 → S3; follow redire
 | `pas226.zip` | `itpas2.txt` | `CMTE_ID,AMNDT_IND,RPT_TP,TRANSACTION_PGI,IMAGE_NUM,TRANSACTION_TP,ENTITY_TP,NAME,CITY,STATE,ZIP_CODE,EMPLOYER,OCCUPATION,TRANSACTION_DT,TRANSACTION_AMT,OTHER_ID,CAND_ID,TRAN_ID,FILE_NUM,MEMO_CD,MEMO_TEXT,SUB_ID` (date MMDDYYYY; SUB_ID unique; CMTE_ID = giver, OTHER_ID = recipient committee) |
 | `independent_expenditure_2026.csv` | plain CSV, **lower-case quoted header** | `cand_id,cand_name,spe_id,spe_nam,ele_type,can_office_state,can_office_dis,can_office,cand_pty_aff,exp_amo,exp_date,agg_amo,sup_opp,pur,pay,file_num,amndt_ind,tran_id,image_num,receipt_dat,fec_election_yr,prev_file_num,dissem_dt` (dates `16-MAY-26`; `sup_opp` S/O; originals + amendments both present → dedupe via `prev_file_num`; `cand_id` may be blank) |
 
+- **Candidate master use (races, DECISIONS A86):** every `cn26` row with `CAND_OFFICE` H or S and `CAND_ELECTION_YR` = 2026 is stored as filed (4,379 rows, 522 seats on 2026-10-20). The file also keeps past and future registrants (`CAND_ELECTION_YR` 1980 to 2999, including obvious typos such as 2764) and presidential rows; those are counted, not stored. Real-file quirks: names carry honorifics, ranks, credentials, nicknames and sometimes a phone number; 47 rows have a blank `CAND_ICI`, one a blank status; party codes include non-codes (`W`, `N`, `TX`, `02`); a candidate with a House and a Senate id appears under both seats; districts that do not exist are filed (UT-71, UT-9, GA-23, MT-22, SC-89, OK-82, NM-66, OH-65, PA-36), blank districts appear in AZ, FL, IL, MD, MO and OR, "00" in GA, MN, NV, NY and TX, and the MP delegate is filed as district 01 (DECISIONS A93); one row (`H6AZ08210`) has an empty name and 19 Senate seats have 2026 registrations with no senator's term ending in 2026.
 - Codes: `CMTE_DSGN` A authorized, B lobbyist PAC, D leadership PAC, J joint fundraiser, P principal, U unauthorized. `ORG_TP` C corp, L labor, M membership, T trade, V coop, W corp w/o stock. `CAND_OFFICE` H/S/P; district `00` at-large/Senate. `CAND_ICI` C/I/O.
 - pas2 profile (2026-10-11): 220,203 rows; TRANSACTION_TP 24K 200,614 · 24E 14,459 · 24A 3,615 · 24C 924 · 24Z 511 · 24F 63 · 24N 17. AMNDT_IND N 190,042 · A 29,844 · T 317. 7,074 negative (refunds), 1,301 blank dates, 4,345 memo (X), 1,484 24K rows with blank CAND_ID (resolve via OTHER_ID → ccl/cm).
 - Transaction types: 24K contribution to nonaffiliated committee (PAC → candidate), 24Z in-kind, 24E IE for, 24A IE against, 24C coordinated party, 24F/24N communication cost for/against.
@@ -66,9 +67,73 @@ Base `https://www.fec.gov/files/bulk-downloads/2026/` (302 → S3; follow redire
 
 API v3 `https://v3.openstates.org/` key required (rate limits unverified). Bulk: legislators YAML (`github.com/openstates/people`), per-session CSV/JSON (login required), monthly Postgres dump (~10.8 GB, no login). "Public domain dedication unless otherwise noted."
 
+## 6b. Official member portraits (unitedstates/images) - public domain
+
+Added 2026-10-20 as ingest source `member-photos` (DECISIONS A81). Repository
+`https://github.com/unitedstates/images`, branch `gh-pages`, published on GitHub Pages. Its README
+states the photos are public domain. The collection's main origin is the U.S. Government Publishing
+Office Member Guide (`https://memberguide.gpo.gov/`), "which has assured us that all photos are public
+domain"; where GPO has no photo the maintainers accept another official public-domain one (for
+example `O000172` is credited upstream to the U.S. House Office of Photography). The source record
+therefore names the Member Guide as the main origin, and the credit shown with each portrait names the
+collection: "Official portrait · public domain · via unitedstates/images".
+
+* URL pattern: `https://unitedstates.github.io/images/congress/{225x275|450x550|original}/{BIOGUIDE}.jpg`
+  (`original` is typically 675x825 and is not used). Keyed by Bioguide id; no auth; no rate limit stated;
+  `ETag` + `Last-Modified` on every file, so conditional GET works.
+* Listing (no per-id probing): `https://api.github.com/repos/unitedstates/images/git/trees/gh-pages?recursive=1`
+  returns `path`, `size` and `sha` of every file (5,110 entries on 2026-10-20, `truncated: false`; a
+  truncated answer fails the run). Unauthenticated GitHub API: 60 requests/hour per address; a run
+  uses one. 1,297 people have a 225x275 and a 450x550 file; 1,296 have an `original`. Average sizes:
+  49 KB (225x275), 143 KB (450x550).
+* Coverage: 524 of the 539 current members on 2026-10-20. Missing: B001323 G000606 G000607 W000832
+  B001328 F000485 B001321 B001324 M001246 H001104 A000383 G000608 V000139 M001245 W000831 (the newest
+  members). A missing portrait is a normal state, not an error.
+* Selection: everyone with a Bioguide id and a term that ends after 2025-01-03 (current members and
+  those who left during the 119th Congress). The rest of the repository (former members back to 1789,
+  about 250 MB for both sizes) is not fetched.
+* Verification: the listing gives each file's git blob SHA-1 and size; a download that does not hash to
+  it is rejected, and the listing's tree id is recorded in the run receipt's `note` and the manifest.
+  An optional `GITHUB_TOKEN` is sent as a bearer token to the listing request only (never logged).
+* Metadata: files carry EXIF/XMP (camera serial numbers, photographer names, edit history), Photoshop
+  data, comments and embedded thumbnails (2026-10-20: 508 of 1,078 files had EXIF/XMP, 484 APP13, 4
+  comments, 386 a thumbnail, none GPS). They are removed on load without re-encoding (11,448,128 bytes,
+  9.8%); JFIF, the ICC profile and the Adobe segment (needed by the CMYK file) are kept.
+* Validation: each file must be a complete grayscale, colour or CMYK JPEG (SOI ... EOI, frame header, scan)
+  at most 2 MiB and inside its variant's pixel box (no larger than 225x275 or 450x550, at least 20% of its
+  area); anything else (an HTML error page served with 200, a truncated download, an
+  oversized or thumbnail-sized image) rejects that person's pair. Image content is never decoded or altered.
+* Real shapes (2026-10-20, 930 files): upstream scales each photo to fit the box keeping its proportions,
+  so most 225x275 files are 225x275 or 220x275, some are 183x275, 205x275 or 210x275, a few are squarer
+  (225x225, 225x150), and 15 files in `450x550/` are the 225x275 original (not enlarged). One file pair
+  (`L000585`) is a progressive 4-component (CMYK) JPEG; it is accepted unchanged (Chromium renders it
+  correctly, checked 2026-10-20).
+* Not guaranteed by the source: the file for a person can change (a better photo, a new term); the
+  stored `sha256` and the cache-busting key change with it.
+
 ## 7. Status
 
 ProPublica Congress API: "no longer available". OpenSecrets API: discontinued 2025-04-15. OpenSecrets bulk: registration + approval, educational-use ToS, commercial republishing generally a fee.
+
+## 8. U.S. Census Bureau cartographic boundary files (district locator maps) — U.S. government work, public domain
+
+Source id `census-boundaries`. Verified 2026-10-20 by downloading and reading the real files.
+
+- Files (500k = 1:500,000 generalized, shapefile zips, NAD83 / EPSG:4269 lon/lat):
+  `https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_cd119_500k.zip` (7.07 MB; 441 records, 633,712 vertices) and
+  `https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_state_500k.zip` (3.25 MB; 56 records). `Last-Modified` 2026-04-23; the ISO metadata sidecar dates them 2026-05.
+  The `5m` (2.1 MB) and `20m` resolutions also exist; 500k is the finest the 240 px maps could use and is already ~100x more vertices than they draw. Each zip holds `.shp`, `.dbf`, `.shp.iso.xml` (metadata), `.shx`, `.prj`, `.cpg` (UTF-8).
+- **Vintage choice.** The task named `GENZ2024`. `GENZ2025` exists and is newer, so the adapter uses it (`CENSUS_VINTAGE_YEAR` in `parse.ts`). Both describe the same 119th Congress: identical 441 `GEOID`s, land area per district within 0.2% (largest difference 0.21%), vertex counts 633,497 vs 633,712 (re-generalized and re-aligned to the newer TIGER). The 120th Congress file (`cd120`) does not exist (404 under GENZ2024 and GENZ2025). `GENZ2026` is not published (404).
+- **What the file says about its own currency** (metadata abstract of `cb_2025_us_cd119_500k`): "The 119th Congress is seated from January 2025 through December 2026. States that had updates between the previous and current session include Alabama, Georgia, Louisiana, New York, and North Carolina... The generalized boundaries of all other congressional districts are based on information provided to the Census Bureau by the states by May 31, 2024." The adapter reads that date into `district_map.as_of` (2024-05-31) and fails the run if the sentence disappears.
+- **Consequence: redistricting after 2024-05-31 is not in the file.** Mid-decade plans enacted after that date for the 2026 elections (reported as of May 2026 for Texas, California, Missouri and North Carolina, with litigation and further changes under way in Louisiana, Alabama and others; see Ballotpedia and the Voting Rights Lab tracker) are **not** drawn. The maps match the districts of the members now sitting (elected under the 2024 lines) and must not be read as the lines for November 2026. This is why every map carries "District boundaries: U.S. Census Bureau, 2025 cartographic boundary files, 119th Congress. Shows district lines as of May 31, 2024. A state that redrew its districts after that date is not reflected." and why `districts.shape` returns `vintage`, `asOf` and `caveat`. The product does not track which states redrew. A source for 2026 lines (race pages) is a separate decision.
+- **How the as-of date is read.** 2024-05-31 is the cutoff of the district data the *states supplied* to the Census Bureau for this file. It is not the date Census drew or published the files (April-May 2026) and it is not an assurance that nothing changed since: a state may have redrawn, or a court may have ordered new lines, after it. It tells a reader the latest date the lines can claim to be current to, and the maps print it as "district lines as of May 31, 2024" next to the warning that later redistricting is not reflected. A newer vintage will carry a later date and be subject to the same reading. Do not turn it into "valid until" or "current".
+- **Which members a map fits.** Every `district_map` row stores the Congress its lines are for (`congress`, the file's `CDSESSN`, 119). A House member's district number is drawn only when the member is current and their current term began in that Congress (the term start date maps to a Congress: terms starting on or after 2027-01-03 are the 120th), because after the 120th is seated the same district number can mean a different area in a state that redrew. Senate seats and whole-state maps (at-large, delegates) do not depend on the district lines and are unaffected (DECISIONS A80).
+- District file fields: `STATEFP`, `CD119FP` (`01`..`53`; `00` at-large; `98` non-voting delegate), `GEOID` (`STATEFP`+`CD119FP`), `NAMELSAD`, `CDSESSN` (`119`), `ALAND`, `AWATER`. State file: `STATEFP`, `STUSPS` (USPS code), `NAME`, `GEOID`. The district file has no state letters; the adapter joins on `STATEFP`. Polygons and multipolygons only (ESRI clockwise exteriors).
+- Coverage (2026-10-20 load): 435 voting districts plus six delegate records (DC, PR, GU, VI, AS, MP, each `98`). At-large states (`00`): AK, DE, ND, SD, VT, WY. No `ZZ` ("no district defined") records are present in this vintage, although the abstract mentions them for CT, IL and NH; the adapter would skip a `ZZ` record as it does `00` and `98`.
+- Not drawn: American Samoa and the Northern Mariana Islands (`UNMAPPED_TERRITORIES`): at ~240 px their islands are a scatter of specks, so those delegates show no map. DC, Puerto Rico, Guam and the U.S. Virgin Islands are drawn.
+- Rights: U.S. government work (17 U.S.C. 105); the Census Bureau asks to be credited as the source. https://www.census.gov/about/policies/open-gov/open-data.html
+- Edges are straight lines in lon/lat (parallels stay parallels); the adapter densifies them before projecting, because d3 draws edges as great circles.
+- Libraries (ingest only; nothing ships to the browser). Licences: `shapefile` 0.6.6 BSD-3-Clause (with `array-source`, `slice-source`, `stream-source`, `path-source`, `file-source`, all BSD-3-Clause; `text-encoding` Unlicense, deprecated upstream but only used to decode DBF text); `d3-geo` 3.1.1 ISC (`d3-array`, `internmap` ISC); `topojson-server`, `topojson-simplify`, `topojson-client` 3.x ISC (`commander` 2 MIT). Type packages (`@types/*`) MIT. None is a runtime dependency of `apps/web`. `shapefile` and `topojson-*` have had no release since 2022 (finished, stable libraries); no alternative with the same shared-border simplification was lighter.
 
 ## Identity spine and join pitfalls
 

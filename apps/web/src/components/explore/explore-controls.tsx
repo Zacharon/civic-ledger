@@ -122,7 +122,7 @@ export function ExploreControls({
 
   return (
     <div className="space-y-4">
-      <search>
+      <search aria-label="Explore filters">
         <form
           ref={formRef}
           id={ids.form}

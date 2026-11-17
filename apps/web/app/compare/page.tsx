@@ -43,11 +43,9 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
   const single = ids.length === 1 && ids[0] ? await profileName(ids[0]) : null;
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 pt-8 sm:px-6 sm:pt-10">
+    <div className="page-frame pt-8 sm:pt-10">
       <header className="max-w-3xl">
-        <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-          Compare members
-        </h1>
+        <h1 className="page-title">Compare members</h1>
         <p className="mt-3 text-ink-2">
           Two to four members in aligned columns, every row from the same table. Vote agreement
           counts only roll calls where both voted yea or nay.
@@ -123,7 +121,7 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
 
       {ids.length < 2 ? (
         <div className="mt-10 rounded-panel border border-rule bg-surface p-8">
-          <h2 className="font-serif text-xl font-medium">
+          <h2 className="subsection-title">
             {ids.length === 0 ? 'Choose two to four members' : 'Add one more member to compare'}
           </h2>
           <p className="mt-2 max-w-prose text-ink-2">
@@ -142,7 +140,7 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
         </div>
       ) : comparison && 'missing' in comparison ? (
         <div role="alert" className="mt-10 rounded-panel border border-control bg-surface p-6">
-          <h2 className="font-serif text-xl font-medium">A member in this link was not found</h2>
+          <h2 className="subsection-title">A member in this link was not found</h2>
           <p className="mt-2 text-ink-2">{comparison.missing}</p>
           <Link href="/compare" className="btn btn-secondary mt-4">
             Start over
@@ -169,10 +167,7 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
                       scope="col"
                       className="border-b border-l border-control border-l-rule px-4 py-4 text-left align-top font-normal"
                     >
-                      <Link
-                        href={profileHref(p.slug, ids)}
-                        className="link-quiet font-serif text-xl font-medium"
-                      >
+                      <Link href={profileHref(p.slug, ids)} className="link-quiet subsection-title">
                         {p.fullName}
                       </Link>
                       <span className="mt-1.5 flex items-center gap-2 text-ink-2">
@@ -240,7 +235,7 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
           </section>
 
           <section aria-labelledby="agreement" className="mt-12 max-w-3xl">
-            <h2 id="agreement" className="font-serif text-2xl font-medium">
+            <h2 id="agreement" className="section-title">
               How often they voted alike
             </h2>
             <p className="mt-1.5 text-sm text-ink-2">

@@ -28,7 +28,10 @@ export const fecBulkAdapter: SourceAdapter<FecRecord> = {
       'Candidates, committees and their links, candidate cycle totals and summaries (itemized and unitemized individual gifts), PAC and party contributions to candidates, and independent expenditures for or against candidates.',
   },
   // @2: adds the candidate summary file (itemized / unitemized individual split).
-  version: 'fec-bulk@2',
+  // @3: loads every House and Senate candidate of the cycle into `candidate` (races, A21).
+  // The version is part of the idempotency key: without the bump, a rerun of an
+  // already-loaded snapshot would be answered "already loaded" and `candidate` stay empty.
+  version: 'fec-bulk@3',
   dependsOn: ['congress-legislators'],
   scopes: ['cycle'],
   shrinkDatasets: [
