@@ -73,6 +73,12 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Every advisory ignored in pnpm-workspace.yaml must still be unpatched, outside the
+      # production graph and within its dated (at most 30-day) acceptance (DECISIONS A97).
+      - name: Accepted audit advisories still hold
+        run: pnpm exec tsx scripts/audit/cli.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       # Any production finding fails; the dev tree fails on high or critical (DECISIONS A48).
       - run: pnpm audit --prod
       - run: pnpm audit --audit-level=high
