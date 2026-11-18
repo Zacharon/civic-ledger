@@ -97,21 +97,31 @@ describe('votes.list party breakdown', () => {
 });
 
 describe('votes.list party fallback for a late end date', () => {
-  it('uses the latest earlier term when a member votes after their recorded last day', async () => {
+  // A source can record a member's last day slightly before their last vote. That vote keeps
+  // the term's party only within VOTE_DATE_GRACE_DAYS (2) of the recorded end; later votes are
+  // unattributed ("Unknown"), still counted, never guessed (DECISIONS A98).
+  it('keeps the party within 2 days of the recorded last day, and leaves later votes unattributed', async () => {
     const row = (
       await exec(
         sql`select t.id, t.end_date::text as end_date from term t join person p on p.id = t.person_id where p.slug = 'jules-kindlewood'`,
       )
     ).rows[0] as { id: number; end_date: string | null } | undefined;
     if (!row) throw new Error('missing seed term');
-    await exec(sql`update term set end_date = '2025-08-01' where id = ${row.id}`);
+    // The seed member votes on 2025-08-09 (2 days after this end) and from 2025-09-10 on.
+    await exec(sql`update term set end_date = '2025-08-07' where id = ${row.id}`);
     try {
       const page = await dispatch('votes.list', { slug: 'jules-kindlewood', limit: 100 }, db.ctx());
-      const late = page.items.filter((i) => i.rollcall.voteDate > '2025-08-01' && i.position);
-      expect(late.length).toBeGreaterThan(0);
-      for (const item of late) {
+      const voted = page.items.filter((i) => i.position);
+      const inWindow = voted.filter((i) => i.rollcall.voteDate === '2025-08-09');
+      const after = voted.filter((i) => i.rollcall.voteDate > '2025-08-09');
+      expect(inWindow.length).toBeGreaterThan(0);
+      expect(after.length).toBeGreaterThan(0);
+      for (const item of inWindow) {
         expect(item.byParty.map((p) => p.party)).not.toContain('Unknown');
         expect(item.byParty.map((p) => p.party)).toContain('Prairie Party');
+      }
+      for (const item of after) expect(item.byParty.map((p) => p.party)).toContain('Unknown');
+      for (const item of voted) {
         expect(item.byParty.reduce((n, p) => n + sum(p), 0)).toBe(sum(item.tally));
       }
     } finally {

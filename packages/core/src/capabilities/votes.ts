@@ -60,7 +60,7 @@ export const VotesListOutput = z.object({
       byParty: z
         .array(TallySchema.extend({ party: z.string() }))
         .describe(
-          "Party = the member's party on their term at the vote date, resolved once for every surface (a term covering the date first, end date exclusive; then one in the rollcall's chamber; then the latest start; then the highest id; a recorded vote after a term's recorded end keeps the latest earlier term). Rows are alphabetical by party name (no ideological or size order), 'Unknown' (no term started by the vote date) last, and always sum to `tally`.",
+          "Party = the member's party on their term at the vote date, resolved once for every surface (a term in the roll call's chamber only: one covering the vote date (end date exclusive; latest start, then highest id), else one whose recorded end is at most 2 days before the vote; else unattributed). Rows are alphabetical by party name (no ideological or size order), 'Unknown' (an unattributed vote: no eligible term) last, and always sum to `tally`.",
         ),
       sourceTally: z
         .object({ yea: z.int(), nay: z.int() })
@@ -244,8 +244,8 @@ const emptyTally = (): Tally => ({ yea: 0, nay: 0, present: 0, notVoting: 0 });
 const TALLY_KEY = { yea: 'yea', nay: 'nay', present: 'present', not_voting: 'notVoting' } as const;
 
 /**
- * The party label for members with no term started by the vote date. Shown as its own row,
- * never folded into a real party.
+ * The party label for an unattributed vote (no term in the roll call's chamber covers the vote
+ * date or ended within the grace window). Shown as its own row, never folded into a real party.
  */
 export const UNKNOWN_PARTY = 'Unknown';
 
@@ -262,12 +262,12 @@ export function compareParties(a: string, b: string): number {
 
 /**
  * Exactly one party per position, so the party rows always sum to the roll-call total: the
- * party of the term `voteTimeTerm` resolves for the member on the vote date (covering first,
- * then the rollcall's chamber, then the latest start, then the highest id; a recorded vote
- * after a term's recorded end keeps the latest earlier term). `frameworks.evaluate` member
- * states use the same resolver, so the party breakdown and the member matrix agree. Only a
- * member with no term started by the vote date is "Unknown". `ambiguous` counts positions
- * whose member had more than one covering term (`ambiguousTerm`); each still counts once.
+ * party of the term `voteTimeTerm` resolves for the member and roll call (only terms in the
+ * roll call's chamber; a covering term, else one ended at most `VOTE_DATE_GRACE_DAYS` before
+ * the vote). `frameworks.evaluate` member states use the same resolver, so the party
+ * breakdown and the member matrix agree. A vote with no eligible term is counted, unattributed,
+ * in the "Unknown" row. `ambiguous` counts positions whose member had more than one covering
+ * term (`ambiguousTerm`); each still counts once.
  */
 async function talliesFor(db: Db, rollcallIds: number[]) {
   const result = new Map<
