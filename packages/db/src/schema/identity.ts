@@ -80,6 +80,11 @@ export const term = pgTable(
       .references(() => office.id),
     party: text('party').notNull(),
     startDate: date('start_date').notNull(),
+    /**
+     * Exclusive: the term covers `start_date <= d < end_date` (congress-legislators ends a term
+     * on the day the next one begins). Null = no recorded end. Readers: `isCurrentMember`,
+     * `voteTimeTerm` (DECISIONS A98).
+     */
     endDate: date('end_date'),
     ...provenanceColumns(),
   },

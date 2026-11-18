@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { defineCapability } from '../capability';
 import {
   ambiguousTerm,
+  coversVoteDate,
   MEMBER_VOTE_STATES,
   memberVoteState,
   servingInChamber,
@@ -225,11 +226,13 @@ export const FrameworksEvaluateOutput = z.object({
               .string()
               .nullable()
               .describe(
-                'Party on the term covering the vote date; `person.party` is the current (latest-term) party',
+                "Party on the member's term at the vote date, resolved as votes.list byParty resolves it (a term in the rollcall's chamber first, then the latest start); for a recorded vote with no covering term, the latest earlier term. Null with no vote and no covering term. `person.party` is the current (latest-term) party",
               ),
             ambiguousTerm: z
               .boolean()
-              .describe('More than one term covers the vote date; the latest-starting one is used'),
+              .describe(
+                'More than one term covers the vote date; one is chosen deterministically (rollcall chamber first, then latest start, then highest id)',
+              ),
           }),
         )
         .describe('One entry per resolved rollcall in rule order, including those with no vote'),
@@ -326,7 +329,8 @@ type PeopleFilter = z.output<typeof FrameworksEvaluateInput>['people'];
 /**
  * Stored votes on the claimed rollcalls for the people the filter selects. On the
  * 'current' basis chamber/state/party match the person card (latest term, v1); on
- * 'at_vote' they match the term covering each rollcall's vote date (`voteTimeTerm`).
+ * 'at_vote' they match the member's term on each rollcall's vote date as `voteTimeTerm`
+ * resolves it, the same term `votes.list` counts the vote under.
  */
 async function castVotes(db: Db, rollcallIds: number[], filter: PeopleFilter): Promise<CastVote[]> {
   const { slugs, chamber, state, party, basis } = filter;
@@ -386,7 +390,11 @@ async function rollcallStates(db: Db, rollcallIds: number[], personIds: number[]
       personId: person.id,
       rollcallId: rollcall.id,
       position: votePosition.position,
-      party: vt.party,
+      // The vote-date party of a cast vote (fallback included, as `votes.list` counts it);
+      // with no vote, only a covering term gives a vote-date party.
+      party: sql<
+        string | null
+      >`case when ${coversVoteDate(vt)} or ${votePosition.position} is not null then ${vt.party} end`,
       serving: servingInChamber(vt),
       ambiguous: ambiguousTerm(vt),
     })

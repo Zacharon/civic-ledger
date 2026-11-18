@@ -20,36 +20,51 @@ export const MEMBER_VOTE_STATES = [
 export type MemberVoteState = (typeof MEMBER_VOTE_STATES)[number];
 
 /**
- * The term in force for `personId` on the date of the outer `rollcall` row, for a lateral
- * join. Covering = `start_date <= vote_date < coalesce(end_date, infinity)`. Exactly one
- * term is picked: a term in the rollcall's chamber first, then the latest start date, then
- * the highest id. `inChamber` / `covering` count the candidates so callers can flag
- * ambiguity instead of multiplying a position across terms.
+ * The one resolver for "which term was this member on, on the date of the outer `rollcall`
+ * row" (a lateral join). Every vote-date party, chamber and state comes from it: the
+ * `votes.list` party breakdown and the `frameworks.evaluate` states and `at_vote` filters.
+ *
+ * Covering = `start_date <= vote_date < coalesce(end_date, infinity)`: `term.end_date` is
+ * exclusive (congress-legislators ends a term on the day the next one starts, and
+ * `isCurrentMember` reads it the same way). Candidates are the member's terms started by the
+ * vote date, in this order: covering first; then a term in the rollcall's chamber; then the
+ * latest start date; then the highest id (a deterministic tie-break). With no covering term
+ * the latest earlier term is used (`covers` false): a recorded vote cast after a term's
+ * recorded end (sources often end a term a day or two before the member's last vote) keeps
+ * that term's party. `covering` / `inChamber` count covering terms only, so callers flag
+ * ambiguity and decide serving from real coverage, never from the fallback.
  */
 export function voteTimeTerm(db: Db, personId: Column | SQL) {
   const sameChamber = sql`${office.chamber} = ${rollcall.chamber}`;
+  const covers = or(isNull(term.endDate), gt(term.endDate, rollcall.voteDate)) as SQL;
   return db
     .select({
       party: term.party,
       chamber: office.chamber,
       state: office.state,
-      covering: sql<number>`(count(*) over ())::int`.as('covering'),
-      inChamber: sql<number>`(count(*) filter (where ${sameChamber}) over ())::int`.as(
-        'in_chamber',
-      ),
+      covers: sql<boolean>`coalesce(${covers}, false)`.as('covers'),
+      covering: sql<number>`(count(*) filter (where ${covers}) over ())::int`.as('covering'),
+      inChamber:
+        sql<number>`(count(*) filter (where ${covers} and ${sameChamber}) over ())::int`.as(
+          'in_chamber',
+        ),
     })
     .from(term)
     .innerJoin(office, eq(office.id, term.officeId))
-    .where(
-      and(
-        eq(term.personId, personId),
-        lte(term.startDate, rollcall.voteDate),
-        or(isNull(term.endDate), gt(term.endDate, rollcall.voteDate)),
-      ),
+    .where(and(eq(term.personId, personId), lte(term.startDate, rollcall.voteDate)))
+    .orderBy(
+      desc(sql`coalesce(${covers}, false)`),
+      desc(sameChamber),
+      desc(term.startDate),
+      desc(term.id),
     )
-    .orderBy(desc(sameChamber), desc(term.startDate), desc(term.id))
     .limit(1)
     .as('vote_time_term');
+}
+
+/** True when the resolved term covers the vote date (false for the latest-earlier fallback). */
+export function coversVoteDate(vt: VoteTimeTerm): SQL<boolean> {
+  return sql<boolean>`coalesce(${vt.covers}, false)`;
 }
 
 type VoteTimeTerm = ReturnType<typeof voteTimeTerm>;
