@@ -25,6 +25,14 @@ import {
   withTrailingSegment,
 } from './support/jpeg-segments';
 
+/** A read that may find nothing: only ENOENT means "absent"; any other error fails the test. */
+function ifMissing<T>(fallback: T): (error: unknown) => T {
+  return (error) => {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return fallback;
+    throw error;
+  };
+}
+
 const PHOTOS = join(FIXTURES, 'member-photos');
 let handle: DbHandle;
 beforeEach(async () => {
@@ -539,9 +547,9 @@ describe('member-photos ingest over HTTP (fake server, no network)', () => {
       (e) => e.isDirectory() && !e.name.startsWith('.'),
     );
     expect(retained).toEqual([]);
-    expect(await readdir(join(dir, '.staging')).catch(() => [])).toEqual([]);
+    expect(await readdir(join(dir, '.staging')).catch(ifMissing([]))).toEqual([]);
     const cache = JSON.parse(
-      await readFile(join(dir, 'http-cache.json'), 'utf8').catch(() => '{}'),
+      await readFile(join(dir, 'http-cache.json'), 'utf8').catch(ifMissing('{}')),
     ) as Record<string, unknown>;
     expect(Object.keys(cache).filter((url) => url.endsWith('/450x550/N000147.jpg'))).toEqual([]);
   });
