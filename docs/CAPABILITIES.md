@@ -59,11 +59,12 @@ these capabilities, so the page, `/api/v1` and MCP return the same values.
 
 - **`votes.list@1` `byParty`** (extended, not a new capability). One row per party actually
   present in the roll call, each with yea / nay / present / not voting. Party = the member's
-  party on their term at the vote date: the term in force on that date (inclusive end date,
-  latest start wins on overlap); a position with no term in force takes the member's latest
-  earlier term (a recorded last day can precede the member's last recorded vote); only a
-  member with no earlier term is `Unknown`, listed last and labelled "Party not on file at the
-  vote date". Rows are alphabetical by party name (no ideological or size order) and always
+  party on their term at the vote date, from the one resolver `voteTimeTerm` that
+  `frameworks.evaluate` also uses (DECISIONS A98). Only terms in the roll call's chamber are
+  eligible: the term covering the vote date (end date exclusive; latest start, then highest
+  id on overlap), else one whose recorded end is at most 2 days before the vote (a recorded
+  last day can precede the member's last recorded vote by a day). A vote with no eligible term
+  is unattributed: `Unknown`, listed last and labelled "Party not on file at the vote date". Rows are alphabetical by party name (no ideological or size order) and always
   sum to `tally` (tested, including overlapping terms). There is no `rollcalls.get` and no
   roll-call page here; another stream owns those.
 - **`votes.attendance@1`** `{slug, congress?}` -> `months[]` of `{month, status, rollcallsHeld,

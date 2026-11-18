@@ -13,8 +13,14 @@ import { useSeededDb } from './helpers';
  *   On a House roll call the House term is used; on a Senate one the Senate term.
  * - Quinn: House Alpha 2021-01-03 to 2021-06-01, then House Beta from 2021-06-01. The end date
  *   is exclusive: a vote on 2021-06-01 is under the new (Beta) term.
- * - Pat: House Alpha ending 2021-05-30 and no later term; a recorded vote on 2021-06-01 keeps
- *   Alpha (latest earlier term) but is not a covering term.
+ * - Pat: House Alpha ending 2021-05-30 and no later term; a recorded vote on 2021-06-01, two
+ *   days after the recorded end, is inside the grace window (VOTE_DATE_GRACE_DAYS = 2): Alpha.
+ * - Drew: House Alpha ending 2021-05-29; a recorded vote on 2021-06-01, three days after, is
+ *   outside the window: unattributed ("Unknown", partyAtVote null, no at_vote match).
+ * - Sasha (the review's case): House Alpha ending 2021-06-30 (the day before the vote) and a
+ *   Senate Beta term starting 2021-07-01; a House vote on 2021-07-01 is Alpha (House only, in
+ *   the window), never Beta, and never matches a Senate or Beta at_vote filter.
+ * - Kim: only a Senate term, but a stored House position: no eligible term, unattributed.
  * - Tam: two House terms starting the same day (ZR-1 Alpha, ZR-2 Beta, inserted in that
  *   order) and a vote on its own roll call: the higher id (Beta) wins, deterministically,
  *   and the position is flagged ambiguous.
@@ -29,6 +35,9 @@ const PEOPLE = {
   quinn: 'pr-boundary-quinn',
   pat: 'pr-after-end-pat',
   tam: 'pr-tie-tam',
+  drew: 'pr-past-window-drew',
+  sasha: 'pr-review-case-sasha',
+  kim: 'pr-no-term-kim',
 } as const;
 type Who = keyof typeof PEOPLE;
 
@@ -41,6 +50,10 @@ const TERMS: Array<[Who, 'house' | 'senate', number | null, string, string, stri
   ['pat', 'house', 2, 'Alpha Party', '2021-01-03', '2021-05-30'],
   ['tam', 'house', 1, 'Alpha Party', '2021-01-03', null],
   ['tam', 'house', 2, 'Beta Party', '2021-01-03', null],
+  ['drew', 'house', 2, 'Alpha Party', '2021-01-03', '2021-05-29'],
+  ['sasha', 'house', 1, 'Alpha Party', '2021-01-03', '2021-06-30'],
+  ['sasha', 'senate', null, 'Beta Party', '2021-07-01', null],
+  ['kim', 'senate', null, 'Beta Party', '2021-01-03', null],
 ];
 
 // number, chamber, date
@@ -49,6 +62,9 @@ const ROLLCALLS: Array<[number, 'house' | 'senate', string]> = [
   [98002, 'house', '2021-06-01'],
   [98003, 'senate', '2021-03-01'],
   [98004, 'house', '2021-03-01'],
+  [98005, 'house', '2021-07-01'],
+  [98006, 'house', '2021-03-01'],
+  [98007, 'house', '2021-06-01'],
 ];
 
 const POSITIONS: Array<[Who, number]> = [
@@ -58,6 +74,9 @@ const POSITIONS: Array<[Who, number]> = [
   ['quinn', 98002],
   ['pat', 98002],
   ['tam', 98004],
+  ['sasha', 98005],
+  ['kim', 98006],
+  ['drew', 98007],
 ];
 
 beforeAll(async () => {
@@ -163,6 +182,26 @@ async function states(): Promise<Map<string, { party: string | null; ambiguous: 
 
 const key = (who: Who, number: number) => `${PEOPLE[who]}:${number}`;
 
+/** Roll-call numbers of `who`'s votes that frameworks.evaluate keeps under `people` filters. */
+async function atVote(filter: Record<string, string>, who: Who): Promise<number[]> {
+  const rules = ROLLCALLS.map(([number, chamber]) => ({
+    target: { kind: 'rollcall' as const, congress: 117, chamber, number },
+    alignedPosition: 'yea' as const,
+  }));
+  const result = await dispatch(
+    'frameworks.evaluate',
+    {
+      framework: { title: 'party resolver filters', rules },
+      people: { basis: 'at_vote', slugs: [PEOPLE[who]], ...filter },
+      limit: 50,
+    },
+    db.ctx(),
+  );
+  return (result.results.find((r) => r.person.slug === PEOPLE[who])?.votes ?? []).map(
+    (v) => v.rollcall.number,
+  );
+}
+
 describe('one vote-date party resolver for votes.list and frameworks.evaluate', () => {
   it('a House vote by a member with a newer overlapping Senate term counts under the House term', async () => {
     const [t, s] = await Promise.all([tallies(), states()]);
@@ -195,13 +234,47 @@ describe('one vote-date party resolver for votes.list and frameworks.evaluate', 
     expect(t.get(98001)?.ambiguous).toBe(0);
   });
 
+  it("the review's case: a House vote the day a Senate term starts is credited to the House term", async () => {
+    const [t, s] = await Promise.all([tallies(), states()]);
+    expect(t.get(98005)?.byParty).toEqual([{ party: 'Alpha Party', yea: 1 }]);
+    expect(s.get(key('sasha', 98005))).toEqual({ party: 'Alpha Party', ambiguous: false });
+    // at_vote: the vote is House/Alpha membership, never Senate or Beta.
+    expect(await atVote({ chamber: 'senate' }, 'sasha')).not.toContain(98005);
+    expect(await atVote({ party: 'Beta Party' }, 'sasha')).not.toContain(98005);
+    expect(await atVote({ chamber: 'house', party: 'Alpha Party' }, 'sasha')).toContain(98005);
+  });
+
+  it('attributes inside the 2-day window and leaves a vote 3 days after the end unattributed', async () => {
+    const [t, s] = await Promise.all([tallies(), states()]);
+    // Pat: 2 days after the recorded end (the boundary, inside).
+    expect(s.get(key('pat', 98002))).toEqual({ party: 'Alpha Party', ambiguous: false });
+    expect(await atVote({ chamber: 'house', party: 'Alpha Party' }, 'pat')).toContain(98002);
+    // Drew: 3 days after (outside).
+    expect(t.get(98007)?.byParty).toEqual([{ party: 'Unknown', yea: 1 }]);
+    expect(s.get(key('drew', 98007))).toEqual({ party: null, ambiguous: false });
+    expect(await atVote({ chamber: 'house' }, 'drew')).not.toContain(98007);
+    expect(await atVote({ party: 'Alpha Party' }, 'drew')).not.toContain(98007);
+  });
+
+  it('leaves a vote with no term in its chamber unattributed, never guessed from another chamber', async () => {
+    const [t, s] = await Promise.all([tallies(), states()]);
+    expect(t.get(98006)?.byParty).toEqual([{ party: 'Unknown', yea: 1 }]);
+    expect(t.get(98006)?.byParty.reduce((n, p) => n + p.yea, 0)).toBe(1); // still counted
+    expect(s.get(key('kim', 98006))).toEqual({ party: null, ambiguous: false });
+    expect(await atVote({ chamber: 'house' }, 'kim')).not.toContain(98006);
+    expect(await atVote({ party: 'Beta Party' }, 'kim')).not.toContain(98006);
+    // The 'current' basis is unchanged: it filters by the person card, not the vote date.
+    expect(await atVote({ basis: 'current' }, 'kim')).toContain(98006);
+  });
+
   it('byParty equals the per-party count of frameworks.evaluate states on every roll call', async () => {
     const [t, s] = await Promise.all([tallies(), states()]);
     for (const [number] of ROLLCALLS) {
       const fromStates = new Map<string, number>();
       for (const [k, v] of s) {
-        if (k.endsWith(`:${number}`) && v.party)
-          fromStates.set(v.party, (fromStates.get(v.party) ?? 0) + 1);
+        if (!k.endsWith(`:${number}`)) continue;
+        const party = v.party ?? 'Unknown'; // an unattributed vote is the Unknown row
+        fromStates.set(party, (fromStates.get(party) ?? 0) + 1);
       }
       const fromTally = new Map(t.get(number)?.byParty.map((p) => [p.party, p.yea]));
       expect(fromTally, `roll call ${number}`).toEqual(fromStates);

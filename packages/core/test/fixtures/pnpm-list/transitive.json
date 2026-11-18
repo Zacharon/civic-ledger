@@ -1,0 +1,44 @@
+[
+  {
+    "name": "ls-shape-fixture",
+    "version": "0.0.0",
+    "path": "<fixture>/",
+    "private": true,
+    "dependencies": {
+      "pm-alias": {
+        "from": "picomatch",
+        "version": "4.0.7",
+        "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.7.tgz",
+        "path": "<fixture>/node_modules/.pnpm/picomatch@4.0.7/node_modules/picomatch"
+      },
+      "tinyglobby": {
+        "from": "tinyglobby",
+        "version": "0.2.17",
+        "resolved": "https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.17.tgz",
+        "path": "<fixture>/node_modules/.pnpm/tinyglobby@0.2.17/node_modules/tinyglobby",
+        "dependencies": {
+          "picomatch": {
+            "from": "picomatch",
+            "version": "4.0.7",
+            "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.7.tgz",
+            "path": "<fixture>/node_modules/.pnpm/picomatch@4.0.7/node_modules/picomatch"
+          },
+          "fdir": {
+            "from": "fdir",
+            "version": "6.5.0",
+            "resolved": "https://registry.npmjs.org/fdir/-/fdir-6.5.0.tgz",
+            "path": "<fixture>/node_modules/.pnpm/fdir@6.5.0_picomatch@4.0.7/node_modules/fdir",
+            "dependencies": {
+              "picomatch": {
+                "from": "picomatch",
+                "version": "4.0.7",
+                "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.7.tgz",
+                "path": "<fixture>/node_modules/.pnpm/picomatch@4.0.7/node_modules/picomatch"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+]

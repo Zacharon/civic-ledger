@@ -163,7 +163,7 @@ export const FrameworksEvaluateInput = z.strictObject({
         .enum(PEOPLE_BASES)
         .default('current')
         .describe(
-          "What chamber/state/party are matched against. 'current' (default, v1): the person's latest term, i.e. people currently in that chamber/state/party, with all their votes. 'at_vote': the term covering each rollcall's vote date; a vote is kept only if cast while in that chamber/state/party (historical membership).",
+          "What chamber/state/party are matched against. 'current' (default, v1): the person's latest term, i.e. people currently in that chamber/state/party, with all their votes. 'at_vote': the member's term for each rollcall (a term in the roll call's chamber only: one covering the vote date (end date exclusive; latest start, then highest id), else one whose recorded end is at most 2 days before the vote; else unattributed); a vote is kept only if cast while in that chamber/state/party (historical membership); an unattributed vote matches no chamber/state/party filter.",
         ),
     })
     .default({ basis: 'current' })
@@ -226,12 +226,12 @@ export const FrameworksEvaluateOutput = z.object({
               .string()
               .nullable()
               .describe(
-                "Party on the member's term at the vote date, resolved as votes.list byParty resolves it (a term in the rollcall's chamber first, then the latest start); for a recorded vote with no covering term, the latest earlier term. Null with no vote and no covering term. `person.party` is the current (latest-term) party",
+                "Party on the member's term at the vote date, resolved as votes.list byParty resolves it (a term in the roll call's chamber only: one covering the vote date (end date exclusive; latest start, then highest id), else one whose recorded end is at most 2 days before the vote; else unattributed). The grace-window term applies to a recorded vote only. Null when the vote is unattributed, or with no vote and no covering term. `person.party` is the current (latest-term) party",
               ),
             ambiguousTerm: z
               .boolean()
               .describe(
-                'More than one term covers the vote date; one is chosen deterministically (rollcall chamber first, then latest start, then highest id)',
+                "More than one term in the rollcall's chamber covers the vote date; one is chosen deterministically (latest start, then highest id)",
               ),
           }),
         )

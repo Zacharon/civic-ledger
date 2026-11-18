@@ -1,0 +1,16 @@
+[
+  {
+    "name": "ls-optional-fixture",
+    "version": "0.0.0",
+    "path": "<fixture>/",
+    "private": true,
+    "optionalDependencies": {
+      "picomatch": {
+        "from": "picomatch",
+        "version": "4.0.7",
+        "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.7.tgz",
+        "path": "<fixture>/node_modules/.pnpm/picomatch@4.0.7/node_modules/picomatch"
+      }
+    }
+  }
+]

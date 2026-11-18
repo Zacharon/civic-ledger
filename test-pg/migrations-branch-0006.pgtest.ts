@@ -135,4 +135,62 @@ describe('0009 over a database migrated with the evidence-trust branch 0006', ()
       await clean.cleanup();
     }
   });
+
+  // Guards trust names; 0009 then verifies definitions and fails loudly on a mismatch.
+  it.each([
+    {
+      what: 'a same-name index on the wrong column',
+      drift: `drop index ingest_check_source_scope_idx;
+        create index ingest_check_source_scope_idx on ingest_check (publication_run_id)`,
+      message: /ingest_check_source_scope_idx is CREATE INDEX .*\(publication_run_id\)/,
+    },
+    {
+      what: 'a same-name foreign key with another definition',
+      drift: `alter table ingest_check drop constraint ingest_check_source_id_source_id_fk;
+        alter table ingest_check add constraint ingest_check_source_id_source_id_fk
+          foreign key (publication_run_id) references ingest_run (id)`,
+      message: /ingest_check_source_id_source_id_fk is not FOREIGN KEY \(source_id\)/,
+    },
+    {
+      what: 'a same-name table with another definition',
+      drift: 'alter table ingest_check add column extra text',
+      message: /ingest_check columns are .*extra text/,
+    },
+  ])('refuses $what and leaves the database unchanged', async ({ drift, message }) => {
+    const journal = await mainJournal();
+    const branch = await openAt(
+      await folderWith([
+        ...journal.entries.slice(0, 6),
+        { idx: 6, version: '7', when: BRANCH_WHEN, tag: BRANCH_TAG, breakpoints: true },
+      ]),
+    );
+    try {
+      for (const statement of drift.split(';')) await branch.handle.db.execute(sql.raw(statement));
+      const applied = async () =>
+        (
+          await rows<{ n: number }>(
+            branch.handle,
+            sql`select count(*)::int as n from drizzle.__drizzle_migrations`,
+          )
+        )[0]?.n;
+      const before = await applied();
+      const error = await runMigrations(branch.handle).then(
+        () => null,
+        (e: unknown) => e,
+      );
+      const text = String((error as { cause?: unknown })?.cause ?? error);
+      expect(text).toMatch(/0009_evidence_checks_provisional: existing objects differ/);
+      expect(text).toMatch(message);
+      // The whole pending batch (0006-0009) rolled back: nothing applied, no district_map.
+      expect(await applied()).toBe(before);
+      const tables = await rows<{ n: number }>(
+        branch.handle,
+        sql`select count(*)::int as n from pg_tables where schemaname = 'public' and tablename = 'district_map'`,
+      );
+      expect(tables[0]?.n).toBe(0);
+    } finally {
+      await branch.handle.close();
+      await branch.db.drop();
+    }
+  });
 });
