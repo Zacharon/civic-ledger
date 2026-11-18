@@ -34,12 +34,14 @@ objects `0009` never creates, so a branch database cannot have them from the bra
 test file covers a wrong-column index, a same-name foreign key with another definition and an
 extra column.
 
-**The one exception to "never edit an applied migration".** `0009` was made idempotent after it
-merged (2026-11-17), before any hosted database existed. That edit is safe with this migrator:
+**The one exception to "never edit an applied migration".** `0009` was made idempotent (2026-11-17)
+and given its verification block (2026-11-18) after it merged, before any hosted database existed.
+Those edits are safe with this migrator:
 drizzle-orm (`pg-core/dialect.js` `migrate`) decides what to run only by comparing each journal
 `when` with the newest `created_at` in `drizzle.__drizzle_migrations`; it stores each file's SHA-256
 but never reads it back, and the journal entry for `0009` (its `when`) is unchanged. A database that
-already applied the earlier `0009` therefore never runs it again, and it has the same objects. A
+already applied an earlier `0009` therefore never runs it again (so it is not re-verified), and it
+has the same objects. A
 follow-up migration could not have fixed the branch case, because the failing `0009` would still run
 first, in the same transaction.
 
