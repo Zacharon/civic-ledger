@@ -2,10 +2,12 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import {
   type AuditException,
+  auditIgnores,
   type ExceptionFacts,
   exceptionProblems,
-  ignoredGhsas,
   inVulnerableRange,
+  isCalendarDate,
+  type LsNode,
   productionPackages,
 } from '../../../scripts/audit/exceptions';
 
@@ -81,9 +83,66 @@ describe('audit exceptions (DECISIONS A97)', () => {
     const records = JSON.parse(
       await readFile(new URL('../../../scripts/audit/exceptions.json', import.meta.url), 'utf8'),
     ) as AuditException[];
-    expect(ignoredGhsas(yaml)).toEqual(records.map((r) => r.ghsa));
+    const pkg = await readFile(new URL('../../../package.json', import.meta.url), 'utf8');
+    expect(auditIgnores(yaml, pkg)).toEqual({ ghsas: records.map((r) => r.ghsa), cves: [] });
     // The committed records themselves are valid apart from the date (checked against today in CI).
     expect(exceptionProblems(records, holding({ today: records[0]?.reviewed ?? '' }))).toEqual([]);
+  });
+
+  it('reads ignores in every YAML form, so an inline list cannot hide an unrecorded ignore', () => {
+    const block = 'auditConfig:\n  ignoreGhsas:\n    # why\n    - GHSA-fc5q-39xc-vjpf\n';
+    const inline = 'packages:\n  - apps/*\nauditConfig:\n  ignoreGhsas: [GHSA-fc5q-39xc-vjpf]\n';
+    const quoted =
+      "auditConfig: { ignoreGhsas: ['GHSA-fc5q-39xc-vjpf'], ignoreCves: [CVE-2026-1] }";
+    expect(auditIgnores(block).ghsas).toEqual(['GHSA-fc5q-39xc-vjpf']);
+    expect(auditIgnores(inline).ghsas).toEqual(['GHSA-fc5q-39xc-vjpf']);
+    expect(auditIgnores(quoted)).toEqual({ ghsas: ['GHSA-fc5q-39xc-vjpf'], cves: ['CVE-2026-1'] });
+    expect(auditIgnores('packages: [apps/*]\n')).toEqual({ ghsas: [], cves: [] });
+    // The legacy package.json location counts too.
+    expect(
+      auditIgnores('', JSON.stringify({ pnpm: { auditConfig: { ignoreGhsas: ['GHSA-x'] } } }))
+        .ghsas,
+    ).toEqual(['GHSA-x']);
+    expect(() => auditIgnores('auditConfig:\n  ignoreGhsas: GHSA-fc5q-39xc-vjpf\n')).toThrow(
+      /must be a list of strings/,
+    );
+    // The review's bypass: an inline ignore after expiry, with its record deleted, fails.
+    expect(
+      exceptionProblems([], holding({ ignored: auditIgnores(inline).ghsas, today: '2027-01-01' })),
+    ).toEqual([expect.stringContaining('has no record in scripts/audit/exceptions.json')]);
+  });
+
+  it('rejects dates that are not on the calendar, and any CVE ignore', () => {
+    expect(isCalendarDate('2026-12-17')).toBe(true);
+    for (const bad of ['2026-99-99', '2026-02-30', '2026-13-01', '2026-1-01', '']) {
+      expect(isCalendarDate(bad), bad).toBe(false);
+    }
+    expect(exceptionProblems([{ ...PICOMATCH, expires: '2026-99-99' }], holding())).toEqual([
+      expect.stringContaining('must be real YYYY-MM-DD dates'),
+    ]);
+    expect(exceptionProblems([{ ...PICOMATCH, reviewed: '2026-02-30' }], holding())).toEqual([
+      expect.stringContaining('must be real YYYY-MM-DD dates'),
+    ]);
+    expect(exceptionProblems([PICOMATCH], holding({ ignoredCves: ['CVE-2026-1'] }))).toEqual([
+      expect.stringContaining('ignored by CVE'),
+    ]);
+  });
+
+  // Real `pnpm list --prod --json --depth Infinity` output (pnpm 11.13.1) of three throwaway
+  // projects, with local paths replaced by <fixture>.
+  it.each([
+    ['optional-direct.json', 'a direct optional dependency (listed under optionalDependencies)'],
+    ['alias.json', 'an aliased dependency (listed under its alias with from: "picomatch")'],
+    ['transitive.json', 'a transitive dependency (tinyglobby > picomatch, fdir > picomatch)'],
+  ])('finds picomatch in %s: %s', async (file) => {
+    const ls = JSON.parse(
+      await readFile(new URL(`./fixtures/pnpm-list/${file}`, import.meta.url), 'utf8'),
+    ) as LsNode[];
+    const production = productionPackages(ls);
+    expect(production.has('picomatch')).toBe(true);
+    expect(exceptionProblems([PICOMATCH], holding({ production }))).toEqual([
+      expect.stringContaining('production dependency graph'),
+    ]);
   });
 
   it('parses ranges and the pnpm ls tree', () => {

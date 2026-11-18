@@ -4,8 +4,8 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import {
   type AuditException,
+  auditIgnores,
   exceptionProblems,
-  ignoredGhsas,
   productionPackages,
 } from './exceptions';
 
@@ -27,7 +27,10 @@ async function main(): Promise<void> {
   const exceptions = JSON.parse(
     await readFile(join(root, 'scripts', 'audit', 'exceptions.json'), 'utf8'),
   ) as AuditException[];
-  const ignored = ignoredGhsas(await readFile(join(root, 'pnpm-workspace.yaml'), 'utf8'));
+  const ignores = auditIgnores(
+    await readFile(join(root, 'pnpm-workspace.yaml'), 'utf8'),
+    await readFile(join(root, 'package.json'), 'utf8'),
+  );
   const token = process.env.GITHUB_TOKEN;
   const auth: Record<string, string> = token ? { authorization: `Bearer ${token}` } : {};
 
@@ -60,7 +63,8 @@ async function main(): Promise<void> {
   const production = productionPackages(JSON.parse(stdout));
 
   const problems = exceptionProblems(exceptions, {
-    ignored,
+    ignored: ignores.ghsas,
+    ignoredCves: ignores.cves,
     patched,
     published,
     production,
