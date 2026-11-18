@@ -21,6 +21,19 @@ keys), so it applies over the existing objects and leaves the schema a clean mig
 `test-pg/migrations-branch-0006.pgtest.ts` proves both that upgrade (keeping its rows) and that the
 guards change nothing on a database at `0008`.
 
+Guards trust names, so `0009` ends with a verification block that compares every object it
+guards with the definition this migration creates, and raises (the whole pending batch rolls
+back, nothing is recorded) if a same-name object differs. It checks: the `ingest_check` columns
+(name, type, nullability, default, identity, in order), that `id` owns `ingest_check_id_seq`, the
+primary key, both foreign keys (table, columns, referenced table and column, actions,
+search-path independent), both indexes (`pg_indexes.indexdef`), and `ingest_run.snapshot_locator`
+and `ideology_score.provisional` (type, nullability, no default). It does not check CHECK
+constraints, triggers, grants, comments, extra indexes or the sequence's options. Those are
+objects `0009` never creates, so a branch database cannot have them from the branch's own
+`0006`. On a failure, drop or correct the objects named in the error and migrate again. The same
+test file covers a wrong-column index, a same-name foreign key with another definition and an
+extra column.
+
 **The one exception to "never edit an applied migration".** `0009` was made idempotent after it
 merged (2026-11-17), before any hosted database existed. That edit is safe with this migrator:
 drizzle-orm (`pg-core/dialect.js` `migrate`) decides what to run only by comparing each journal
