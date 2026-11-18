@@ -13,8 +13,10 @@ allowBuilds:
   '@embedded-postgres/windows-x64': true
   esbuild: true
 auditConfig:
-  # Dev-tree advisories that have no patched release, each accepted in docs/DECISIONS.md.
-  # Remove an entry as soon as a fixed version is published.
+  # Dev-tree advisories that have no patched release, each accepted in docs/DECISIONS.md and
+  # recorded with a review date and an expiry (at most 30 days) in scripts/audit/exceptions.json.
+  # CI (scripts/audit/cli.ts) fails after the expiry, when a patched version appears, or when
+  # the package enters the production dependency graph; then upgrade and remove the entry.
   ignoreGhsas:
     # picomatch <=4.0.7 extglob ReDoS (vitest > @vitest/mocker > vite > picomatch); A97.
     - GHSA-fc5q-39xc-vjpf

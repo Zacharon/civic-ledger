@@ -1,0 +1,10 @@
+[
+  {
+    "ghsa": "GHSA-fc5q-39xc-vjpf",
+    "package": "picomatch",
+    "vulnerable": "<=4.0.7",
+    "reviewed": "2026-11-17",
+    "expires": "2026-12-17",
+    "decision": "docs/DECISIONS.md A97"
+  }
+]
