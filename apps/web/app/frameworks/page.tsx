@@ -325,7 +325,7 @@ function Results({
         </span>
       </h3>
       <ScrollRegion label="Framework rules" className="mt-2">
-        <table className="w-full min-w-[40rem] text-sm">
+        <table className="w-full text-sm sm:min-w-[40rem]">
           <caption className="sr-only">Framework rules and the roll calls each one scored</caption>
           <thead>
             <tr className="border-b border-control text-left text-ink-2">
@@ -335,13 +335,13 @@ function Results({
               <th scope="col" className="py-2 pr-3 font-semibold">
                 Vote
               </th>
-              <th scope="col" className="py-2 pr-3 font-semibold">
+              <th scope="col" className="hidden py-2 pr-3 font-semibold sm:table-cell">
                 Aligned position
               </th>
-              <th scope="col" className="py-2 pr-3 text-right font-semibold">
+              <th scope="col" className="hidden py-2 pr-3 text-right font-semibold sm:table-cell">
                 Weight
               </th>
-              <th scope="col" className="py-2 font-semibold">
+              <th scope="col" className="hidden py-2 font-semibold sm:table-cell">
                 Status
               </th>
             </tr>
@@ -365,12 +365,22 @@ function Results({
                       Author’s rationale: {rationales[r.ruleIndex]}
                     </span>
                   ) : null}
+                  <span className="mt-1 block text-xs text-ink-2 sm:hidden">
+                    Aligned position:{' '}
+                    <strong className="font-semibold text-ink">
+                      {r.alignedPosition === 'yea' ? 'Yea' : 'Nay'}
+                    </strong>{' '}
+                    · Weight <span className="num">{r.weight}</span> ·{' '}
+                    {r.status === 'resolved'
+                      ? 'Counted'
+                      : (UNRESOLVED[r.reason ?? ''] ?? 'Not counted')}
+                  </span>
                 </td>
-                <td className="py-2 pr-3 font-semibold">
+                <td className="hidden py-2 pr-3 font-semibold sm:table-cell">
                   {r.alignedPosition === 'yea' ? 'Yea' : 'Nay'}
                 </td>
-                <td className="num py-2 pr-3 text-right">{r.weight}</td>
-                <td className="py-2 text-ink-2">
+                <td className="num hidden py-2 pr-3 text-right sm:table-cell">{r.weight}</td>
+                <td className="hidden py-2 text-ink-2 sm:table-cell">
                   {r.status === 'resolved'
                     ? 'Counted'
                     : (UNRESOLVED[r.reason ?? ''] ?? 'Not counted')}
@@ -428,22 +438,22 @@ function Results({
         <p className="mt-3 text-ink-2">No member in this selection voted on these roll calls.</p>
       ) : (
         <ScrollRegion label="Member results" className="mt-2">
-          <table className="w-full min-w-[44rem] text-sm">
+          <table className="w-full text-sm sm:min-w-[44rem]">
             <caption className="sr-only">
               Alignment with this framework, member by member, with the votes used
             </caption>
             <thead>
-              <tr className="border-b border-control text-left text-ink-2">
+              <tr className="fw-row border-b border-control text-left text-ink-2">
                 <th scope="col" className="py-2 pr-4 font-semibold">
                   Member
                 </th>
                 <th scope="col" className="py-2 pr-4 font-semibold">
                   Aligned
                 </th>
-                <th scope="col" className="py-2 pr-4 font-semibold">
+                <th scope="col" className="hidden py-2 pr-4 font-semibold sm:table-cell">
                   Not counted
                 </th>
-                <th scope="col" className="py-2 font-semibold">
+                <th scope="col" className="hidden py-2 font-semibold sm:table-cell">
                   Votes used
                 </th>
               </tr>
@@ -452,7 +462,7 @@ function Results({
               {evaluation.results.map((r) => (
                 <tr
                   key={r.person.slug}
-                  className="border-b border-rule align-top"
+                  className="fw-row border-b border-rule align-top"
                   data-slug={r.person.slug}
                   data-value={JSON.stringify([
                     r.aligned,
@@ -479,11 +489,18 @@ function Results({
                       <ShareBar share={r.alignmentRate} empty="No yea or nay votes" />
                     </span>
                   </td>
-                  <td className="num py-2.5 pr-4 text-ink-2">{r.notCounted}</td>
-                  <td className="py-2.5">
-                    <details>
-                      <summary className="cursor-pointer text-accent">
-                        Show {r.votes.length} {r.votes.length === 1 ? 'vote' : 'votes'}
+                  <td className="num hidden py-2.5 pr-4 text-ink-2 sm:table-cell">
+                    {r.notCounted}
+                  </td>
+                  <td className="fw-wide pb-2 sm:py-2.5">
+                    <details className="disclosure">
+                      <summary>
+                        <span>
+                          Show {r.votes.length} {r.votes.length === 1 ? 'vote' : 'votes'}
+                        </span>
+                        <span className="text-sm font-normal text-ink-2 sm:hidden">
+                          (<span className="num">{r.notCounted}</span> not counted)
+                        </span>
                       </summary>
                       <ul className="mt-2 space-y-1 text-xs">
                         {r.votes.map((v) => (

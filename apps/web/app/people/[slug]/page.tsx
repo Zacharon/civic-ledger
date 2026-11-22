@@ -125,7 +125,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
   return (
     <div className="page-frame pt-6 sm:pt-8">
       <div className="grid gap-x-10 gap-y-8 lg:grid-cols-12">
-        <header className="profile-header min-w-0 lg:col-span-8">
+        <header className="profile-header min-w-0 self-start lg:col-span-8">
           <nav aria-label="Breadcrumb" className="text-sm text-ink-2">
             <Link href={exploreHref(ids)} className="link">
               Explore
@@ -252,9 +252,14 @@ export default async function PersonPage({ params, searchParams }: PageProps<'/p
             <Fact
               label="Promises kept"
               value={
-                card.promiseKeptRate === null
-                  ? null
-                  : `${formatShare(card.promiseKeptRate)} of ${card.promisesRated}`
+                card.promiseKeptRate === null ? null : (
+                  <>
+                    {formatShare(card.promiseKeptRate)}{' '}
+                    <span className="text-sm font-normal text-ink-2">
+                      of {card.promisesRated} rated
+                    </span>
+                  </>
+                )
               }
               empty={card.promisesRated === null ? 'None tracked' : 'None rated yet'}
               raw={['promiseKeptRate', card.promiseKeptRate]}

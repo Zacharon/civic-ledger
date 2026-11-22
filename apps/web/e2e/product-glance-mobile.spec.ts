@@ -25,6 +25,14 @@ async function noOverflow(page: Page) {
   expect(overflow, `horizontal overflow on ${new URL(page.url()).pathname}`).toBeLessThanOrEqual(0);
 }
 
+/** Phones fold the Explore filters; open them before using a filter control. */
+async function openFilters(page: Page) {
+  const toggle = page.getByRole('checkbox', { name: /^Filters/ });
+  if (await toggle.isChecked()) return;
+  await page.locator('label.fold-label', { hasText: 'Filters' }).click();
+  await expect(toggle).toBeChecked();
+}
+
 async function tabTo(page: Page, target: Locator) {
   for (let count = 0; count < 80; count++) {
     await page.keyboard.press('Tab');
@@ -168,6 +176,7 @@ test('mobile finder and district controls show the API members and money values 
     'senators',
   );
 
+  await openFilters(page);
   await page.getByLabel('House district', { exact: true }).selectOption('');
   await expect(page).not.toHaveURL(/district=/);
   await cardsMatch(
@@ -200,6 +209,7 @@ test('mobile finder and district controls show the API members and money values 
     (row) => row.totalReceiptsCents === null && row.state !== seat.state,
   );
   if (!missing?.state) throw new Error('Expected another fictional state with missing money data');
+  await openFilters(page);
   await page.getByLabel('State', { exact: true }).selectOption(missing.state);
   await expect(page).not.toHaveURL(/district=/);
   await cardsMatch(

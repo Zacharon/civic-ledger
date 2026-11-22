@@ -194,6 +194,8 @@ export default async function HomePage() {
         </figure>
       </section>
 
+      <MemberFinder />
+
       <section aria-labelledby="seats-title" className="page-frame pb-12">
         <div className="rule-strong pt-6">
           <h2 id="seats-title" className="section-title">
@@ -214,8 +216,6 @@ export default async function HomePage() {
           <SourceList notes={seatNotes} />
         </div>
       </section>
-
-      <MemberFinder />
 
       <section aria-labelledby="freshness" className="border-y border-rule bg-surface">
         <div className="page-frame py-6">

@@ -18,19 +18,25 @@ export function SiteFooter() {
           </Suspense>
         </div>
         <nav aria-label="About the data">
-          <ul className="space-y-2">
+          <ul className="md:space-y-2">
             <li>
-              <Link className="link" href="/sources">
+              <Link className="link inline-flex min-h-11 items-center md:min-h-0" href="/sources">
                 Sources and coverage
               </Link>
             </li>
             <li>
-              <Link className="link" href="/methodology">
+              <Link
+                className="link inline-flex min-h-11 items-center md:min-h-0"
+                href="/methodology"
+              >
                 Methodology
               </Link>
             </li>
             <li>
-              <Link className="link" href="/frameworks">
+              <Link
+                className="link inline-flex min-h-11 items-center md:min-h-0"
+                href="/frameworks"
+              >
                 Frameworks
               </Link>
             </li>

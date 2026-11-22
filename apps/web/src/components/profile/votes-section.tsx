@@ -116,23 +116,23 @@ export async function VotesSection({
         </p>
       ) : (
         <ScrollRegion label="Roll calls" className="mt-6">
-          <table className="w-full min-w-[44rem] text-sm">
+          <table className="w-full text-sm sm:min-w-[44rem]">
             <caption className="sr-only">
               {activeArea ? `${activeArea.name} roll calls` : 'Roll calls'}
               {congress ? `, ${ordinal(congress)} Congress` : ''}, with this member’s position
             </caption>
             <thead>
               <tr className="border-b border-control text-left text-ink-2">
-                <th scope="col" className="py-2 pr-4 font-semibold">
+                <th scope="col" className="hidden py-2 pr-4 font-semibold sm:table-cell">
                   Date
                 </th>
                 <th scope="col" className="py-2 pr-4 font-semibold">
                   Measure
                 </th>
-                <th scope="col" className="py-2 pr-4 font-semibold">
+                <th scope="col" className="hidden py-2 pr-4 font-semibold sm:table-cell">
                   Result
                 </th>
-                <th scope="col" className="py-2 pr-4 text-right font-semibold">
+                <th scope="col" className="hidden py-2 pr-4 text-right font-semibold sm:table-cell">
                   Yea–Nay
                 </th>
                 <th scope="col" className="py-2 font-semibold">
@@ -151,7 +151,7 @@ export async function VotesSection({
                     data-rollcall={`${v.rollcall.chamber}.${v.rollcall.congress}.${v.rollcall.number}`}
                     data-value={JSON.stringify([v.position, v.tally.yea, v.tally.nay])}
                   >
-                    <td className="num py-2.5 pr-4 whitespace-nowrap text-ink-2">
+                    <td className="num hidden py-2.5 pr-4 whitespace-nowrap text-ink-2 sm:table-cell">
                       {formatDate(v.rollcall.voteDate)}
                     </td>
                     <td className="py-2.5 pr-4">
@@ -173,11 +173,17 @@ export async function VotesSection({
                         {v.policyArea ? ` · ${v.policyArea.name}` : ''} · {v.rollcall.question}
                         <SourceMark notes={notes} n={notes.cite(v.rollcall.provenance)} />
                       </span>
+                      <span className="num mt-1 block text-xs text-ink-2 sm:hidden">
+                        {formatDate(v.rollcall.voteDate)} · {v.rollcall.result} · Yea–Nay{' '}
+                        {v.tally.yea}–{v.tally.nay}
+                      </span>
                       {bill ? <FullTitle title={bill.title} /> : null}
                       <PartyBreakdown byParty={v.byParty} tally={v.tally} placement="row" />
                     </td>
-                    <td className="py-2.5 pr-4 text-ink-2">{v.rollcall.result}</td>
-                    <td className="num py-2.5 pr-4 text-right whitespace-nowrap text-ink-2">
+                    <td className="hidden py-2.5 pr-4 text-ink-2 sm:table-cell">
+                      {v.rollcall.result}
+                    </td>
+                    <td className="num hidden py-2.5 pr-4 text-right whitespace-nowrap text-ink-2 sm:table-cell">
                       {v.tally.yea}–{v.tally.nay}
                     </td>
                     <td className="py-2.5 font-semibold whitespace-nowrap">

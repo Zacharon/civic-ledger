@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { ScrollRegion } from '@/components/scroll-region';
 import {
@@ -51,14 +52,22 @@ export function AttendanceStrip({ attendance }: { attendance: Attendance }) {
           Present: counted separately, not a missed vote
         </li>
       </ul>
-      <ol
-        aria-label={`Attendance by month, ${ordinal(congress)} Congress`}
-        className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
-      >
-        {months.map((m) => (
-          <MonthCell key={m.month} m={m} />
-        ))}
-      </ol>
+      {/* Up to 24 cells: folded on phones, where the summary above already gives the totals. */}
+      <input id="attendance-months" type="checkbox" className="fold-toggle sr-only" />
+      <label htmlFor="attendance-months" className="fold-label mt-4">
+        Show each month
+        <ChevronDown aria-hidden="true" strokeWidth={1.75} className="fold-chevron size-4" />
+      </label>
+      <div className="fold-body">
+        <ol
+          aria-label={`Attendance by month, ${ordinal(congress)} Congress`}
+          className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+        >
+          {months.map((m) => (
+            <MonthCell key={m.month} m={m} />
+          ))}
+        </ol>
+      </div>
       <details className="disclosure mt-4">
         <summary>Attendance by month as a table</summary>
         <ScrollRegion label="Attendance by month table" className="mt-2">

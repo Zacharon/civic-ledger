@@ -123,7 +123,7 @@ test('everyone is in one table in name order; no report is a row, not a hidden g
   page,
 }) => {
   await page.goto('/races/2026/zv-senate');
-  await expect(page.locator('details')).toHaveCount(0);
+  await expect(page.locator('main details')).toHaveCount(0);
   const order = await page
     .locator('tr[data-candidate]')
     .evaluateAll((rows) => rows.map((r) => r.getAttribute('data-candidate')));

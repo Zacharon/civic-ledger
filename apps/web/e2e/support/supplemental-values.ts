@@ -350,7 +350,7 @@ export async function checkSupplementalProfile(
   else {
     await text(
       page.locator('#money [data-outside-count]'),
-      `${formatNumber(outside.spenders.length)} spenders, ${formatNumber(outside.itemCount)} expenditures`,
+      `${formatNumber(outside.spenders.length)} ${outside.spenders.length === 1 ? 'spender' : 'spenders'}, ${formatNumber(outside.itemCount)} ${outside.itemCount === 1 ? 'expenditure' : 'expenditures'}`,
     );
     const list = page.getByRole('list', { name: 'Outside spending for and against' });
     expect(await keyed(list.locator('[data-bar]'), 'data-bar')).toEqual([
@@ -377,7 +377,7 @@ export async function checkSupplementalProfile(
     }
     await page
       .locator('#money details')
-      .filter({ has: page.getByText(/largest single expenditures, with sources/) })
+      .filter({ has: page.getByText(/largest single expenditures?, with (its )?sources?/) })
       .locator('summary')
       .click();
     expect(await keyed(page.locator('#money [data-expenditure]'), 'data-expenditure')).toEqual(

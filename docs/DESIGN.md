@@ -208,10 +208,15 @@ never used for votes.
   one on popovers (the column picker), plus edge shadows that appear on wide tables
   only when more columns are scrolled out of view (`.scroll-cue`).
 - Breakpoints: Tailwind defaults. Every multi-column layout collapses below `md` (768px);
-  Explore swaps its table for cards below `md`.
-- The masthead is not sticky (no glass, no blur); in-page anchors use `scroll-mt-6`.
-- Z-index scale (only these): `sticky cells 1`, `sticky header 2`, `site header 10`,
-  `popover 20`, `skip link 30`.
+  Explore swaps its table for a phone layout below `md`, and Compare (aligned member columns)
+  and the race candidate table (records) swap below `lg` (Compare with four members: below `xl`, because the four-column table does not fit until about 1280px). **A phone never hides a key figure behind a sideways scroll:** a wide table folds its
+  secondary columns into a line under the row's name below `sm`, and the figure the reader
+  came for (amount, position, score) stays in view.
+- The masthead is not sticky (no glass, no blur). The member record's section nav is the one
+  sticky bar on a long page, plus the Compare names row below `lg` (`xl` with four members); `scroll-padding-top: 4rem`
+  keeps every anchor and focused element clear of it.
+- Z-index scale (only these): `sticky cells 1`, `sticky header and section nav 2`,
+  `site header 10`, `popover and navigation progress 20`, `skip link 30`.
 
 ## Portraits
 
@@ -251,10 +256,11 @@ GPO Member Guide; stored by `member-photos`, DECISIONS A81) appears in **one** p
 
 ## Motion
 
-Minimal-functional. Two motions exist: 120–150ms color/opacity transitions on
-interactive elements, and a 150ms opacity dim on the Explore results while a server
-update is pending (the previous table stays readable; no skeleton flash).
-`prefers-reduced-motion: reduce` removes both. Nothing animates on load.
+Minimal-functional. Three motions exist: 120–150ms color/opacity transitions on
+interactive elements, a 150ms opacity dim on the Explore results while a server update is
+pending (the previous table stays readable; no skeleton flash), and a 2px accent line at the
+top of the window when a page takes longer than 150ms to arrive (`NavigationProgress`).
+`prefers-reduced-motion: reduce` removes the movement. Nothing animates on load.
 
 ## Data-dense primitives
 
@@ -268,11 +274,13 @@ under 2 s with 600 members.
 
 | Component | File | Notes |
 |---|---|---|
-| Site header / footer | `src/components/site-header.tsx`, `site-footer.tsx` | Serif wordmark with a teal dot, nav and member search on a 2px ink rule. Nav is one line ≥ 1024px, a scroll row below; search is always visible (its own full-width row on phones) and submits `GET /explore?q=` (the `explore.table` name filter). Footer carries data freshness. |
+| Site header / footer | `src/components/site-header.tsx`, `nav-links.tsx`, `site-footer.tsx` | Serif wordmark with a teal dot, nav and member search on a 2px ink rule. Nav is one line from 768px; below that a native `<details>` Menu lists all seven destinations in the page flow (works without JavaScript, closes on navigation and Escape). Search is always visible (its own full-width row on phones) and submits `GET /explore?q=` (the `explore.table` name filter), except on Home below 1024px, where the page's own name search sits directly beneath it. Footer carries data freshness. |
+| Phone fold | `.fold-toggle`, `.fold-label`, `.fold-body` | A checkbox, label and body that fold long controls on phones with no script, so it works before hydration. Explore's filters and the attendance months use it; from 768px the body always shows and the checkbox leaves the tab order. |
+| Navigation progress | `src/components/navigation-progress.tsx` | The 2px accent line described under Motion. Decorative for assistive technology; gives up after 15 seconds. |
 | Member portrait | `src/components/member-portrait.tsx` | 4:5 official portrait (or the neutral tile) floated left of the identity lines in the record header; see "Portraits". Member records only. |
 | Record header + evidence | `app/people/[slug]/page.tsx` | Identity, status pill, party chip, seat, actions and summary facts in 8 columns; **Source records** aside in 4 (external identifiers + header footnotes); stacks identity, sources, section nav on phones. |
-| District locator | `components/district-locator.tsx` (+ `components/profile/member-district-map.tsx`) | Inline-SVG map of a state with one district or the whole state highlighted (`districts.shape@1`). State `--surface-sunk` + `--line-control` outline, highlight `--ink-2` + `--ink` outline: never party or vote colour. `role="img"` named "Map of Georgia with congressional district 10 highlighted"; caption states publisher, vintage and as-of date; intrinsic `width`/`height` (no layout shift), scales down with `max-width: 100%`, outline stays 1 px (`vector-effect`); no animation. First item of the Source records panel; reusable by other pages. Which seats get a map is decided in core (`districts.shape` member mode, A80); the wrapper renders nothing for a seat without one and for any failure. |
-| Section nav | `.section-nav` | Horizontal anchor links under a record header (all widths; fades while scrolled). Anchors, not tabs. |
+| District locator | `components/district-locator.tsx` (+ `components/profile/member-district-map.tsx`) | Below 640px the map sits beside its caption. Inline-SVG map of a state with one district or the whole state highlighted (`districts.shape@1`). State `--surface-sunk` + `--line-control` outline, highlight `--ink-2` + `--ink` outline: never party or vote colour. `role="img"` named "Map of Georgia with congressional district 10 highlighted"; caption states publisher, vintage and as-of date; intrinsic `width`/`height` (no layout shift), scales down with `max-width: 100%`, outline stays 1 px (`vector-effect`); no animation. First item of the Source records panel; reusable by other pages. Which seats get a map is decided in core (`districts.shape` member mode, A80); the wrapper renders nothing for a seat without one and for any failure. |
+| Section nav | `.section-nav` | Horizontal anchor links under a record header (all widths; fades while scrolled). Sticks to the top of the window so a long record stays navigable. Anchors, not tabs. |
 | Record status | `.record-status` | Current (tint) / Former (`.record-status-plain`). Text always present. |
 | Vote key / meter | `.vote-key`, `.vote-meter`, `src/lib/vote.ts` | Only consumers of `--vote-*`. |
 | Skip link | `apps/web/app/layout.tsx` | First focusable element; jumps to `#main`. |
@@ -285,7 +293,8 @@ under 2 s with 600 members.
 | Bar list | `components/charts/bar-list.tsx` | Ranked horizontal bars (industries, outside spending). |
 | Member scatter | `components/charts/member-scatter.tsx` | DW-NOMINATE dim1 × dim2, neutral dots, focus ring. |
 | Career timeline | `components/charts/career-timeline.tsx` | Terms as bars, campaigns as marks on a year axis. |
-| Explore table / cards | `components/explore/*` | Sticky header + first column, `aria-sort`, URL state. |
+| Explore table / cards | `components/explore/*` | Sticky header + first column, `aria-sort`, URL state. Phone cards set short figures three to a row and scorecards, with publisher and self-described orientation, two to a row below them. |
+| Compare (phone) | `ComparePhone` in `app/compare/page.tsx` | Below `lg` (below `xl` with four members): member names stick to the top, each metric's label takes a full row and its values sit beneath in equal columns, so nobody scrolls sideways to compare. Same `MetricCell` values as the table. |
 | Filters, column picker, sort select | `components/explore/*` (client) | nuqs URL state, server re-render on change. |
 | Framework builder | `components/frameworks/*` (client) | Spec lives in the URL. |
 | Tally bar | `components/charts/tally-bar.tsx` | Yea / Nay / Present / Not voting meter from `summarizeTally`, every count and the denominator printed. |
@@ -296,14 +305,17 @@ under 2 s with 600 members.
 | Pagination | `components/pagination.tsx` | Links, work without JavaScript. |
 | Race notice | `app/races/**` (`role="note"`, left ink rule on `--surface-sunk`) | The fixed sentence that FEC registration is not a ballot; on every race view. |
 | Money bar (shared scale) | `.share .share-wide` | Raised as text plus a 96px neutral `--bar` meter; the scale is the largest receipts in that race, so bars compare within one race only. No party or vote color. |
+| Candidate cards (phone, tablet) | `CandidateCards` in `app/races/[cycle]/[seat]/page.tsx` | Below `lg`, where the full table no longer fits: one record per candidate with raised, cash on hand, report date and outside spending in view, each with its source mark. Same order and wording as the table, including "No report on file". No photos. |
 | Candidate table | `app/races/[cycle]/[seat]/page.tsx` | One table, names alphabetical by default (opt-in amount order); party through `PartyChip`; negative cash printed with "as filed"; a registration with no money report is a row reading "No report on file" (nobody is collapsed by money); duplicate-registration notes under the name; bars omit shared-committee rows. No photos. |
 | Seat table | `app/races/page.tsx` | Default: Senate table plus one line per state for the House (about 60 KB); `?state=XX` shows that state's seat tables and registrations that match no seat; the state and chamber filter is a GET form. |
 
 Component paths are relative to `apps/web/src/`.
 
-States: every data component renders loading (route `loading.tsx`), empty (explains what
-is missing and offers the next action), error (`error.tsx`, says what failed, offers
-retry) and populated.
+States: every data component renders loading, empty (explains what is missing and offers
+the next action), error (`error.tsx`, says what failed, offers retry) and populated. Loading
+is the navigation progress line between pages and `SectionFallback` inside a member record.
+There is deliberately no route `loading.tsx`: a streamed fallback would leave readers without
+JavaScript on the fallback, and would turn a missing member's 404 into a 200.
 
 ## Voice and microcopy
 
@@ -346,3 +358,8 @@ retry) and populated.
 | 2026-10-20 | Attendance uses the Explore definitions: eligible = recorded positions in the Congress, missed = Not voting, Present separate | One number everywhere; the month strip totals equal the profile's missed-vote rate (tested for every seeded member). |
 | 2026-10-20 | District locator map in the Source records panel, neutral ink and surface tokens only, captioned with publisher, vintage and as-of date | A seat's geography is a sourced fact, not a judgment; no party or vote colour, no hover or animation, and the caption says what the vintage does not show (A75-A79). |
 | 2026-10-20 | Official portrait in the member record header only; neutral same-size tile when none; never on race pages | Owner rule (A84): most challengers have no official photo, so photos on race pages would tilt them toward incumbents. The tile keeps every header the same size. |
+| 2026-11-18 | Human design pass: the ledger identity, tokens, type and neutrality rules are unchanged; phone layouts and navigation changed | A walkthrough found the design sound and the phone experience poor: filters filled the first screen, race money and vote positions sat behind sideways scrolls, and three nav destinations were hidden. |
+| 2026-11-18 | Phone masthead uses a Menu; Home drops the duplicate masthead search below 1024px | Seven links never fit a scroll row, and the fade hid Frameworks, Sources and Methodology. Replaces "a scroll row below 1024px". |
+| 2026-11-18 | The member record's section nav is sticky | A record runs to many phone screens; the only way back to Money or Votes was scrolling. Replaces the rule that nothing sticks. The masthead still does not. |
+| 2026-11-18 | Compare and the race candidates get phone layouts instead of a scrolling table | Comparing is the job of Compare, and money is the job of a race page; neither may depend on finding a hidden sideways scroll. Candidate order and wording are unchanged, so no candidate gains weight. |
+| 2026-11-18 | Source marks in page titles are 36% of the title size | At the inherited 70% the mark competed with the member's name; the signature element is meant to be small. |

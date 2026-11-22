@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import type { CSSProperties } from 'react';
 import { ShareBar } from '@/components/charts/share-bar';
 import { MetricCell, metricValue } from '@/components/explore/cell';
 import { PartyChip } from '@/components/party-chip';
@@ -13,7 +14,7 @@ import {
   parseCompareIds as parseIds,
   profileHref,
 } from '@/lib/compare-list';
-import { allColumns, COLUMN_GROUPS } from '@/lib/explore-columns';
+import { allColumns, COLUMN_GROUPS, type ColumnDef } from '@/lib/explore-columns';
 import { chamberLabel, formatNumber, formerLabel, seatLabel } from '@/lib/format';
 import { read } from '@/server/capabilities';
 
@@ -148,8 +149,19 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
         </div>
       ) : comparison ? (
         <>
+          <ComparePhone
+            people={comparison.people}
+            ids={ids}
+            groups={COLUMN_GROUPS.map((group) => ({
+              id: group.id,
+              label: group.label,
+              rows: columns.filter((c) => c.group === group.id),
+            }))}
+          />
+
           <section
-            className="relative mt-10 overflow-x-auto rounded-panel border border-rule bg-surface"
+            // Four members need about 1140px; until 1280px they keep the stacked layout instead of scrolling sideways.
+            className={`relative mt-10 hidden overflow-x-auto rounded-panel border border-rule bg-surface ${comparison.people.length > 3 ? 'xl:block' : 'lg:block'}`}
             aria-label="Comparison table"
             // biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable region must be keyboard reachable
             tabIndex={0}
@@ -280,6 +292,100 @@ export default async function ComparePage({ searchParams }: PageProps<'/compare'
         </>
       ) : null}
     </div>
+  );
+}
+
+type ComparedPerson = Awaited<ReturnType<typeof read<'people.compare'>>>['people'][number];
+
+/**
+ * Phones: every member stays on screen. Names stick to the top of the window, each metric's
+ * label takes a full row, and its values sit beneath in equal columns, so comparing never
+ * needs sideways scrolling. Same cells as the table, rendered once for each layout.
+ */
+function ComparePhone({
+  people,
+  ids,
+  groups,
+}: {
+  people: ComparedPerson[];
+  ids: string[];
+  groups: { id: string; label: string; rows: ColumnDef[] }[];
+}) {
+  const columnsStyle = {
+    gridTemplateColumns: `repeat(${people.length}, minmax(0, 1fr))`,
+  } as CSSProperties;
+  return (
+    <section
+      aria-label="Comparison"
+      className={`mt-8 border-x border-b border-rule bg-surface ${people.length > 3 ? 'xl:hidden' : 'lg:hidden'}`}
+    >
+      <ul
+        className="sticky top-0 z-[2] grid gap-x-2 border-y-2 border-y-ink bg-surface px-3"
+        style={columnsStyle}
+      >
+        {people.map((p) => (
+          <li key={p.slug} className="min-w-0">
+            <Link
+              href={profileHref(p.slug, ids)}
+              className="link-quiet flex min-h-11 items-center py-1 text-sm leading-tight font-semibold break-words"
+            >
+              {p.fullName}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <div className="grid gap-x-2 border-b border-rule px-3 py-2" style={columnsStyle}>
+        {people.map((p) => (
+          <div key={p.slug} className="min-w-0 text-xs text-ink-2">
+            <PartyChip party={p.party} />
+            <span className="mt-1 block">
+              {chamberLabel(p.chamber)} · {seatLabel(p.chamber, p.state, p.district)}
+            </span>
+            {p.isCurrent ? null : <span className="mt-1 block text-ink-3">{formerLabel(p)}</span>}
+            <Link
+              href={compareHref(ids.filter((id) => id !== p.slug))}
+              className="-ml-1 inline-flex min-h-11 items-center gap-1 px-1 text-sm text-ink-2 hover:text-ink"
+            >
+              <X aria-hidden="true" strokeWidth={1.75} className="size-3.5" />
+              Remove<span className="sr-only"> {p.fullName}</span>
+            </Link>
+          </div>
+        ))}
+      </div>
+      {groups.map((group) =>
+        group.rows.length === 0 ? null : (
+          <div key={group.id}>
+            <p className="border-b border-rule bg-sunk px-3 py-1.5 text-xs font-semibold text-ink-3">
+              {group.label}
+            </p>
+            <dl>
+              {group.rows.map((c) => (
+                <div
+                  key={c.id}
+                  className="grid gap-x-2 gap-y-1 border-b border-rule px-3 py-2.5 last:border-b-0"
+                  style={columnsStyle}
+                >
+                  <dt className="col-span-full text-xs text-ink-2">
+                    {c.label}
+                    {c.scorecard ? (
+                      <span className="block text-ink-3">
+                        Self-described: {c.scorecard.selfDescribedOrientation}
+                      </span>
+                    ) : null}
+                  </dt>
+                  {people.map((p) => (
+                    <dd key={p.slug} className="cmp-value min-w-0 text-sm break-words">
+                      <span className="sr-only">{p.fullName}: </span>
+                      <MetricCell column={c} row={p} />
+                    </dd>
+                  ))}
+                </div>
+              ))}
+            </dl>
+          </div>
+        ),
+      )}
+    </section>
   );
 }
 

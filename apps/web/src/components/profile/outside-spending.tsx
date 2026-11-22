@@ -57,21 +57,26 @@ export function OutsideSpending({ outside, notes }: { outside: Outside; notes: S
           >
             By spender{' '}
             <span className="font-normal text-ink-3">
-              (<span className="num">{formatNumber(outside.spenders.length)}</span> spenders,{' '}
-              <span className="num">{formatNumber(outside.itemCount)}</span> expenditures)
+              (<span className="num">{formatNumber(outside.spenders.length)}</span>{' '}
+              {outside.spenders.length === 1 ? 'spender' : 'spenders'},{' '}
+              <span className="num">{formatNumber(outside.itemCount)}</span>{' '}
+              {outside.itemCount === 1 ? 'expenditure' : 'expenditures'})
             </span>
           </h3>
           <ScrollRegion label="Outside spending by spender" className="mt-3">
-            <table className="w-full min-w-[26rem] text-sm">
+            <table className="w-full text-sm sm:min-w-[26rem]">
               <thead>
                 <tr className="border-b border-control text-left text-ink-2">
                   <th scope="col" className="py-2 pr-4 font-semibold">
                     Spender
                   </th>
-                  <th scope="col" className="py-2 pr-4 font-semibold">
+                  <th scope="col" className="hidden py-2 pr-4 font-semibold sm:table-cell">
                     For or against
                   </th>
-                  <th scope="col" className="py-2 pr-4 text-right font-semibold">
+                  <th
+                    scope="col"
+                    className="hidden py-2 pr-4 text-right font-semibold sm:table-cell"
+                  >
                     Buys
                   </th>
                   <th scope="col" className="py-2 text-right font-semibold">
@@ -93,9 +98,16 @@ export function OutsideSpending({ outside, notes }: { outside: Outside; notes: S
                         <span className="num">{s.spenderFecCommitteeId}</span>
                         {s.latestDate ? ` · latest ${formatDate(s.latestDate)}` : ''}
                       </span>
+                      <span className="mt-0.5 block text-xs text-ink-2 sm:hidden">
+                        {SIDE[s.supportOppose]} ·{' '}
+                        <span className="num">{formatNumber(s.expenditures)}</span>{' '}
+                        {s.expenditures === 1 ? 'buy' : 'buys'}
+                      </span>
                     </td>
-                    <td className="py-2 pr-4">{SIDE[s.supportOppose]}</td>
-                    <td className="num py-2 pr-4 text-right">{formatNumber(s.expenditures)}</td>
+                    <td className="hidden py-2 pr-4 sm:table-cell">{SIDE[s.supportOppose]}</td>
+                    <td className="num hidden py-2 pr-4 text-right sm:table-cell">
+                      {formatNumber(s.expenditures)}
+                    </td>
                     <td className="num py-2 text-right whitespace-nowrap">
                       {formatCents(s.amountCents)}
                     </td>
@@ -120,20 +132,22 @@ export function OutsideSpending({ outside, notes }: { outside: Outside; notes: S
 function LargestItems({ outside, notes }: { outside: Outside; notes: SourceNotes }) {
   return (
     <details className="mt-4 text-sm">
-      <summary className="link cursor-pointer">
-        The {formatNumber(outside.items.length)} largest single expenditures, with sources
+      <summary className="link min-h-11 cursor-pointer py-3">
+        {outside.items.length === 1
+          ? 'The largest single expenditure, with its source'
+          : `The ${formatNumber(outside.items.length)} largest single expenditures, with sources`}
       </summary>
       <ScrollRegion label="Largest independent expenditures" className="mt-2">
-        <table className="w-full min-w-[30rem] text-sm">
+        <table className="w-full text-sm sm:min-w-[30rem]">
           <thead>
             <tr className="border-b border-control text-left text-ink-2">
               <th scope="col" className="py-2 pr-4 font-semibold">
                 Spender
               </th>
-              <th scope="col" className="py-2 pr-4 font-semibold">
+              <th scope="col" className="hidden py-2 pr-4 font-semibold sm:table-cell">
                 For or against
               </th>
-              <th scope="col" className="py-2 pr-4 font-semibold">
+              <th scope="col" className="hidden py-2 pr-4 font-semibold sm:table-cell">
                 Date
               </th>
               <th scope="col" className="py-2 text-right font-semibold">
@@ -159,9 +173,12 @@ function LargestItems({ outside, notes }: { outside: Outside; notes: SourceNotes
                   {item.purpose ? (
                     <span className="block text-xs text-ink-3">{item.purpose}</span>
                   ) : null}
+                  <span className="mt-0.5 block text-xs text-ink-2 sm:hidden">
+                    {SIDE[item.supportOppose]} · {formatDate(item.expenditureDate) ?? 'No date'}
+                  </span>
                 </td>
-                <td className="py-2 pr-4">{SIDE[item.supportOppose]}</td>
-                <td className="num py-2 pr-4 whitespace-nowrap text-ink-2">
+                <td className="hidden py-2 pr-4 sm:table-cell">{SIDE[item.supportOppose]}</td>
+                <td className="num hidden py-2 pr-4 whitespace-nowrap text-ink-2 sm:table-cell">
                   {formatDate(item.expenditureDate) ?? 'No date'}
                 </td>
                 <td className="num py-2 text-right whitespace-nowrap">

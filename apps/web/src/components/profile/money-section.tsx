@@ -67,7 +67,7 @@ export async function MoneySection({ slug, cycle }: { slug: string; cycle: numbe
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 sm:gap-x-8">
         <div data-stat="raised" data-value={JSON.stringify(totals.totalReceiptsCents)}>
           <dt className="text-sm text-ink-2">Raised</dt>
-          <dd className="rule-total mt-1 inline-block pb-0.5 text-xl font-semibold sm:text-2xl">
+          <dd className="rule-total mt-1 inline-block pb-0.5 text-lg font-semibold whitespace-nowrap min-[400px]:text-xl sm:text-2xl">
             {formatCents(totals.totalReceiptsCents)}
             <SourceMark notes={notes} n={totalsMark} />
           </dd>
@@ -98,13 +98,13 @@ export async function MoneySection({ slug, cycle }: { slug: string; cycle: numbe
         <div className="mt-12">
           <h3 className="font-semibold">Largest contributing committees</h3>
           <ScrollRegion label="Largest contributing committees" className="mt-3">
-            <table className="w-full min-w-[32rem] text-sm">
+            <table className="w-full text-sm sm:min-w-[32rem]">
               <thead>
                 <tr className="border-b border-control text-left text-ink-2">
                   <th scope="col" className="py-2 pr-4 font-semibold">
                     Committee
                   </th>
-                  <th scope="col" className="py-2 pr-4 font-semibold">
+                  <th scope="col" className="hidden py-2 pr-4 font-semibold sm:table-cell">
                     Industry
                   </th>
                   <th scope="col" className="py-2 text-right font-semibold">
@@ -117,11 +117,16 @@ export async function MoneySection({ slug, cycle }: { slug: string; cycle: numbe
                   <tr key={c.fecCommitteeId} className="border-b border-rule">
                     <td className="py-2 pr-4">
                       {c.name} <span className="num text-xs text-ink-3">{c.fecCommitteeId}</span>
+                      <span className="mt-0.5 block text-xs text-ink-2 sm:hidden">
+                        {c.industry?.name ?? 'Not coded'}
+                      </span>
                     </td>
-                    <td className="py-2 pr-4 text-ink-2">
+                    <td className="hidden py-2 pr-4 text-ink-2 sm:table-cell">
                       {c.industry?.name ?? <span className="text-ink-3">Not coded</span>}
                     </td>
-                    <td className="num py-2 text-right">{formatCents(c.amountCents)}</td>
+                    <td className="num py-2 text-right whitespace-nowrap">
+                      {formatCents(c.amountCents)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

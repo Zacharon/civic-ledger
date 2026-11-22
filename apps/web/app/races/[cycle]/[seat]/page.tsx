@@ -213,14 +213,23 @@ export default async function RacePage({
         </p>
 
         {race.candidates.length > 0 ? (
-          <CandidateTable
-            label={`${title}: every FEC registration`}
-            cycle={race.cycle}
-            candidates={race.candidates}
-            scaleMax={scaleMax}
-            marks={{ money: moneyMark, outside: outsideMark }}
-            notes={notes}
-          />
+          <>
+            <CandidateCards
+              cycle={race.cycle}
+              candidates={race.candidates}
+              scaleMax={scaleMax}
+              marks={{ money: moneyMark, outside: outsideMark }}
+              notes={notes}
+            />
+            <CandidateTable
+              label={`${title}: every FEC registration`}
+              cycle={race.cycle}
+              candidates={race.candidates}
+              scaleMax={scaleMax}
+              marks={{ money: moneyMark, outside: outsideMark }}
+              notes={notes}
+            />
+          </>
         ) : (
           <p className="mt-6 text-ink-2" data-no-registrations>
             Nobody has registered with the FEC for this seat yet.
@@ -291,7 +300,7 @@ function CandidateTable({
   notes: SourceNotes;
 }) {
   return (
-    <ScrollRegion label={label} className="mt-4">
+    <ScrollRegion label={label} className="mt-4 hidden lg:block">
       <table className="w-full min-w-[60rem] text-sm">
         <caption className="sr-only">{label}</caption>
         <thead>
@@ -340,17 +349,182 @@ function otherSeatLabel(o: Candidate['alsoRegisteredFor'][number]) {
   return `${stateName(o.state)} ${o.chamber === 'senate' ? 'Senate' : 'House'} (no such seat)`;
 }
 
-function CandidateRow({ c, cycle, scaleMax }: { c: Candidate; cycle: number; scaleMax: number }) {
+/** The money bar's scale is the largest receipts in this race; shared committees get no bar. */
+function moneyBarStyle(c: Candidate, scaleMax: number) {
+  const receipts = c.money?.totalReceiptsCents ?? null;
+  return receipts !== null && scaleMax > 0 && c.sharedCommitteeWith.length === 0
+    ? ({
+        '--v': `${Math.round((Math.max(receipts, 0) / scaleMax) * 1000) / 10}%`,
+      } as CSSProperties)
+    : undefined;
+}
+
+/** Name, FEC id, the name as filed and duplicate-registration notes. */
+function CandidateIdentity({ c, cycle }: { c: Candidate; cycle: number }) {
   const fecHref = safeHref(c.fecUrl);
+  const shared = c.sharedCommitteeWith.length > 0;
+  return (
+    <>
+      <span className="block text-base font-semibold">
+        {c.displayName === null ? (
+          <span className="nodata text-base">Name not filed</span>
+        ) : c.person ? (
+          <Link href={`/people/${c.person.slug}`} className="link">
+            {c.displayName}
+          </Link>
+        ) : (
+          c.displayName
+        )}
+      </span>
+      <span className="mt-0.5 block text-xs text-ink-3">
+        {c.incumbencyLabel ?? 'No incumbency code'} ·{' '}
+        {fecHref ? (
+          <a href={fecHref} rel="noreferrer" className="link">
+            FEC <span className="num">{c.fecCandidateId}</span>
+          </a>
+        ) : (
+          <span className="num">{c.fecCandidateId}</span>
+        )}
+      </span>
+      {c.nameAsFiled !== null ? (
+        <span className="mt-0.5 block text-xs text-ink-3">
+          Filed as <span className="num">{c.nameAsFiled}</span>
+        </span>
+      ) : null}
+      {c.alsoRegisteredFor.length > 0 ? (
+        <span className="mt-1 block text-xs text-ink-2" data-also-registered>
+          Also registered for{' '}
+          {c.alsoRegisteredFor.map((o, i) => (
+            <span key={o.fecCandidateId}>
+              {i > 0 ? ', ' : ''}
+              {o.seat ? (
+                <Link href={raceHref(cycle, o.seat)} className="link">
+                  {otherSeatLabel(o)}
+                </Link>
+              ) : (
+                otherSeatLabel(o)
+              )}{' '}
+              (<span className="num">{o.fecCandidateId}</span>)
+            </span>
+          ))}
+          {shared ? '; same committee, so its figures are shown under both.' : '.'}
+        </span>
+      ) : null}
+      {c.sameNameAsFiledAs.length > 0 ? (
+        <span className="mt-1 block text-xs text-ink-2" data-same-name>
+          The same name as filed appears under{' '}
+          {c.sameNameAsFiledAs.length === 1 ? 'another FEC id' : 'other FEC ids'} in this race:{' '}
+          <span className="num">{c.sameNameAsFiledAs.join(', ')}</span>.
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * Phones and tablets: one record per candidate, so the money is on screen instead of behind a sideways
+ * scroll. Same order, same figures and the same "No report on file" wording as the table.
+ */
+function CandidateCards({
+  cycle,
+  candidates,
+  scaleMax,
+  marks,
+  notes,
+}: {
+  cycle: number;
+  candidates: Candidate[];
+  scaleMax: number;
+  marks: { money: number | null; outside: number | null };
+  notes: SourceNotes;
+}) {
+  return (
+    <ol className="mt-4 divide-y divide-rule border-y border-rule lg:hidden">
+      {candidates.map((c) => {
+        const receipts = c.money?.totalReceiptsCents ?? null;
+        const cash = c.money?.cashOnHandCents ?? null;
+        const barStyle = moneyBarStyle(c, scaleMax);
+        return (
+          <li key={c.fecCandidateId} className="py-4">
+            <CandidateIdentity c={c} cycle={cycle} />
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
+              {c.party.code ? (
+                <PartyChip party={c.party.name ?? c.party.code} />
+              ) : (
+                <span className="nodata">Party not filed</span>
+              )}
+              <span>{c.statusLabel ?? c.status ?? 'Status not filed'}</span>
+            </p>
+            <dl className="cand-money mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4">
+              {c.money ? (
+                <>
+                  <div className="col-span-2">
+                    <dt className="text-xs text-ink-3">
+                      Raised
+                      <SourceMark notes={notes} n={marks.money} />
+                    </dt>
+                    <dd>
+                      <span className={barStyle ? 'share share-wide' : 'num'} style={barStyle}>
+                        {formatCents(receipts)}
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-ink-3">Cash on hand</dt>
+                    <dd className="num">
+                      {formatCents(cash)}
+                      {cash !== null && cash < 0 ? (
+                        <span className="ml-1 text-xs text-ink-3">as filed</span>
+                      ) : null}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-ink-3">Report through</dt>
+                    <dd className="num">
+                      {formatDate(c.money.coverageEndDate) ?? (
+                        <span className="nodata">No date</span>
+                      )}
+                    </dd>
+                  </div>
+                </>
+              ) : (
+                <div className="col-span-2">
+                  <dt className="text-xs text-ink-3">
+                    Raised
+                    <SourceMark notes={notes} n={marks.money} />
+                  </dt>
+                  <dd>
+                    <span className="nodata">No report on file</span>
+                  </dd>
+                </div>
+              )}
+              <div>
+                <dt className="text-xs text-ink-3">
+                  Outside support
+                  <SourceMark notes={notes} n={marks.outside} />
+                </dt>
+                <dd className="num">
+                  <Outside cents={c.outsideSpending.supportCents} />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-ink-3">Outside oppose</dt>
+                <dd className="num">
+                  <Outside cents={c.outsideSpending.opposeCents} />
+                </dd>
+              </div>
+            </dl>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function CandidateRow({ c, cycle, scaleMax }: { c: Candidate; cycle: number; scaleMax: number }) {
   const receipts = c.money?.totalReceiptsCents ?? null;
   const cash = c.money?.cashOnHandCents ?? null;
-  const shared = c.sharedCommitteeWith.length > 0;
-  const barStyle =
-    receipts !== null && scaleMax > 0 && !shared
-      ? ({
-          '--v': `${Math.round((Math.max(receipts, 0) / scaleMax) * 1000) / 10}%`,
-        } as CSSProperties)
-      : undefined;
+  const barStyle = moneyBarStyle(c, scaleMax);
   return (
     <tr
       data-candidate={c.fecCandidateId}
@@ -363,58 +537,7 @@ function CandidateRow({ c, cycle, scaleMax }: { c: Candidate; cycle: number; sca
       className="border-b border-rule align-top"
     >
       <th scope="row" className="py-3 pr-4 text-left font-normal">
-        <span className="block text-base font-semibold">
-          {c.displayName === null ? (
-            <span className="nodata text-base">Name not filed</span>
-          ) : c.person ? (
-            <Link href={`/people/${c.person.slug}`} className="link">
-              {c.displayName}
-            </Link>
-          ) : (
-            c.displayName
-          )}
-        </span>
-        <span className="mt-0.5 block text-xs text-ink-3">
-          {c.incumbencyLabel ?? 'No incumbency code'} ·{' '}
-          {fecHref ? (
-            <a href={fecHref} rel="noreferrer" className="link">
-              FEC <span className="num">{c.fecCandidateId}</span>
-            </a>
-          ) : (
-            <span className="num">{c.fecCandidateId}</span>
-          )}
-        </span>
-        {c.nameAsFiled !== null ? (
-          <span className="mt-0.5 block text-xs text-ink-3">
-            Filed as <span className="num">{c.nameAsFiled}</span>
-          </span>
-        ) : null}
-        {c.alsoRegisteredFor.length > 0 ? (
-          <span className="mt-1 block text-xs text-ink-2" data-also-registered>
-            Also registered for{' '}
-            {c.alsoRegisteredFor.map((o, i) => (
-              <span key={o.fecCandidateId}>
-                {i > 0 ? ', ' : ''}
-                {o.seat ? (
-                  <Link href={raceHref(cycle, o.seat)} className="link">
-                    {otherSeatLabel(o)}
-                  </Link>
-                ) : (
-                  otherSeatLabel(o)
-                )}{' '}
-                (<span className="num">{o.fecCandidateId}</span>)
-              </span>
-            ))}
-            {shared ? '; same committee, so its figures are shown under both.' : '.'}
-          </span>
-        ) : null}
-        {c.sameNameAsFiledAs.length > 0 ? (
-          <span className="mt-1 block text-xs text-ink-2" data-same-name>
-            The same name as filed appears under{' '}
-            {c.sameNameAsFiledAs.length === 1 ? 'another FEC id' : 'other FEC ids'} in this race:{' '}
-            <span className="num">{c.sameNameAsFiledAs.join(', ')}</span>.
-          </span>
-        ) : null}
+        <CandidateIdentity c={c} cycle={cycle} />
       </th>
       <td className="py-3 pr-4">
         {c.party.code ? (

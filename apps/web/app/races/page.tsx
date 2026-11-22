@@ -259,7 +259,7 @@ export default async function RacesPage({ searchParams }: PageProps<'/races'>) {
             label={`Registrations in ${stateName(state)} that match no seat`}
             className="mt-3"
           >
-            <table className="w-full min-w-[40rem] text-sm">
+            <table className="w-full text-sm sm:min-w-[40rem]">
               <caption className="sr-only">Registrations that match no seat</caption>
               <thead>
                 <tr className="border-b border-ink text-left">
@@ -343,7 +343,7 @@ function SeatTable({
 }) {
   return (
     <ScrollRegion label={label} className="mt-3">
-      <table className="w-full min-w-[40rem] text-sm">
+      <table className="w-full text-sm sm:min-w-[40rem]">
         <caption className="sr-only">{label}</caption>
         <thead>
           <tr className="border-b border-ink text-left">
@@ -353,13 +353,13 @@ function SeatTable({
             <th scope="col" className="py-2 pr-4 font-semibold">
               Sitting member (seat up)
             </th>
-            <th scope="col" className="py-2 pr-4 text-right font-semibold">
+            <th scope="col" className="hidden py-2 pr-4 text-right font-semibold sm:table-cell">
               Registered
             </th>
-            <th scope="col" className="py-2 pr-4 text-right font-semibold">
+            <th scope="col" className="hidden py-2 pr-4 text-right font-semibold sm:table-cell">
               Active
             </th>
-            <th scope="col" className="py-2 text-right font-semibold">
+            <th scope="col" className="hidden py-2 text-right font-semibold sm:table-cell">
               With money report
             </th>
           </tr>
@@ -400,10 +400,16 @@ function SeatTable({
                 ) : (
                   <span className="nodata">No sitting member up</span>
                 )}
+                <span className="num mt-2 block border-t border-rule pt-1.5 text-xs text-ink-2 sm:hidden">
+                  <span className="font-semibold">Whole seat: </span>
+                  {formatNumber(i.registrations)} registered · {formatNumber(i.activeCandidates)}{' '}
+                  active (FEC status C) · {formatNumber(i.candidatesWithMoneyReports)} with money
+                  report
+                </span>
               </td>
-              <td className="rt-num">{formatNumber(i.registrations)}</td>
-              <td className="rt-num">{formatNumber(i.activeCandidates)}</td>
-              <td className="rt-num">{formatNumber(i.candidatesWithMoneyReports)}</td>
+              <td className="rt-num max-sm:hidden">{formatNumber(i.registrations)}</td>
+              <td className="rt-num max-sm:hidden">{formatNumber(i.activeCandidates)}</td>
+              <td className="rt-num max-sm:hidden">{formatNumber(i.candidatesWithMoneyReports)}</td>
             </tr>
           ))}
         </tbody>

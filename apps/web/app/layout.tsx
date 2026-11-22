@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import type { ReactNode } from 'react';
+import { type ReactNode, Suspense } from 'react';
+import { NavigationProgress } from '@/components/navigation-progress';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { instrumentSans, newsreader } from './fonts';
@@ -26,6 +27,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <a href="#main" className="skip-link">
           Skip to content
         </a>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <NuqsAdapter>
           <SiteHeader />
           <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">

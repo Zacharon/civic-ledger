@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, X } from 'lucide-react';
+import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useQueryStates } from 'nuqs';
 import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
 import { type ColumnDef, IDENTITY_SORTS } from '@/lib/explore-columns';
@@ -55,6 +55,7 @@ export function ExploreControls({
   const ids = {
     form: useId(),
     q: useId(),
+    fold: useId(),
     state: useId(),
     district: useId(),
     party: useId(),
@@ -128,7 +129,7 @@ export function ExploreControls({
           id={ids.form}
           action="/explore"
           onSubmit={onSubmit}
-          className="grid grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-3 lg:gap-x-4 xl:grid-cols-[minmax(10rem,1.2fr)_auto_auto_minmax(6rem,0.5fr)_minmax(8rem,0.7fr)_minmax(8rem,0.7fr)]"
+          className="grid grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-3 lg:gap-x-4 xl:grid-cols-[minmax(10rem,1.2fr)_auto_auto_minmax(8.5rem,0.6fr)_minmax(9rem,0.7fr)_minmax(9rem,0.7fr)]"
         >
           <div className="col-span-2 flex flex-col gap-1.5 lg:col-span-1">
             <label htmlFor={ids.q} className="text-sm font-semibold">
@@ -154,153 +155,171 @@ export function ExploreControls({
             </div>
           </div>
 
-          <fieldset className="col-span-2 flex flex-col gap-1.5 lg:col-span-1">
-            <legend className="mb-1.5 text-sm font-semibold">Members</legend>
-            <Segmented
-              name="scope"
-              options={[
-                {
-                  value: 'current',
-                  label: 'Current',
-                  count: facets.scopes.current,
-                  title: 'Current members of Congress',
-                },
-                {
-                  value: 'all',
-                  label: 'Include former',
-                  count: facets.scopes.all,
-                  title: 'Include former members',
-                },
-              ]}
-              selected={scope}
-              onSelect={(value) =>
-                void setState({ scope: value === 'all' ? 'all' : null, page: null })
-              }
-            />
-          </fieldset>
+          {/* Phones fold the filters so the first member is on screen; see `.fold-toggle`. */}
+          <input id={ids.fold} type="checkbox" className="fold-toggle sr-only" />
+          <label htmlFor={ids.fold} className="fold-label col-span-2">
+            <SlidersHorizontal aria-hidden="true" strokeWidth={1.75} className="size-4" />
+            Filters
+            {active.length > 0 ? (
+              <span className="num font-normal text-ink-2">({active.length} on)</span>
+            ) : null}
+            <ChevronDown aria-hidden="true" strokeWidth={1.75} className="fold-chevron size-4" />
+          </label>
 
-          <fieldset className="col-span-2 flex flex-col gap-1.5 lg:col-span-1">
-            <legend className="mb-1.5 text-sm font-semibold">Chamber</legend>
-            <div className="flex h-11 rounded-control border border-control bg-surface p-0.5 lg:inline-flex">
-              {[
-                { value: null, label: 'Both' },
-                ...facets.chambers.map((c) => ({ value: c.value, label: CHAMBER_LABEL[c.value] })),
-              ].map((option) => {
-                const checked = state.chamber === option.value;
-                return (
-                  <label
-                    key={option.label}
-                    className={`relative inline-flex flex-1 cursor-pointer items-center justify-center rounded-[3px] px-3.5 text-sm lg:flex-none has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
-                      checked
-                        ? 'bg-accent font-semibold text-accent-ink'
-                        : 'text-ink-2 hover:text-ink'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="chamber"
-                      value={option.value ?? ''}
-                      checked={checked}
-                      onChange={() => void setState({ chamber: option.value, page: null })}
-                      className="sr-only"
-                    />
-                    {option.label}
-                  </label>
-                );
-              })}
+          <div className="fold-body filter-fold">
+            <fieldset className="col-span-2 flex flex-col gap-1.5 lg:col-span-1">
+              <legend className="mb-1.5 text-sm font-semibold">Members</legend>
+              <Segmented
+                name="scope"
+                options={[
+                  {
+                    value: 'current',
+                    label: 'Current',
+                    count: facets.scopes.current,
+                    title: 'Current members of Congress',
+                  },
+                  {
+                    value: 'all',
+                    label: 'Include former',
+                    count: facets.scopes.all,
+                    title: 'Include former members',
+                  },
+                ]}
+                selected={scope}
+                onSelect={(value) =>
+                  void setState({ scope: value === 'all' ? 'all' : null, page: null })
+                }
+              />
+            </fieldset>
+
+            <fieldset className="col-span-2 flex flex-col gap-1.5 lg:col-span-1">
+              <legend className="mb-1.5 text-sm font-semibold">Chamber</legend>
+              <div className="flex h-11 rounded-control border border-control bg-surface p-0.5 lg:inline-flex">
+                {[
+                  { value: null, label: 'Both' },
+                  ...facets.chambers.map((c) => ({
+                    value: c.value,
+                    label: CHAMBER_LABEL[c.value],
+                  })),
+                ].map((option) => {
+                  const checked = state.chamber === option.value;
+                  return (
+                    <label
+                      key={option.label}
+                      className={`relative inline-flex flex-1 cursor-pointer items-center justify-center rounded-[3px] px-3.5 text-sm lg:flex-none has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
+                        checked
+                          ? 'bg-accent font-semibold text-accent-ink'
+                          : 'text-ink-2 hover:text-ink'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="chamber"
+                        value={option.value ?? ''}
+                        checked={checked}
+                        onChange={() => void setState({ chamber: option.value, page: null })}
+                        className="sr-only"
+                      />
+                      {option.label}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label htmlFor={ids.state} className="text-sm font-semibold">
+                State
+              </label>
+              <select
+                id={ids.state}
+                name="state"
+                value={state.state ?? ''}
+                onChange={(e) =>
+                  void setState({ state: e.target.value || null, district: null, page: null })
+                }
+                className="field w-full min-w-0"
+              >
+                <option value="">All states</option>
+                {facets.states.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.value} ({s.count})
+                  </option>
+                ))}
+              </select>
             </div>
-          </fieldset>
 
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <label htmlFor={ids.state} className="text-sm font-semibold">
-              State
-            </label>
-            <select
-              id={ids.state}
-              name="state"
-              value={state.state ?? ''}
-              onChange={(e) =>
-                void setState({ state: e.target.value || null, district: null, page: null })
-              }
-              className="field w-full min-w-0"
-            >
-              <option value="">All states</option>
-              {facets.states.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.value} ({s.count})
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label htmlFor={ids.district} className="text-sm font-semibold">
+                House district
+              </label>
+              <select
+                id={ids.district}
+                name="district"
+                className="field w-full min-w-0"
+                disabled={!state.state}
+                value={state.district ?? ''}
+                onChange={(event) =>
+                  void setState({
+                    district: event.target.value === '' ? null : Number(event.target.value),
+                    page: null,
+                  })
+                }
+              >
+                <option value="">All districts</option>
+                {hasDistrict && !districts.some((seat) => seat.district === state.district) ? (
+                  <option value={state.district ?? ''}>
+                    {state.district === 0 ? 'At-large' : `District ${state.district}`} (no seat
+                    loaded)
+                  </option>
+                ) : null}
+                {districts.map((seat) => (
+                  <option key={seat.district} value={seat.district}>
+                    {seat.district === 0 ? 'At-large' : `District ${seat.district}`}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-ink-3">
+                {state.state
+                  ? 'Includes senators when both chambers are shown.'
+                  : 'Choose a state to select a district.'}
+              </p>
+            </div>
 
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <label htmlFor={ids.district} className="text-sm font-semibold">
-              House district
-            </label>
-            <select
-              id={ids.district}
-              name="district"
-              className="field w-full min-w-0"
-              disabled={!state.state}
-              value={state.district ?? ''}
-              onChange={(event) =>
-                void setState({
-                  district: event.target.value === '' ? null : Number(event.target.value),
-                  page: null,
-                })
-              }
-            >
-              <option value="">All districts</option>
-              {hasDistrict && !districts.some((seat) => seat.district === state.district) ? (
-                <option value={state.district ?? ''}>
-                  {state.district === 0 ? 'At-large' : `District ${state.district}`} (no seat
-                  loaded)
-                </option>
-              ) : null}
-              {districts.map((seat) => (
-                <option key={seat.district} value={seat.district}>
-                  {seat.district === 0 ? 'At-large' : `District ${seat.district}`}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-ink-3">
-              {state.state
-                ? 'Includes senators when both chambers are shown.'
-                : 'Choose a state to select a district.'}
-            </p>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label htmlFor={ids.party} className="text-sm font-semibold">
+                Party
+              </label>
+              <select
+                id={ids.party}
+                name="party"
+                value={state.party ?? ''}
+                onChange={(e) => void setState({ party: e.target.value || null, page: null })}
+                className="field w-full min-w-0"
+              >
+                <option value="">All parties</option>
+                {facets.parties.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.value} ({p.count})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <noscript>
+              <button type="submit" className="btn btn-secondary">
+                Apply filters
+              </button>
+            </noscript>
           </div>
-
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <label htmlFor={ids.party} className="text-sm font-semibold">
-              Party
-            </label>
-            <select
-              id={ids.party}
-              name="party"
-              value={state.party ?? ''}
-              onChange={(e) => void setState({ party: e.target.value || null, page: null })}
-              className="field w-full min-w-0"
-            >
-              <option value="">All parties</option>
-              {facets.parties.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.value} ({p.count})
-                </option>
-              ))}
-            </select>
-          </div>
-          <noscript>
-            <button type="submit" className="btn btn-secondary">
-              Apply filters
-            </button>
-          </noscript>
         </form>
       </search>
 
       <div className="flex flex-wrap items-end justify-between gap-3 border-t border-rule pt-4">
-        <ul className="flex min-h-11 flex-wrap items-center gap-2" aria-label="Active filters">
+        <ul className="flex flex-wrap items-center gap-2 md:min-h-11" aria-label="Active filters">
           {active.length === 0 ? (
-            <li className="text-sm text-ink-3">No filters. Showing every current member.</li>
+            <li className="text-sm text-ink-3 max-md:sr-only">
+              No filters. Showing every current member.
+            </li>
           ) : (
             <>
               {active.map((f) => (
@@ -343,8 +362,8 @@ export function ExploreControls({
           )}
         </ul>
 
-        <div className="grid w-full grid-cols-2 items-end gap-3 sm:flex sm:w-auto">
-          <div className="col-span-2 flex min-w-0 flex-col gap-1.5">
+        <div className="grid w-full grid-cols-[minmax(0,1fr)_5rem_auto] items-end gap-2 sm:flex sm:w-auto sm:gap-3">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <label htmlFor={ids.sort} className="text-sm font-semibold">
               Sort by
             </label>
@@ -390,7 +409,7 @@ export function ExploreControls({
                 const size = PAGE_SIZES.find((s) => s === Number(e.target.value));
                 if (size) void setState({ size, page: null });
               }}
-              className="field w-full sm:w-auto"
+              className="field w-full pr-6 pl-2 sm:w-auto sm:pr-8 sm:pl-3"
             >
               {PAGE_SIZES.map((s) => (
                 <option key={s} value={s}>

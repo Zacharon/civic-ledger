@@ -23,9 +23,9 @@ export function ColumnPicker({ columns }: { columns: ColumnDef[] }) {
 
   return (
     <Popover.Root>
-      <Popover.Trigger className="btn btn-secondary">
+      <Popover.Trigger className="btn btn-secondary max-sm:px-2.5">
         <Columns3 aria-hidden="true" strokeWidth={1.75} className="size-4" />
-        Columns
+        <span className="max-sm:sr-only">Columns</span>
         <span className="num font-normal text-ink-3">({visible.size})</span>
       </Popover.Trigger>
       <Popover.Portal>
