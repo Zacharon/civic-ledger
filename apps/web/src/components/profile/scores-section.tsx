@@ -4,7 +4,7 @@ import { MemberScatter } from '@/components/charts/member-scatter';
 import { PositionStrip } from '@/components/charts/position-strip';
 import { SourceList, SourceMark, SourceNotes } from '@/components/sources';
 import type { ExploreRow } from '@/lib/explore-columns';
-import { formatScore, formatSigned, ordinal, safeHref } from '@/lib/format';
+import { formatDate, formatScore, formatSigned, ordinal, safeHref } from '@/lib/format';
 import { read } from '@/server/capabilities';
 import { sourceInfos } from '@/server/sources';
 import { ideologyStatusLabel } from './ideology-status';
@@ -38,15 +38,19 @@ export async function ScoresSection({
     chamber ? chamberMembers(chamber) : Promise.resolve([]),
   ]);
   const notes = new SourceNotes('scores', sources);
-  const latest = scores.ideology[0];
+  const latest = scores.ideology.find((row) => row.method === 'dw-nominate');
+  const source = latest && sources.find((item) => item.id === latest.provenance.sourceId);
+  const sourceVerified =
+    latest?.provenance.sourceId === 'voteview' && /^voteview\b/i.test(source?.name ?? '');
   const latestStatus = latest ? ideologyStatusLabel(latest.provisional) : null;
-  const chamberName = chamber === 'senate' ? 'Senate' : 'House';
+  const chamberName = chamber === 'senate' ? 'Senate' : chamber === 'house' ? 'House' : null;
   const sameCongress = latest
     ? peers.filter((p) => p.dwNominateDim1 !== null && p.ideologyCongress === latest.congress)
     : [];
   const lower = latest
     ? sameCongress.filter((p) => (p.dwNominateDim1 ?? 0) < latest.dim1).length
     : 0;
+  const plotted = sameCongress.filter((p) => p.dwNominateDim2 !== null);
 
   return (
     <ProfileSection
@@ -57,12 +61,19 @@ export async function ScoresSection({
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         {latest ? (
           <Figure
-            title={`DW-NOMINATE placement among ${chamberName} members, ${ordinal(latest.congress)} Congress`}
+            title={`DW-NOMINATE, ${ordinal(latest.congress)} Congress`}
             caption={
               <>
-                {latest.label}. Each dot is a member; horizontal = first dimension, vertical =
-                second. Source: Voteview
+                Unitless scale: −1 to +1. Record retrieved{' '}
+                {formatDate(latest.provenance.retrievedAt) ?? 'date unavailable'} UTC; retrieval is
+                not the measurement date. Source:{' '}
+                {source
+                  ? source.name
+                  : `catalogue entry unavailable (${latest.provenance.sourceId})`}
                 <SourceMark notes={notes} n={notes.cite(latest.provenance)} />.{' '}
+                {!sourceVerified
+                  ? 'Source metadata does not verify Voteview; placement is unavailable. '
+                  : ''}
                 <Link className="link" href="/methodology#dw-nominate">
                   How to read it
                 </Link>
@@ -81,23 +92,33 @@ export async function ScoresSection({
                 <span className="text-ink-2">
                   Second dimension <span className="num text-ink">{formatSigned(latest.dim2)}</span>
                 </span>
-              ) : null}
+              ) : (
+                <span className="text-ink-2">Second dimension unavailable</span>
+              )}
               {latestStatus ? (
                 <span className="text-xs font-semibold text-ink-3" data-ideology-status>
                   {latestStatus}
                 </span>
               ) : null}
             </p>
-            {sameCongress.length > 1 ? (
+            {sourceVerified && chamberName && latest.dim2 !== null && plotted.length > 1 ? (
               <MemberScatter
-                points={sameCongress.map((p) => ({
+                points={plotted.map((p) => ({
                   key: p.slug,
                   x: p.dwNominateDim1 ?? 0,
                   y: p.dwNominateDim2,
                 }))}
                 focus={{ key: slug, x: latest.dim1, y: latest.dim2, name }}
-                label={`${name}'s first-dimension score is ${formatSigned(latest.dim1)}. ${lower} of ${sameCongress.length} ${chamberName} members with a score are further toward the liberal end of the scale.`}
+                label={`${name}'s first-dimension score is ${formatSigned(latest.dim1)}. ${lower} of ${sameCongress.length} ${chamberName} members with a first-dimension score are further toward the liberal end of the scale. The plot excludes members without a second dimension.`}
               />
+            ) : latest.dim2 === null ? (
+              <p className="text-sm text-ink-2">
+                Two-dimensional placement unavailable: second dimension not reported.
+              </p>
+            ) : sourceVerified ? (
+              <p className="text-sm text-ink-2">
+                Two-dimensional placement unavailable: not enough comparable chamber records.
+              </p>
             ) : null}
             {scores.ideology.length > 1 ? (
               <table className="mt-4 w-full max-w-sm text-sm">
@@ -107,6 +128,7 @@ export async function ScoresSection({
                 <thead className="sr-only">
                   <tr>
                     <th scope="col">Congress</th>
+                    <th scope="col">Method</th>
                     <th scope="col">First dimension</th>
                     <th scope="col">Second dimension</th>
                     <th scope="col">Status</th>
@@ -124,6 +146,10 @@ export async function ScoresSection({
                       <th scope="row" className="py-1 text-left font-normal text-ink-2">
                         {ordinal(row.congress)}
                       </th>
+                      <td className="py-1 pl-3">
+                        {row.method}
+                        <SourceMark notes={notes} n={notes.cite(row.provenance)} />
+                      </td>
                       <td className="num py-1 text-right">{formatSigned(row.dim1)}</td>
                       <td className="num py-1 text-right text-ink-2">
                         {formatSigned(row.dim2) ?? '—'}
@@ -138,10 +164,21 @@ export async function ScoresSection({
             ) : null}
           </Figure>
         ) : (
-          <p className="text-ink-2" data-ideology="none" data-value="null">
-            No DW-NOMINATE estimate yet. Voteview publishes one once a member has cast enough
-            roll-call votes.
-          </p>
+          <div>
+            <p className="text-ink-2" data-ideology="none" data-value="null">
+              No DW-NOMINATE estimate is available.
+            </p>
+            {scores.ideology.length > 0 ? (
+              <ul className="mt-3 text-sm text-ink-2">
+                {scores.ideology.map((row) => (
+                  <li key={`${row.congress}-${row.method}`}>
+                    {row.method}, {ordinal(row.congress)} Congress: {formatSigned(row.dim1)}
+                    <SourceMark notes={notes} n={notes.cite(row.provenance)} />
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         )}
 
         <div>
