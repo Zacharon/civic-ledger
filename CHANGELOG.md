@@ -119,3 +119,6 @@ tagged; the first tag waits for the production-readiness gate and owner approval
 
 - `pnpm audit --prod`: no known vulnerabilities (2026-10-16). One moderate advisory in
   the dev-only `drizzle-kit` tree is accepted and recorded in A48.
+- vite (dev-only, through vitest) held at `^8.3.8` by a `pnpm-workspace.yaml` override
+  (2026-11-24): GHSA-p4f5-76q4-ffq7 (critical, fixed in 8.3.7) and GHSA-rq7h-c2jc-7f22.
+  `pnpm --filter @civic-ledger/web dev` now binds `next dev` to `127.0.0.1`.
