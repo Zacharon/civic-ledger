@@ -55,7 +55,8 @@ with a message naming the variable; empty means "use the default".
 The new `API_BODY_TIMEOUT_MS`, `WEB_READ_TIMEOUT_MS` and `HTTP_*_TIMEOUT_MS`
 budgets accept only positive integers up to 120000; zero or empty is invalid.
 `pnpm --filter web start` runs `server.mjs` and accepts `-p/--port` and
-`-H/--hostname`, with `PORT`/`HOSTNAME` fallbacks. Development still uses `next dev`.
+`-H/--hostname`, with `PORT`/`HOSTNAME` fallbacks. Development still uses `next dev`, bound to
+`127.0.0.1` so the dev server is not reachable from the network.
 The request and response limits apply to the native production start boundary;
 the existing database statement timeout independently bounds database work.
 

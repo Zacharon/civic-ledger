@@ -12,6 +12,10 @@ allowBuilds:
   '@embedded-postgres/linux-x64': true
   '@embedded-postgres/windows-x64': true
   esbuild: true
+overrides:
+  # vite is transitive (vitest > vite). Hold it at a patched 8.3.x or later:
+  # GHSA-p4f5-76q4-ffq7 (critical, fixed 8.3.7) and GHSA-rq7h-c2jc-7f22 (fixed 8.3.3).
+  vite: ^8.3.8
 auditConfig:
   # Dev-tree advisories that have no patched release, each accepted in docs/DECISIONS.md and
   # recorded with a review date and an expiry (at most 30 days) in scripts/audit/exceptions.json.
